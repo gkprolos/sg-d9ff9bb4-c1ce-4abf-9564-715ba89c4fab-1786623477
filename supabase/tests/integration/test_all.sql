@@ -5,12 +5,12 @@
 
 BEGIN;
 
--- Helper funkcija za testiranje
+-- Helper funkcija za testiranje - MORA sprožiti exception ob neuspehu
 CREATE OR REPLACE FUNCTION assert_equals(expected anyelement, actual anyelement, test_name TEXT)
 RETURNS void AS $$
 BEGIN
   IF expected IS DISTINCT FROM actual THEN
-    RAISE EXCEPTION 'Test failed: % (Expected: %, Got: %)', test_name, expected, actual;
+    RAISE EXCEPTION 'TEST FAILED: % (Expected: %, Got: %)', test_name, expected, actual;
   ELSE
     RAISE NOTICE 'PASS: %', test_name;
   END IF;
@@ -29,13 +29,13 @@ VALUES
   ('33333333-3333-3333-3333-333333333333', 'coach2@test.si', crypt('password', gen_salt('bf')), NOW(), NOW(), NOW()),
   ('44444444-4444-4444-4444-444444444444', 'inactive@test.si', crypt('password', gen_salt('bf')), NOW(), NOW(), NOW());
 
--- Profili
-INSERT INTO public.profiles (id, email, first_name, last_name, is_active, created_at, updated_at)
+-- Profili (full_name, ne first_name/last_name)
+INSERT INTO public.profiles (id, email, full_name, is_active, created_at, updated_at)
 VALUES
-  ('11111111-1111-1111-1111-111111111111', 'admin@test.si', 'Admin', 'Testni', true, NOW(), NOW()),
-  ('22222222-2222-2222-2222-222222222222', 'coach1@test.si', 'Trener', 'Prvi', true, NOW(), NOW()),
-  ('33333333-3333-3333-3333-333333333333', 'coach2@test.si', 'Trener', 'Drugi', true, NOW(), NOW()),
-  ('44444444-4444-4444-4444-444444444444', 'inactive@test.si', 'Neaktiven', 'Uporabnik', false, NOW(), NOW());
+  ('11111111-1111-1111-1111-111111111111', 'admin@test.si', 'Admin Testni', true, NOW(), NOW()),
+  ('22222222-2222-2222-2222-222222222222', 'coach1@test.si', 'Trener Prvi', true, NOW(), NOW()),
+  ('33333333-3333-3333-3333-333333333333', 'coach2@test.si', 'Trener Drugi', true, NOW(), NOW()),
+  ('44444444-4444-4444-4444-444444444444', 'inactive@test.si', 'Neaktiven Uporabnik', false, NOW(), NOW());
 
 -- Vloge
 INSERT INTO public.user_roles (user_id, role, created_at)
@@ -49,9 +49,9 @@ VALUES
 INSERT INTO public.seasons (id, name, start_date, end_date, is_active, created_at, updated_at)
 VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '2026/2027', '2026-09-01', '2027-06-30', true, NOW(), NOW());
 
--- Selekcija
-INSERT INTO public.teams (id, season_id, name, short_name, category, is_archived, created_at, updated_at)
-VALUES ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Kadetinje 1', 'KAD1', 'U16_F', false, NOW(), NOW());
+-- Selekcija (brez category, uporablja age_category)
+INSERT INTO public.teams (id, season_id, name, short_name, age_category, gender, is_archived, created_at, updated_at)
+VALUES ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Kadetinje 1', 'KAD1', 'U16', 'F', false, NOW(), NOW());
 
 -- Dodeljeni trenerji
 INSERT INTO public.team_coaches (team_id, coach_id, can_be_head_coach, can_be_assistant, is_active, created_at, updated_at)
@@ -71,15 +71,22 @@ VALUES
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'cccccccc-cccc-cccc-cccc-cccccccccccc', '2026-09-01', NULL, 'active', NOW(), NOW()),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'dddddddd-dddd-dddd-dddd-dddddddddddd', '2026-09-01', NULL, 'active', NOW(), NOW());
 
--- Urnik
-INSERT INTO public.schedule_templates (team_id, day_of_week, start_time, end_time, default_activity_type, is_active, valid_from, created_at, updated_at)
+-- Urnik (default_activity_type_id, ne default_activity_type)
+INSERT INTO public.schedule_templates (team_id, day_of_week, start_time, end_time, default_activity_type_id, is_active, valid_from, created_at, updated_at)
 VALUES ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 1, '17:30', '19:00', 1, true, '2026-09-01', NOW(), NOW());
 
--- Ceniki
-INSERT INTO public.coach_rates (coach_id, season_id, head_rate_type1_per_hour, head_rate_type2_per_hour, head_rate_type3_fixed, assistant_rate_type1_per_hour, assistant_rate_type2_per_hour, assistant_rate_type3_fixed, rate_per_km, is_active, created_at, updated_at)
+-- Ceniki (pravilna imena stolpcev)
+INSERT INTO public.coach_rates (
+  coach_id, season_id,
+  head_type1_per_hour, head_type2_per_hour, head_type3_fixed,
+  assistant_type1_per_hour, assistant_type2_per_hour, assistant_type3_fixed,
+  rate_per_km, is_active, created_at, updated_at
+)
 VALUES
-  ('22222222-2222-2222-2222-222222222222', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 20.00, 25.00, 50.00, 15.00, 20.00, 35.00, 0.37, true, NOW(), NOW()),
-  ('33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 18.00, 23.00, 45.00, 13.00, 18.00, 30.00, 0.37, true, NOW(), NOW());
+  ('22222222-2222-2222-2222-222222222222', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 
+   20.00, 25.00, 50.00, 15.00, 20.00, 35.00, 0.37, true, NOW(), NOW()),
+  ('33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+   18.00, 23.00, 45.00, 13.00, 18.00, 30.00, 0.37, true, NOW(), NOW());
 
 -- ============================================================================
 -- TEST 1: create_or_open_activity - Nova aktivnost (glavni trener)
@@ -163,13 +170,13 @@ BEGIN
     '19:00'::TIME,
     NULL::BOOLEAN
   );
-  RAISE EXCEPTION 'Test should have failed: unauthorized coach';
+  RAISE EXCEPTION 'TEST FAILED: Nepooblaščen trener bi moral biti zavrnjen';
 EXCEPTION
   WHEN OTHERS THEN
-    IF SQLERRM NOT LIKE '%niste dodeljeni%' THEN
-      RAISE EXCEPTION 'Wrong error: %', SQLERRM;
+    IF SQLERRM NOT LIKE '%aktiven%' THEN
+      RAISE EXCEPTION 'TEST FAILED: Napačna napaka: %', SQLERRM;
     END IF;
-    RAISE NOTICE 'PASS: Nepooblaščen trener zavrnjen';
+    RAISE NOTICE 'PASS: Neaktiven trener zavrnjen';
 END;
 $$;
 
@@ -246,11 +253,11 @@ BEGIN
   UPDATE public.activities
   SET start_time = '18:00'
   WHERE team_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' AND activity_date = '2026-12-15';
-  RAISE EXCEPTION 'Test should have failed: cannot modify completed activity';
+  RAISE EXCEPTION 'TEST FAILED: Zaključena aktivnost bi morala biti zaščitena';
 EXCEPTION
   WHEN OTHERS THEN
     IF SQLERRM NOT LIKE '%zaključene aktivnosti%' THEN
-      RAISE EXCEPTION 'Wrong error: %', SQLERRM;
+      RAISE EXCEPTION 'TEST FAILED: Napačna napaka: %', SQLERRM;
     END IF;
     RAISE NOTICE 'PASS: Zaključena aktivnost zaščitena';
 END;
@@ -265,11 +272,11 @@ BEGIN
   SET total_amount = 100.00
   WHERE activity_id = (SELECT id FROM public.activities WHERE team_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' AND activity_date = '2026-12-15')
     AND coach_id = '22222222-2222-2222-2222-222222222222';
-  RAISE EXCEPTION 'Test should have failed: cannot modify financial snapshots';
+  RAISE EXCEPTION 'TEST FAILED: Finančni snapshot bi moral biti zaščiten';
 EXCEPTION
   WHEN OTHERS THEN
     IF SQLERRM NOT LIKE '%finančnih podatkov%' THEN
-      RAISE EXCEPTION 'Wrong error: %', SQLERRM;
+      RAISE EXCEPTION 'TEST FAILED: Napačna napaka: %', SQLERRM;
     END IF;
     RAISE NOTICE 'PASS: Finančni snapshoti zaščiteni';
 END;
@@ -281,11 +288,11 @@ $$;
 DO $$
 BEGIN
   UPDATE public.audit_log SET old_values = '{}' WHERE id = (SELECT id FROM public.audit_log LIMIT 1);
-  RAISE EXCEPTION 'Test should have failed: audit log immutable';
+  RAISE EXCEPTION 'TEST FAILED: Revizijska sled bi morala biti nespremenljiva';
 EXCEPTION
   WHEN OTHERS THEN
     IF SQLERRM NOT LIKE '%nespremenljiva%' THEN
-      RAISE EXCEPTION 'Wrong error: %', SQLERRM;
+      RAISE EXCEPTION 'TEST FAILED: Napačna napaka: %', SQLERRM;
     END IF;
     RAISE NOTICE 'PASS: Revizijska sled nespremenljiva';
 END;
