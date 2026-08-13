@@ -4,7 +4,7 @@ Celovita spletna aplikacija za upravljanje športnega kluba v slovenskem jeziku.
 
 ## Tehnologije
 
-- **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS
+- **Frontend**: Next.js 15 (Pages Router), TypeScript, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL, Auth, Row Level Security)
 - **UI**: shadcn/ui komponente
 - **CI/CD**: GitHub Actions
@@ -44,10 +44,13 @@ Aplikacija teče na `http://localhost:3000`
 
 ```bash
 # Integracijski testi
-psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/integration/test_all.sql
+npm run test:integration
 
 # RLS testi
-psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/rls/test_rls_matrix.sql
+npm run test:rls
+
+# Vsi SQL testi
+npm run test:db
 
 # TypeScript type check
 npm run type-check
@@ -59,11 +62,16 @@ npm run lint
 npm run build
 ```
 
+**Opomba:** Testne skripte zahtevajo `DATABASE_URL` okolijsko spremenljivko:
+```bash
+export DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
+```
+
 ## Struktura Projekta
 
 ```
 ├── src/
-│   ├── app/              # Next.js App Router strani
+│   ├── pages/            # Next.js Pages Router strani
 │   ├── components/       # React komponente
 │   └── lib/              # Utility funkcije
 ├── supabase/
@@ -125,6 +133,13 @@ VALUES ('<UUID_iz_prejsnjega_SELECT>', 'admin');
 ### Varnostne Kopije
 
 Nastavite tedensko šifrirano backup (AWS S3 + GPG encryption). Glej `.github/workflows/backup.yml`.
+
+## Status Projekta
+
+**FAZA A:** Implementirana, čaka na izvršno verifikacijo  
+**FAZA B:** Ni začeta
+
+Projekt trenutno vsebuje samo podatkovne temelje. Poslovni zasloni in uporabniški vmesnik še niso implementirani.
 
 ## Podpora
 

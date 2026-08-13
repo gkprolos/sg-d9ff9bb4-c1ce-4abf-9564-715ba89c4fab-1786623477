@@ -50,11 +50,14 @@ CREATE TABLE seasons (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   
-  CONSTRAINT valid_season_dates CHECK (end_date > start_date),
-  CONSTRAINT only_one_active EXCLUDE (is_active WITH =) WHERE (is_active = true AND is_archived = false)
+  CONSTRAINT valid_season_dates CHECK (end_date > start_date)
 );
 
-CREATE INDEX idx_seasons_is_active ON seasons(is_active) WHERE is_active = true;
+-- Partial unique index: samo ena aktivna sezona, ki ni arhivirana
+CREATE UNIQUE INDEX idx_seasons_one_active 
+  ON seasons(is_active) 
+  WHERE is_active = true AND is_archived = false;
+
 CREATE INDEX idx_seasons_is_archived ON seasons(is_archived);
 
 COMMENT ON TABLE seasons IS 'Sports seasons (e.g., 2026/2027)';
@@ -75,13 +78,15 @@ CREATE TABLE teams (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   
-  UNIQUE (season_id, name)
+  UNIQUE (season_id, name),
+  UNIQUE (id, season_id)
 );
 
 CREATE INDEX idx_teams_season ON teams(season_id);
 CREATE INDEX idx_teams_is_archived ON teams(is_archived);
 
 COMMENT ON TABLE teams IS 'Teams/selections within a season';
+COMMENT ON CONSTRAINT teams_id_season_id_key ON teams IS 'Composite FK support for activities';
 
 -- ============================================================================
 -- TABELA: venues
@@ -304,7 +309,7 @@ COMMENT ON COLUMN activities.activity_type_id IS '1=Training in gym, 2=Training/
 -- ============================================================================
 CREATE TABLE activity_coaches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  activity_id UUID NOT NULL REFERENCES activities(id) ON DELETE RESTRICT,
+  activity_id UUID NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
   coach_id UUID NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
   role TEXT NOT NULL CHECK (role IN ('head', 'assistant')),
   mileage_km NUMERIC(10, 2) DEFAULT 0 CHECK (mileage_km >= 0),
@@ -344,14 +349,13 @@ COMMENT ON TABLE activity_coaches IS 'Coaches assigned to activities with financ
 -- ============================================================================
 CREATE TABLE attendance_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  activity_id UUID NOT NULL REFERENCES activities(id) ON DELETE RESTRICT,
+  activity_id UUID NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
   player_id UUID NOT NULL REFERENCES players(id) ON DELETE RESTRICT,
   status INT NOT NULL CHECK (status IN (0, 1, 2)),
   notes TEXT,
   recorded_by UUID NOT NULL REFERENCES profiles(id),
-  recorded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  last_modified_by UUID REFERENCES profiles(id),
-  last_modified_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   
   UNIQUE (activity_id, player_id)
 );
@@ -392,7 +396,6 @@ CREATE TABLE player_forms (
   received_date DATE,
   notes TEXT,
   recorded_by UUID REFERENCES profiles(id),
-  recorded_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   
@@ -441,14 +444,32 @@ CREATE INDEX idx_coach_rates_is_active ON coach_rates(is_active);
 COMMENT ON TABLE coach_rates IS 'Coach payment rates per season';
 
 -- ============================================================================
+-- TABELA: locked_months
+-- Opis: Zaklenjeni meseci
+-- ============================================================================
+CREATE TABLE locked_months (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  season_id UUID NOT NULL REFERENCES seasons(id) ON DELETE RESTRICT,
+  month_year DATE NOT NULL,
+  locked_by UUID NOT NULL REFERENCES profiles(id),
+  locked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  notes TEXT,
+  
+  UNIQUE (season_id, month_year)
+);
+
+CREATE INDEX idx_locked_months_season ON locked_months(season_id);
+
+COMMENT ON TABLE locked_months IS 'Locked months for financial data';
+
+-- ============================================================================
 -- TABELA: correction_requests
 -- Opis: Zahteve za popravek
 -- ============================================================================
 CREATE TABLE correction_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  activity_id UUID NOT NULL REFERENCES activities(id) ON DELETE RESTRICT,
   requested_by UUID NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
-  table_name TEXT NOT NULL,
-  record_id UUID NOT NULL,
   field_name TEXT NOT NULL,
   current_value TEXT,
   proposed_value TEXT,
@@ -457,18 +478,12 @@ CREATE TABLE correction_requests (
   reviewed_by UUID REFERENCES profiles(id),
   reviewed_at TIMESTAMPTZ,
   admin_notes TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  
-  CONSTRAINT valid_table_name CHECK (table_name IN (
-    'activities',
-    'activity_coaches',
-    'attendance_records'
-  ))
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE INDEX idx_correction_requests_activity ON correction_requests(activity_id);
 CREATE INDEX idx_correction_requests_requested_by ON correction_requests(requested_by);
 CREATE INDEX idx_correction_requests_status ON correction_requests(status);
-CREATE INDEX idx_correction_requests_reviewed_by ON correction_requests(reviewed_by);
 
 COMMENT ON TABLE correction_requests IS 'Coach correction requests for locked months';
 
