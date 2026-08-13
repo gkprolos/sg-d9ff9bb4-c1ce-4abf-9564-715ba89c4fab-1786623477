@@ -445,9 +445,201 @@ $$;
 
 COMMENT ON FUNCTION public.complete_activity_with_rates IS 'Complete activity and calculate coach payments';
 
+-- ============================================================================
+-- FUNKCIJA: admin_recalculate_activity
+-- Opis: Administratorski ponovni obračun aktivnosti z revizijsko sledjo
+-- ============================================================================
+CREATE FUNCTION public.admin_recalculate_activity(
+  p_activity_id UUID,
+  p_reason TEXT,
+  p_correction_request_id UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_activity RECORD;
+  v_coach RECORD;
+  v_rates RECORD;
+  v_hours NUMERIC;
+  v_activity_amount NUMERIC;
+  v_mileage_amount NUMERIC;
+  v_total_amount NUMERIC;
+  v_old_snapshot JSONB;
+  v_new_snapshot JSONB;
+BEGIN
+  v_user_id := auth.uid();
+  
+  -- 1. SAMO ADMIN
+  IF NOT _app_internals.is_admin(v_user_id) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Samo administrator lahko ponovno obračuna aktivnost');
+  END IF;
+
+  -- 2. OBVEZEN RAZLOG
+  IF p_reason IS NULL OR trim(p_reason) = '' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Razlog za popravek je obvezen');
+  END IF;
+
+  -- 3. PREVERI AKTIVNOST
+  SELECT * INTO v_activity
+  FROM public.activities
+  WHERE id = p_activity_id;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Aktivnost ne obstaja');
+  END IF;
+
+  IF NOT v_activity.is_completed THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Aktivnost še ni zaključena');
+  END IF;
+
+  -- 4. PREVERI CORRECTION_REQUEST (če podan)
+  IF p_correction_request_id IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.correction_requests
+      WHERE id = p_correction_request_id
+        AND activity_id = p_activity_id
+        AND status = 'pending'
+    ) THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Neveljavna zahteva za popravek');
+    END IF;
+  END IF;
+
+  -- 5. PONOVNO IZRAČUNAJ ZA VSAKEGA TRENERJA
+  FOR v_coach IN
+    SELECT *
+    FROM public.activity_coaches
+    WHERE activity_id = p_activity_id
+  LOOP
+    -- Shrani stare vrednosti za revizijo
+    SELECT jsonb_build_object(
+      'activity_amount', activity_amount,
+      'mileage_amount', mileage_amount,
+      'total_amount', total_amount,
+      'rate_type1_per_hour', rate_type1_per_hour,
+      'rate_type2_per_hour', rate_type2_per_hour,
+      'rate_type3_fixed', rate_type3_fixed,
+      'rate_per_km', rate_per_km
+    ) INTO v_old_snapshot
+    FROM public.activity_coaches
+    WHERE id = v_coach.id;
+
+    -- Pridobi trenutne veljavne postavke
+    SELECT * INTO v_rates
+    FROM public.coach_rates
+    WHERE coach_id = v_coach.coach_id
+      AND season_id = v_activity.season_id
+      AND is_active = true;
+
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object(
+        'success', false,
+        'error', format('Trener %s nima veljavnih postavk', 
+          (SELECT full_name FROM public.profiles WHERE id = v_coach.coach_id))
+      );
+    END IF;
+
+    -- NOVI IZRAČUN
+    v_hours := ROUND(EXTRACT(EPOCH FROM (v_activity.end_time - v_activity.start_time)) / 3600.0, 2);
+
+    IF v_activity.activity_type_id = 1 THEN
+      v_activity_amount := ROUND(v_hours * CASE 
+        WHEN v_coach.role = 'head' THEN v_rates.head_type1_per_hour
+        ELSE v_rates.assistant_type1_per_hour
+      END, 2);
+    ELSIF v_activity.activity_type_id = 2 THEN
+      v_activity_amount := ROUND(v_hours * CASE 
+        WHEN v_coach.role = 'head' THEN v_rates.head_type2_per_hour
+        ELSE v_rates.assistant_type2_per_hour
+      END, 2);
+    ELSE
+      v_activity_amount := CASE 
+        WHEN v_coach.role = 'head' THEN v_rates.head_type3_fixed
+        ELSE v_rates.assistant_type3_fixed
+      END;
+    END IF;
+
+    v_mileage_amount := ROUND(COALESCE(v_coach.mileage_km, 0) * COALESCE(v_rates.rate_per_km, 0), 2);
+    v_total_amount := v_activity_amount + v_mileage_amount;
+
+    -- POSODOBI
+    UPDATE public.activity_coaches
+    SET
+      rate_type1_per_hour = CASE WHEN v_coach.role = 'head' THEN v_rates.head_type1_per_hour ELSE v_rates.assistant_type1_per_hour END,
+      rate_type2_per_hour = CASE WHEN v_coach.role = 'head' THEN v_rates.head_type2_per_hour ELSE v_rates.assistant_type2_per_hour END,
+      rate_type3_fixed = CASE WHEN v_coach.role = 'head' THEN v_rates.head_type3_fixed ELSE v_rates.assistant_type3_fixed END,
+      rate_per_km = v_rates.rate_per_km,
+      hours_worked = v_hours,
+      activity_amount = v_activity_amount,
+      mileage_amount = v_mileage_amount,
+      total_amount = v_total_amount
+    WHERE id = v_coach.id;
+
+    -- Shrani nove vrednosti
+    SELECT jsonb_build_object(
+      'activity_amount', activity_amount,
+      'mileage_amount', mileage_amount,
+      'total_amount', total_amount,
+      'rate_type1_per_hour', rate_type1_per_hour,
+      'rate_type2_per_hour', rate_type2_per_hour,
+      'rate_type3_fixed', rate_type3_fixed,
+      'rate_per_km', rate_per_km
+    ) INTO v_new_snapshot
+    FROM public.activity_coaches
+    WHERE id = v_coach.id;
+
+    -- REVIZIJSKI ZAPIS
+    INSERT INTO public.audit_log (
+      table_name,
+      record_id,
+      operation,
+      old_values,
+      new_values,
+      user_id,
+      user_name,
+      correction_request_id,
+      correction_reason
+    ) VALUES (
+      'activity_coaches',
+      v_coach.id,
+      'UPDATE',
+      v_old_snapshot,
+      v_new_snapshot,
+      v_user_id,
+      (SELECT full_name FROM public.profiles WHERE id = v_user_id),
+      p_correction_request_id,
+      p_reason
+    );
+  END LOOP;
+
+  -- 6. OZNAČI CORRECTION_REQUEST kot APPROVED
+  IF p_correction_request_id IS NOT NULL THEN
+    UPDATE public.correction_requests
+    SET status = 'approved',
+        reviewed_by = v_user_id,
+        reviewed_at = now()
+    WHERE id = p_correction_request_id;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'message', 'Aktivnost uspešno ponovno obračunana',
+    'reason', p_reason
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION public.admin_recalculate_activity IS 'Admin-only function to recalculate completed activity with audit trail';
+
 -- Grant execute
 REVOKE ALL ON FUNCTION public.create_or_open_activity FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.create_or_open_activity TO authenticated;
 
 REVOKE ALL ON FUNCTION public.complete_activity_with_rates FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.complete_activity_with_rates TO authenticated;
+
+REVOKE ALL ON FUNCTION public.admin_recalculate_activity FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_recalculate_activity TO authenticated;
