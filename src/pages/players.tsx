@@ -506,10 +506,7 @@ export default function PlayersPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Ime</TableHead>
-                        <TableHead>Priimek</TableHead>
-                        <TableHead>Datum rojstva</TableHead>
-                        <TableHead>Kraj</TableHead>
+                        <TableHead>Igralec</TableHead>
                         <TableHead>Selekcije</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Akcije</TableHead>
@@ -518,14 +515,22 @@ export default function PlayersPage() {
                     <TableBody>
                       {players.map((player) => (
                         <TableRow key={player.id}>
-                          <TableCell className="font-medium">{player.first_name}</TableCell>
-                          <TableCell>{player.last_name}</TableCell>
                           <TableCell>
-                            {player.date_of_birth
-                              ? new Date(player.date_of_birth).toLocaleDateString("sl-SI")
-                              : "N/A"}
+                            <div className="flex flex-col gap-1">
+                              <span className="font-medium">
+                                {player.first_name} {player.last_name}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {player.date_of_birth && (
+                                  <>
+                                    {new Date(player.date_of_birth).toLocaleDateString("sl-SI")}
+                                    {player.city && <> • {player.city}</>}
+                                  </>
+                                )}
+                                {!player.date_of_birth && player.city && player.city}
+                              </span>
+                            </div>
                           </TableCell>
-                          <TableCell>{player.city || "N/A"}</TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {player.teams && player.teams.length > 0 ? (
