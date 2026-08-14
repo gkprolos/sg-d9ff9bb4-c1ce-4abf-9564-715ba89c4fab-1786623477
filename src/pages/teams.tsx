@@ -25,6 +25,7 @@ interface Team {
   is_active: boolean;
   notes: string | null;
   season_id: string;
+  head_coach_id: string | null;
 }
 
 export default function TeamsPage() {
@@ -39,6 +40,7 @@ export default function TeamsPage() {
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [coaches, setCoaches] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     short_name: "",
@@ -47,6 +49,7 @@ export default function TeamsPage() {
     is_active: true,
     notes: "",
     season_id: "",
+    head_coach_id: "",
   });
 
   // Filter players by search term and team gender
@@ -83,7 +86,22 @@ export default function TeamsPage() {
   useEffect(() => {
     loadSeasons();
     loadTeams();
+    loadCoaches();
   }, []);
+
+  async function loadCoaches() {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .order("full_name", { ascending: true });
+
+      if (error) throw error;
+      setCoaches(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju trenerjev:", error);
+    }
+  }
 
   async function loadSeasons() {
     try {
@@ -247,6 +265,7 @@ export default function TeamsPage() {
       is_active: true,
       notes: "",
       season_id: seasons[0]?.id || "",
+      head_coach_id: "",
     });
     setDialogOpen(true);
   }
@@ -261,6 +280,7 @@ export default function TeamsPage() {
       is_active: team.is_active,
       notes: team.notes || "",
       season_id: team.season_id,
+      head_coach_id: team.head_coach_id || "",
     });
     setDialogOpen(true);
   }
@@ -288,6 +308,7 @@ export default function TeamsPage() {
         is_archived: !formData.is_active, // Map UI is_active to DB is_archived
         notes: formData.notes || null,
         season_id: formData.season_id,
+        head_coach_id: formData.head_coach_id || null,
       };
 
       if (selectedTeam) {
@@ -507,6 +528,26 @@ export default function TeamsPage() {
                         <SelectItem value="M">M (Moški)</SelectItem>
                         <SelectItem value="F">F (Ženski)</SelectItem>
                         <SelectItem value="Mixed">Mixed (Mešano)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="head_coach_id">Glavni trener</Label>
+                    <Select
+                      value={formData.head_coach_id}
+                      onValueChange={(value) => setFormData({ ...formData, head_coach_id: value })}
+                    >
+                      <SelectTrigger id="head_coach_id">
+                        <SelectValue placeholder="Izberi glavnega trenerja" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Ni izbran</SelectItem>
+                        {coaches.map((coach) => (
+                          <SelectItem key={coach.id} value={coach.id}>
+                            {coach.full_name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
