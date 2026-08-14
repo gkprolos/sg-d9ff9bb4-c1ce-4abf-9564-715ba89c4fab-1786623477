@@ -41,7 +41,9 @@ interface Team {
 
 export default function TeamsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [teams, setTeams] = useState<Team[]>([]);
   const [seasons, setSeasons] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -90,10 +92,33 @@ export default function TeamsPage() {
   const exactMatch = filteredPlayers.length === 1 ? filteredPlayers[0] : null;
 
   useEffect(() => {
-    loadSeasons();
     loadTeams();
+    loadSeasons();
     loadCoaches();
   }, []);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (!user) return;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      setIsAdmin(!!data);
+    }
+    checkAdmin();
+  }, [user]);
+
+  // Check if current user is assigned as coach to a team
+  function isAssignedCoach(teamId: string): boolean {
+    if (isAdmin) return true;
+    if (!user) return false;
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return false;
+    return team.coaches?.some((tc: any) => tc.coach_id === user.id) || false;
+  }
 
   async function loadCoaches() {
     try {
@@ -410,9 +435,9 @@ export default function TeamsPage() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">Selekcije</h2>
-              <p className="text-muted-foreground">Upravljanje selekcij kluba</p>
+              <p className="text-muted-foreground">Upravljanje ekip in njihovih članov</p>
             </div>
-            <Button onClick={handleAdd}>
+            <Button onClick={handleAdd} disabled={loading || !isAdmin}>
               <Plus className="h-4 w-4 mr-2" />
               Dodaj selekcijo
             </Button>
@@ -467,7 +492,8 @@ export default function TeamsPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleManagePlayers(team)}
-                                disabled={loading}
+                                disabled={loading || !isAssignedCoach(team.id)}
+                                title={!isAssignedCoach(team.id) ? "Samo dodeljeni trenerji lahko urejajo igralce" : ""}
                               >
                                 <Users className="h-4 w-4 mr-1" />
                                 Igralci
@@ -476,7 +502,8 @@ export default function TeamsPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEdit(team)}
-                                disabled={loading}
+                                disabled={loading || !isAssignedCoach(team.id)}
+                                title={!isAssignedCoach(team.id) ? "Samo dodeljeni trenerji lahko urejajo selekcijo" : ""}
                               >
                                 <Edit className="h-4 w-4 mr-1" />
                                 Uredi
@@ -485,7 +512,7 @@ export default function TeamsPage() {
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => handleDeleteClick(team)}
-                                disabled={loading}
+                                disabled={loading || !isAdmin}
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
                                 Izbriši

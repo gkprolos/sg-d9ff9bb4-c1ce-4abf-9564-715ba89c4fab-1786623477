@@ -1,6 +1,7 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +38,9 @@ interface Venue {
 
 export default function VenuesPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
@@ -55,6 +58,20 @@ export default function VenuesPage() {
   useEffect(() => {
     loadVenues();
   }, []);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (!user) return;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      setIsAdmin(!!data);
+    }
+    checkAdmin();
+  }, [user]);
 
   async function loadVenues() {
     try {
@@ -236,9 +253,9 @@ export default function VenuesPage() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">Dvorane</h2>
-              <p className="text-muted-foreground">Upravljanje dvoran</p>
+              <p className="text-muted-foreground">Upravljanje športnih dvoran in lokacij</p>
             </div>
-            <Button onClick={handleAdd}>
+            <Button onClick={handleAdd} disabled={loading || !isAdmin}>
               <Plus className="h-4 w-4 mr-2" />
               Dodaj dvorano
             </Button>
@@ -291,7 +308,7 @@ export default function VenuesPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEdit(venue)}
-                                disabled={loading}
+                                disabled={loading || !isAdmin}
                               >
                                 <Edit className="h-4 w-4 mr-1" />
                                 Uredi
@@ -300,7 +317,7 @@ export default function VenuesPage() {
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => handleDeleteClick(venue)}
-                                disabled={loading}
+                                disabled={loading || !isAdmin}
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
                                 Izbriši

@@ -30,6 +30,7 @@ import {
   ChevronRight,
   Activity,
   ClipboardCheck,
+  Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -97,27 +98,126 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-1">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            const isActive = router.pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                {item.name}
-                {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
-              </Link>
-            );
-          })}
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/dashboard">
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span>{isAdmin ? "Nadzorna plošča" : "Moj pregled"}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {isAdmin && (
+              <>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/activities">
+                      <Activity className="h-4 w-4" />
+                      <span>Aktivnosti</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/seasons">
+                      <Calendar className="h-4 w-4" />
+                      <span>Sezone</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </>
+            )}
+
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/attendance">
+                  <ClipboardCheck className="h-4 w-4" />
+                  <span>{isAdmin ? "Prisotnost" : "Vnos prisotnosti"}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {isAdmin ? (
+              <>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/teams">
+                      <Users className="h-4 w-4" />
+                      <span>Selekcije</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/players">
+                      <UserCog className="h-4 w-4" />
+                      <span>Igralci</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/coaches">
+                      <ClipboardList className="h-4 w-4" />
+                      <span>Trenerji</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/venues">
+                      <Building className="h-4 w-4" />
+                      <span>Dvorane</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/schedules">
+                      <Clock className="h-4 w-4" />
+                      <span>Urniki</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </>
+            ) : (
+              <>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/players">
+                      <UserCog className="h-4 w-4" />
+                      <span>Igralci</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/teams">
+                      <Users className="h-4 w-4" />
+                      <span>Selekcije</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/venues">
+                      <Building className="h-4 w-4" />
+                      <span>Dvorane</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/schedules">
+                      <Clock className="h-4 w-4" />
+                      <span>Urniki</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </>
+            )}
+          </SidebarMenu>
         </nav>
       </ScrollArea>
 
