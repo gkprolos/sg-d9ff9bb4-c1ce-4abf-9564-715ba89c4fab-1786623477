@@ -36,6 +36,19 @@ const DAYS = [
   { value: "0", label: "Nedelja" },
 ];
 
+interface ScheduleTemplate {
+  id: string;
+  team_id: string;
+  venue_id: string;
+  team: { name: string };
+  venue: { name: string; city: string };
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  default_activity_type_id: number;
+  is_active: boolean;
+}
+
 interface Schedule {
   id: string;
   team_id: string;
@@ -75,7 +88,6 @@ export default function SchedulesPage() {
     loadSchedules();
     loadTeams();
     loadVenues();
-    loadSeasons();
   }, []);
 
   useEffect(() => {

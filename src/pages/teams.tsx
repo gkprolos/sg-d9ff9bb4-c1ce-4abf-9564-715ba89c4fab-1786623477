@@ -1,6 +1,7 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ interface Team {
   season_id: string;
   head_coach_id: string | null;
   head_coach?: { full_name: string } | null;
+  coaches?: Array<{ coach_id: string }>;
 }
 
 export default function TeamsPage() {
@@ -276,7 +278,8 @@ export default function TeamsPage() {
         .from("teams")
         .select(`
           *,
-          head_coach:profiles!head_coach_id(full_name)
+          head_coach:profiles!head_coach_id(full_name),
+          coaches:team_coaches(coach_id)
         `)
         .order("name", { ascending: true });
 
