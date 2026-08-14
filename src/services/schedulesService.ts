@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export async function getSchedulesByTeam(teamId: string) {
   const { data, error } = await supabase
-    .from("schedules")
+    .from("schedule_templates")
     .select(`
       *,
       venues(name, city, address, room_designation)
