@@ -73,7 +73,6 @@ export default function DashboardPage() {
       setLoading(true);
 
       if (isAdmin) {
-        // Admin stats
         const [playersRes, teamsRes, venuesRes, activitiesRes] = await Promise.all([
           supabase.from("players").select("id", { count: "exact", head: true }).eq("is_active", true),
           supabase.from("teams").select("id", { count: "exact", head: true }).eq("is_archived", false),
@@ -94,14 +93,12 @@ export default function DashboardPage() {
           matchesType3: 0,
         });
       } else {
-        // Coach stats - mesečni pregled
         const currentMonth = new Date().toISOString().slice(0, 7);
         const startDate = `${currentMonth}-01`;
         const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0)
           .toISOString()
           .split("T")[0];
 
-        // Get activities where coach participated
         const { data: activityCoaches } = await supabase
           .from("activity_coaches")
           .select(`
@@ -123,7 +120,6 @@ export default function DashboardPage() {
         const type2Count = activityCoaches?.filter((a: any) => a.activities?.activity_type_id === 2).length || 0;
         const type3Count = activityCoaches?.filter((a: any) => a.activities?.activity_type_id === 3).length || 0;
 
-        // Get assigned teams count
         const { count: teamsCount } = await supabase
           .from("team_coaches")
           .select("id", { count: "exact", head: true })
@@ -156,31 +152,31 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <AppLayout>
         <div className="space-y-6">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">
-              {isAdmin 
-                ? "Nadzorna plošča" 
-                : `Tvoj mesečni pregled za ${currentMonthName}`
-              }
-            </h2>
-            <p className="text-muted-foreground">
-              {isAdmin 
-                ? "Pregled statistike športnega kluba" 
-                : `Pregled tvojih aktivnosti in obračuna`
-              }
-            </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">
+                {isAdmin 
+                  ? "Nadzorna plošča" 
+                  : `Tvoj mesečni pregled za ${currentMonthName}`
+                }
+              </h2>
+              <p className="text-muted-foreground">
+                {isAdmin 
+                  ? "Pregled statistike športnega kluba" 
+                  : `Pregled tvojih aktivnosti in obračuna`
+                }
+              </p>
+            </div>
+
+            {!isAdmin && (
+              <Button size="lg" onClick={() => window.location.href = '/attendance'}>
+                <ClipboardCheck className="h-5 w-5 mr-2" />
+                Vnos prisotnosti
+              </Button>
+            )}
           </div>
 
-          {!isAdmin && (
-            <Button size="lg" onClick={() => window.location.href = '/attendance'}>
-              <ClipboardCheck className="h-5 w-5 mr-2" />
-              Vnos prisotnosti
-            </Button>
-          )}
-        </div>
-
           {isAdmin ? (
-            // Admin Dashboard
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -227,7 +223,6 @@ export default function DashboardPage() {
               </Card>
             </div>
           ) : (
-            // Coach Dashboard
             <>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
@@ -337,20 +332,18 @@ export default function DashboardPage() {
             </>
           )}
 
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Dobrodošli!</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {isAdmin
-                    ? "Uporabite navigacijo za upravljanje sezon, selekcij, igralcev in aktivnosti."
-                    : "Uporabite navigacijo za vnos prisotnosti in pregled vaših aktivnosti."}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Dobrodošli!</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                {isAdmin
+                  ? "Uporabite navigacijo za upravljanje sezon, selekcij, igralcev in aktivnosti."
+                  : "Uporabite navigacijo za vnos prisotnosti in pregled vaših aktivnosti."}
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </AppLayout>
     </ProtectedRoute>
