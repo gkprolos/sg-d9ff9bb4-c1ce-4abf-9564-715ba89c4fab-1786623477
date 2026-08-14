@@ -280,6 +280,11 @@ export default function AttendancePage() {
 
       if (error) {
         console.error("RPC create_or_open_activity error:", error);
+        toast({
+          variant: "destructive",
+          title: "Napaka pri ustvarjanju aktivnosti",
+          description: error.message,
+        });
         throw new Error(error.message);
       }
 
@@ -296,15 +301,20 @@ export default function AttendancePage() {
           description: `Aktivnost za ${teamName} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} je bila uspešno ustvarjena. Ti si glavni trener.`,
         });
       } else {
-        if (role === 'head' || role === 'assistant') {
+        if (role === 'head') {
           toast({
             title: "Aktivnost že obstaja",
-            description: `Za ${teamName} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} že obstaja aktivnost. Priključil si se kot ${role === 'head' ? 'glavni trener' : 'sotrener'}.`,
+            description: `Za ${teamName} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} že obstaja aktivnost. Odprta kot glavni trener.`,
+          });
+        } else if (role === 'assistant') {
+          toast({
+            title: "Pridružil si se aktivnosti",
+            description: `Za ${teamName} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} že obstaja aktivnost. Pridružil si se kot sotrener.`,
           });
         } else {
           toast({
             title: "Aktivnost že obstaja",
-            description: `Za ${teamName} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} že obstaja aktivnost. Odprl sem jo.`,
+            description: `Za ${teamName} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} že obstaja aktivnost. Odprta.`,
           });
         }
       }
@@ -315,11 +325,7 @@ export default function AttendancePage() {
       await loadActivitiesForDate();
     } catch (error: any) {
       console.error("Napaka pri ustvarjanju aktivnosti:", error);
-      toast({
-        variant: "destructive",
-        title: "Napaka pri ustvarjanju aktivnosti",
-        description: error.message || "Prosim, poskusi ponovno. Če problem ostane, kontaktiraj administratorja.",
-      });
+      // Error toast already shown above
     } finally {
       setLoading(false);
     }
