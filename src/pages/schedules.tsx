@@ -37,8 +37,10 @@ const DAYS = [
 
 interface Schedule {
   id: string;
+  team_id: string;
+  venue_id: string;
   team: { name: string };
-  venue: { name: string };
+  venue: { name: string; city: string };
   day_of_week: number;
   start_time: string;
   end_time: string;
@@ -108,8 +110,8 @@ export default function SchedulesPage() {
         .from("schedule_templates")
         .select(`
           *,
-          teams(name),
-          venues(name, city)
+          team:teams(name),
+          venue:venues(name, city)
         `)
         .order("day_of_week", { ascending: true })
         .order("start_time", { ascending: true });
@@ -136,6 +138,7 @@ export default function SchedulesPage() {
       day_of_week: "1",
       start_time: "",
       end_time: "",
+      default_activity_type_id: "1",
       is_active: true,
     });
     setDialogOpen(true);
@@ -149,6 +152,7 @@ export default function SchedulesPage() {
       day_of_week: schedule.day_of_week.toString(),
       start_time: schedule.start_time,
       end_time: schedule.end_time,
+      default_activity_type_id: schedule.default_activity_type_id.toString(),
       is_active: schedule.is_active,
     });
     setDialogOpen(true);
@@ -284,6 +288,10 @@ export default function SchedulesPage() {
     return DAYS.find((d) => d.value === dayOfWeek.toString())?.label || "N/A";
   }
 
+  function getDayName(dayOfWeek: number): string {
+    return getDayLabel(dayOfWeek);
+  }
+
   return (
     <ProtectedRoute allowedRoles={["admin"]}>
       <AppLayout>
@@ -332,11 +340,11 @@ export default function SchedulesPage() {
                       {schedules.map((schedule) => (
                         <TableRow key={schedule.id}>
                           <TableCell className="font-medium">
-                            {schedule.teams?.name || "N/A"}
+                            {schedule.team?.name || "N/A"}
                           </TableCell>
                           <TableCell>
-                            {schedule.venues?.name || "N/A"}
-                            {schedule.venues?.city && ` (${schedule.venues.city})`}
+                            {schedule.venue?.name || "N/A"}
+                            {schedule.venue?.city && ` (${schedule.venue.city})`}
                           </TableCell>
                           <TableCell>{getDayLabel(schedule.day_of_week)}</TableCell>
                           <TableCell>

@@ -84,8 +84,9 @@ export default function VenuesPage() {
       name: "",
       city: "",
       address: "",
-      room_designation: "",
+      room_identifier: "",
       is_active: true,
+      notes: "",
     });
     setDialogOpen(true);
   }
@@ -94,10 +95,11 @@ export default function VenuesPage() {
     setSelectedVenue(venue);
     setFormData({
       name: venue.name,
-      city: venue.city,
+      city: venue.city || "",
       address: venue.address || "",
-      room_designation: venue.room_designation || "",
+      room_identifier: venue.room_identifier || "",
       is_active: venue.is_active,
+      notes: venue.notes || "",
     });
     setDialogOpen(true);
   }
@@ -277,7 +279,7 @@ export default function VenuesPage() {
                           <TableCell className="font-medium">{venue.name}</TableCell>
                           <TableCell>{venue.city}</TableCell>
                           <TableCell>{venue.address || "N/A"}</TableCell>
-                          <TableCell>{venue.room_designation || "N/A"}</TableCell>
+                          <TableCell>{venue.room_identifier || "N/A"}</TableCell>
                           <TableCell>
                             <Badge variant={venue.is_active ? "default" : "secondary"}>
                               {venue.is_active ? "Aktivna" : "Neaktivna"}
@@ -361,12 +363,12 @@ export default function VenuesPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="room_designation">Oznaka prostora</Label>
+                    <Label htmlFor="room_identifier">Oznaka prostora</Label>
                     <Input
-                      id="room_designation"
+                      id="room_identifier"
                       placeholder="npr. Mala dvorana"
-                      value={formData.room_designation}
-                      onChange={(e) => setFormData({ ...formData, room_designation: e.target.value })}
+                      value={formData.room_identifier}
+                      onChange={(e) => setFormData({ ...formData, room_identifier: e.target.value })}
                     />
                   </div>
 
