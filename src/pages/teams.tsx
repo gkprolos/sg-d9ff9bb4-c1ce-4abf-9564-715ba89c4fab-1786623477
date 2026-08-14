@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -495,12 +496,19 @@ export default function TeamsPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="gender">Spol</Label>
-                    <Input
-                      id="gender"
-                      placeholder="npr. Ž, M, Mešano"
+                    <Select
                       value={formData.gender}
-                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                    >
+                      <SelectTrigger id="gender">
+                        <SelectValue placeholder="Izberi spol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">M (Moški)</SelectItem>
+                        <SelectItem value="Ž">Ž (Ženski)</SelectItem>
+                        <SelectItem value="Mešano">Mešano</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="flex items-center justify-between">
