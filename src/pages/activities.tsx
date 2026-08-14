@@ -120,29 +120,54 @@ export default function ActivitiesPage() {
           activity_date,
           start_time,
           end_time,
-          is_completed,
           activity_type_id,
-          team:teams(name, short_name),
-          venue:venues(name)
+          is_home_game,
+          is_completed,
+          created_at,
+          teams!inner(id, name, short_name),
+          venues(name),
+          season:seasons!inner(id, name),
+          activity_coaches(
+            role,
+            profiles:coach_id(
+              id,
+              first_name,
+              last_name
+            )
+          )
         `)
         .order("activity_date", { ascending: false })
         .order("start_time", { ascending: true });
 
-      if (dateFilter) {
-        query = query.eq("activity_date", dateFilter);
+      // Apply filters
+      if (filters.seasonId) {
+        query = query.eq("season_id", filters.seasonId);
+      }
+      if (filters.teamId) {
+        query = query.eq("team_id", filters.teamId);
+      }
+      if (filters.startDate) {
+        query = query.gte("activity_date", filters.startDate);
+      }
+      if (filters.endDate) {
+        query = query.lte("activity_date", filters.endDate);
       }
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error("Napaka pri nalaganju aktivnosti:", error);
+        toast({
+          variant: "destructive",
+          title: "Napaka",
+          description: error.message || "Ni mogoče naložiti aktivnosti",
+        });
+        throw error;
+      }
+
       setActivities(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju aktivnosti:", error);
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: error.message || "Ni mogoče naložiti aktivnosti",
-      });
     } finally {
       setLoading(false);
     }
@@ -305,66 +330,97 @@ export default function ActivitiesPage() {
                       <TableRow>
                         <TableHead>Datum</TableHead>
                         <TableHead>Selekcija</TableHead>
-                        <TableHead>Vrsta</TableHead>
-                        <TableHead>Začetek</TableHead>
-                        <TableHead>Konec</TableHead>
+                        <TableHead>Čas</TableHead>
                         <TableHead>Dvorana</TableHead>
+                        <TableHead>Trenerji</TableHead>
+                        <TableHead>Tip</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activities.map((activity) => (
-                        <TableRow key={activity.id}>
-                          <TableCell className="font-medium">
-                            {new Date(activity.activity_date).toLocaleDateString("sl-SI")}
-                          </TableCell>
-                          <TableCell>
-                            {activity.team.short_name || activity.team.name}
-                          </TableCell>
-                          <TableCell>
-                            {activity.activity_type_id === 1 ? "Trening" : activity.activity_type_id === 2 ? "Tekma" : "Drugo"}
-                          </TableCell>
-                          <TableCell>{activity.start_time}</TableCell>
-                          <TableCell>{activity.end_time}</TableCell>
-                          <TableCell>{activity.venue?.name || "N/A"}</TableCell>
-                          <TableCell>
-                            <Badge variant={activity.is_completed ? "default" : "secondary"}>
-                              {activity.is_completed ? "Zaključeno" : "Osnutek"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => router.push(`/attendance?activity=${activity.id}`)}
-                              >
-                                <ClipboardCheck className="h-4 w-4 mr-1" />
-                                Prisotnost
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEdit(activity)}
-                                disabled={loading || !isAdmin}
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Uredi
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteClick(activity)}
-                                disabled={loading || !isAdmin}
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Izbriši
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {activities.map((activity) => {
+                        const headCoach = activity.activity_coaches?.find((ac: any) => ac.role === 'head');
+                        const assistants = activity.activity_coaches?.filter((ac: any) => ac.role === 'assistant') || [];
+                        
+                        return (
+                          <TableRow key={activity.id}>
+                            <TableCell>
+                              {new Date(activity.activity_date).toLocaleDateString('sl-SI')}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {activity.teams?.name || "-"}
+                            </TableCell>
+                            <TableCell>
+                              {activity.start_time} - {activity.end_time}
+                            </TableCell>
+                            <TableCell>
+                              {activity.venues?.name || "-"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {headCoach && (
+                                  <div className="text-sm">
+                                    <Badge variant="default" className="mr-1">Glavni</Badge>
+                                    {headCoach.profiles?.first_name} {headCoach.profiles?.last_name}
+                                  </div>
+                                )}
+                                {assistants.map((assistant: any, idx: number) => (
+                                  <div key={idx} className="text-sm">
+                                    <Badge variant="secondary" className="mr-1">Sotrener</Badge>
+                                    {assistant.profiles?.first_name} {assistant.profiles?.last_name}
+                                  </div>
+                                ))}
+                                {!headCoach && assistants.length === 0 && (
+                                  <span className="text-sm text-muted-foreground">Ni trenerjev</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {getActivityTypeName(activity.activity_type_id)}
+                              {activity.activity_type_id === 3 && (
+                                <Badge variant="outline" className="ml-2">
+                                  {activity.is_home_game ? "Doma" : "Gostovanje"}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={activity.is_completed ? "default" : "secondary"}>
+                                {activity.is_completed ? "Zaključena" : "Odprta"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => router.push(`/attendance?activity=${activity.id}`)}
+                                >
+                                  <ClipboardCheck className="h-4 w-4" />
+                                </Button>
+                                {isAdmin && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleEdit(activity)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handleDelete(activity.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
