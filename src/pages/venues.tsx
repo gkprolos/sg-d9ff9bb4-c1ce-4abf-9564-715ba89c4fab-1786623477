@@ -30,7 +30,7 @@ interface Venue {
   name: string;
   address: string | null;
   city: string | null;
-  room_identifier: string | null;
+  room_designation: string | null;
   is_active: boolean;
   notes: string | null;
 }
@@ -47,7 +47,7 @@ export default function VenuesPage() {
     name: "",
     address: "",
     city: "",
-    room_identifier: "",
+    room_designation: "",
     is_active: true,
     notes: "",
   });
@@ -84,7 +84,7 @@ export default function VenuesPage() {
       name: "",
       city: "",
       address: "",
-      room_identifier: "",
+      room_designation: "",
       is_active: true,
       notes: "",
     });
@@ -97,7 +97,7 @@ export default function VenuesPage() {
       name: venue.name,
       city: venue.city || "",
       address: venue.address || "",
-      room_identifier: venue.room_identifier || "",
+      room_designation: venue.room_designation || "",
       is_active: venue.is_active,
       notes: venue.notes || "",
     });
@@ -123,7 +123,7 @@ export default function VenuesPage() {
         name: formData.name,
         address: formData.address || null,
         city: formData.city || null,
-        room_identifier: formData.room_identifier || null,
+        room_designation: formData.room_designation || null,
         is_active: formData.is_active,
         notes: formData.notes || null,
       };
@@ -279,7 +279,7 @@ export default function VenuesPage() {
                           <TableCell className="font-medium">{venue.name}</TableCell>
                           <TableCell>{venue.city}</TableCell>
                           <TableCell>{venue.address || "N/A"}</TableCell>
-                          <TableCell>{venue.room_identifier || "N/A"}</TableCell>
+                          <TableCell>{venue.room_designation || "N/A"}</TableCell>
                           <TableCell>
                             <Badge variant={venue.is_active ? "default" : "secondary"}>
                               {venue.is_active ? "Aktivna" : "Neaktivna"}
@@ -363,12 +363,12 @@ export default function VenuesPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="room_identifier">Oznaka prostora</Label>
+                    <Label htmlFor="room_designation">Oznaka prostora</Label>
                     <Input
-                      id="room_identifier"
+                      id="room_designation"
                       placeholder="npr. Mala dvorana"
-                      value={formData.room_identifier}
-                      onChange={(e) => setFormData({ ...formData, room_identifier: e.target.value })}
+                      value={formData.room_designation}
+                      onChange={(e) => setFormData({ ...formData, room_designation: e.target.value })}
                     />
                   </div>
 
