@@ -3,8 +3,12 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Edit, Users } from "lucide-react";
@@ -27,10 +31,35 @@ export default function ActivitiesPage() {
   const [loading, setLoading] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [dateFilter, setDateFilter] = useState("");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [venues, setVenues] = useState<any[]>([]);
+  const [editForm, setEditForm] = useState({
+    activity_date: "",
+    start_time: "",
+    end_time: "",
+    venue_id: "",
+  });
 
   useEffect(() => {
     loadActivities();
+    loadVenues();
   }, [dateFilter]);
+
+  async function loadVenues() {
+    try {
+      const { data, error } = await supabase
+        .from("venues")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setVenues(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju dvoran:", error);
+    }
+  }
 
   async function loadActivities() {
     try {
@@ -71,8 +100,78 @@ export default function ActivitiesPage() {
     }
   }
 
-  function handleEditActivity(activityId: string) {
+  function handleAttendance(activityId: string) {
     router.push(`/attendance?activity=${activityId}`);
+  }
+
+  function handleEditClick(activity: Activity) {
+    setSelectedActivity(activity);
+    setEditForm({
+      activity_date: activity.activity_date,
+      start_time: activity.start_time,
+      end_time: activity.end_time,
+      venue_id: activity.venue?.name ? "" : "", // We need venue_id, not name
+    });
+    
+    // Load full activity details including venue_id
+    supabase
+      .from("activities")
+      .select("venue_id")
+      .eq("id", activity.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setEditForm(prev => ({ ...prev, venue_id: data.venue_id || "" }));
+        }
+      });
+    
+    setEditDialogOpen(true);
+  }
+
+  async function handleUpdateActivity() {
+    if (!selectedActivity) return;
+
+    if (!editForm.activity_date || !editForm.start_time || !editForm.end_time) {
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Datum, začetek in konec so obvezni",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { error } = await supabase
+        .from("activities")
+        .update({
+          activity_date: editForm.activity_date,
+          start_time: editForm.start_time,
+          end_time: editForm.end_time,
+          venue_id: editForm.venue_id || null,
+        })
+        .eq("id", selectedActivity.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Uspešno",
+        description: "Aktivnost uspešno posodobljena",
+      });
+
+      setEditDialogOpen(false);
+      loadActivities();
+    } catch (error: any) {
+      console.error("Napaka pri posodabljanju aktivnosti:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri posodabljanju aktivnosti",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -142,7 +241,7 @@ export default function ActivitiesPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleEditActivity(activity.id)}
+                                onClick={() => handleAttendance(activity.id)}
                               >
                                 <Users className="h-4 w-4 mr-1" />
                                 Prisotnost
@@ -150,7 +249,7 @@ export default function ActivitiesPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleEditActivity(activity.id)}
+                                onClick={() => handleEditClick(activity)}
                               >
                                 <Edit className="h-4 w-4 mr-1" />
                                 Uredi
@@ -165,6 +264,80 @@ export default function ActivitiesPage() {
               )}
             </CardContent>
           </Card>
+
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Uredi aktivnost</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit_date">Datum *</Label>
+                  <Input
+                    id="edit_date"
+                    type="date"
+                    value={editForm.activity_date}
+                    onChange={(e) => setEditForm({ ...editForm, activity_date: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_start_time">Začetek *</Label>
+                    <Input
+                      id="edit_start_time"
+                      type="time"
+                      value={editForm.start_time}
+                      onChange={(e) => setEditForm({ ...editForm, start_time: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_end_time">Konec *</Label>
+                    <Input
+                      id="edit_end_time"
+                      type="time"
+                      value={editForm.end_time}
+                      onChange={(e) => setEditForm({ ...editForm, end_time: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit_venue">Dvorana</Label>
+                  <Select
+                    value={editForm.venue_id}
+                    onValueChange={(value) => setEditForm({ ...editForm, venue_id: value })}
+                  >
+                    <SelectTrigger id="edit_venue">
+                      <SelectValue placeholder="Izberi dvorano (ni obvezno)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {venues.map((venue) => (
+                        <SelectItem key={venue.id} value={venue.id}>
+                          {venue.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditDialogOpen(false)}
+                  disabled={loading}
+                >
+                  Prekliči
+                </Button>
+                <Button onClick={handleUpdateActivity} disabled={loading}>
+                  {loading ? "Shranjujem..." : "Shrani spremembe"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </AppLayout>
     </ProtectedRoute>

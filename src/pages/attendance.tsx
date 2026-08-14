@@ -2,6 +2,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ interface Player {
 export default function AttendancePage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -67,6 +69,26 @@ export default function AttendancePage() {
       setPlayers([]);
     }
   }, [selectedActivity]);
+
+  // Handle URL parameter for direct activity selection
+  useEffect(() => {
+    if (router.query.activity && typeof router.query.activity === "string") {
+      const activityId = router.query.activity;
+      
+      // Load activity details to get date
+      supabase
+        .from("activities")
+        .select("activity_date")
+        .eq("id", activityId)
+        .single()
+        .then(({ data, error }) => {
+          if (!error && data) {
+            setSelectedDate(data.activity_date);
+            setSelectedActivity(activityId);
+          }
+        });
+    }
+  }, [router.query.activity]);
 
   async function loadTeams() {
     try {
