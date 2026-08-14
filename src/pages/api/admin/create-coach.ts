@@ -62,20 +62,23 @@ export default async function handler(
       return res.status(500).json({ error: 'User creation failed' });
     }
 
-    // Update profile with additional data
+    // Insert or update profile with additional data
+    // Using upsert to handle both new profile creation and updates
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({
+      .upsert({
+        id: authData.user.id,
         full_name,
         email,
         phone: phone || null,
         hourly_rate: hourly_rate || null,
         km_rate: km_rate || null,
-      })
-      .eq('id', authData.user.id);
+      }, {
+        onConflict: 'id',
+      });
 
     if (profileError) {
-      console.error('Profile update error:', profileError);
+      console.error('Profile upsert error:', profileError);
       return res.status(500).json({ error: profileError.message });
     }
 
