@@ -37,6 +37,7 @@ export default function TeamsPage() {
   const [teamPlayers, setTeamPlayers] = useState<any[]>([]);
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     short_name: "",
@@ -46,6 +47,31 @@ export default function TeamsPage() {
     notes: "",
     season_id: "",
   });
+
+  // Filter players by search term and team gender
+  const filteredPlayers = allPlayers.filter((player) => {
+    // Search filter
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      player.first_name.toLowerCase().includes(searchLower) ||
+      player.last_name.toLowerCase().includes(searchLower);
+
+    if (!matchesSearch) return false;
+
+    // Gender filter - if team gender is M or Ž, filter by player gender
+    // If team gender is "Mešano" or empty, show all
+    if (!selectedTeam?.gender) return true;
+    
+    const teamGender = selectedTeam.gender.toUpperCase();
+    if (teamGender === "MEŠANO" || teamGender === "MIXED") return true;
+    
+    // Player gender is derived from first name patterns (or could be a DB field)
+    // For now, show all if team is M or Ž (would need gender field in players table)
+    return true;
+  });
+
+  // Check if exactly one player matches search
+  const exactMatch = filteredPlayers.length === 1 ? filteredPlayers[0] : null;
 
   useEffect(() => {
     loadSeasons();
@@ -107,73 +133,74 @@ export default function TeamsPage() {
 
   async function handleManagePlayers(team: Team) {
     setSelectedTeam(team);
+    setSearchTerm(""); // Reset search when opening dialog
     await loadAllPlayers();
     await loadTeamPlayers(team.id);
     setPlayersDialogOpen(true);
   }
 
-  async function handleSavePlayers() {
+  async function togglePlayer(playerId: string) {
     if (!selectedTeam) return;
 
+    const isCurrentlySelected = selectedPlayers.includes(playerId);
+
     try {
-      setLoading(true);
-
-      // Get current player IDs
-      const currentPlayerIds = teamPlayers.map((tp: any) => tp.player_id);
-      
-      // Find players to add (in selectedPlayers but not in currentPlayerIds)
-      const playersToAdd = selectedPlayers.filter(id => !currentPlayerIds.includes(id));
-      
-      // Find players to remove (in currentPlayerIds but not in selectedPlayers)
-      const playersToRemove = currentPlayerIds.filter(id => !selectedPlayers.includes(id));
-
-      // Add new players
-      if (playersToAdd.length > 0) {
-        const { error: addError } = await supabase
-          .from("team_players")
-          .insert(playersToAdd.map(playerId => ({
-            team_id: selectedTeam.id,
-            player_id: playerId,
-          })));
-
-        if (addError) throw addError;
-      }
-
-      // Remove players
-      if (playersToRemove.length > 0) {
-        const { error: removeError } = await supabase
+      if (isCurrentlySelected) {
+        // Remove player - delete from DB immediately
+        const { error } = await supabase
           .from("team_players")
           .delete()
           .eq("team_id", selectedTeam.id)
-          .in("player_id", playersToRemove);
+          .eq("player_id", playerId);
 
-        if (removeError) throw removeError;
+        if (error) throw error;
+
+        // Update local state
+        setSelectedPlayers(prev => prev.filter(id => id !== playerId));
+        setTeamPlayers(prev => prev.filter(tp => tp.player_id !== playerId));
+
+        toast({
+          title: "Odstranjen",
+          description: "Igralec odstranjen iz selekcije",
+        });
+      } else {
+        // Add player - insert to DB immediately
+        const { error } = await supabase
+          .from("team_players")
+          .insert([{
+            team_id: selectedTeam.id,
+            player_id: playerId,
+          }]);
+
+        if (error) throw error;
+
+        // Update local state
+        setSelectedPlayers(prev => [...prev, playerId]);
+        
+        // Reload team players to get full data
+        await loadTeamPlayers(selectedTeam.id);
+
+        toast({
+          title: "Dodan",
+          description: "Igralec dodan v selekcijo",
+        });
       }
-
-      toast({
-        title: "Uspešno",
-        description: "Igralci selekcije uspešno posodobljeni",
-      });
-
-      setPlayersDialogOpen(false);
     } catch (error: any) {
-      console.error("Napaka pri shranjevanju igralcev:", error);
+      console.error("Napaka pri upravljanju igralca:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju igralcev",
+        description: error.message || "Napaka pri shranjevanju",
       });
-    } finally {
-      setLoading(false);
     }
   }
 
-  function togglePlayer(playerId: string) {
-    setSelectedPlayers(prev => 
-      prev.includes(playerId) 
-        ? prev.filter(id => id !== playerId)
-        : [...prev, playerId]
-    );
+  function handleSearchKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && exactMatch) {
+      e.preventDefault();
+      togglePlayer(exactMatch.id);
+      setSearchTerm(""); // Clear search after adding
+    }
   }
 
   async function loadTeams() {
@@ -534,39 +561,62 @@ export default function TeamsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    {allPlayers.map((player) => (
-                      <div
-                        key={player.id}
-                        className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
-                          selectedPlayers.includes(player.id) ? "bg-primary/5 border-primary" : ""
-                        }`}
-                        onClick={() => togglePlayer(player.id)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                            selectedPlayers.includes(player.id) 
-                              ? "bg-primary border-primary" 
-                              : "border-muted-foreground"
-                          }`}>
-                            {selectedPlayers.includes(player.id) && (
-                              <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {player.first_name} {player.last_name}
-                            </p>
-                            {player.date_of_birth && (
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(player.date_of_birth).toLocaleDateString("sl-SI")}
+                    <Label htmlFor="search">Iskanje igralcev</Label>
+                    <Input
+                      id="search"
+                      placeholder="Vnesi ime ali priimek... (Enter za dodajanje)"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={handleSearchKeyDown}
+                      autoFocus
+                    />
+                    {exactMatch && (
+                      <p className="text-xs text-muted-foreground">
+                        Pritisni Enter za {selectedPlayers.includes(exactMatch.id) ? "odstranitev" : "dodajanje"}: {exactMatch.first_name} {exactMatch.last_name}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    {filteredPlayers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        {searchTerm ? "Ni rezultatov iskanja" : "Ni igralcev"}
+                      </p>
+                    ) : (
+                      filteredPlayers.map((player) => (
+                        <div
+                          key={player.id}
+                          className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                            selectedPlayers.includes(player.id) ? "bg-primary/5 border-primary" : ""
+                          }`}
+                          onClick={() => togglePlayer(player.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                              selectedPlayers.includes(player.id) 
+                                ? "bg-primary border-primary" 
+                                : "border-muted-foreground"
+                            }`}>
+                              {selectedPlayers.includes(player.id) && (
+                                <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {player.first_name} {player.last_name}
                               </p>
-                            )}
+                              {player.date_of_birth && (
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(player.date_of_birth).toLocaleDateString("sl-SI")}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </ScrollArea>
@@ -575,13 +625,12 @@ export default function TeamsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setPlayersDialogOpen(false)}
-                  disabled={loading}
+                  onClick={() => {
+                    setPlayersDialogOpen(false);
+                    setSearchTerm("");
+                  }}
                 >
-                  Prekliči
-                </Button>
-                <Button onClick={handleSavePlayers} disabled={loading}>
-                  {loading ? "Shranjujem..." : "Shrani"}
+                  Zapri
                 </Button>
               </DialogFooter>
             </DialogContent>

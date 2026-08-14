@@ -14,9 +14,11 @@ import { UserCog, Plus, Edit, Trash2 } from "lucide-react";
 
 interface Coach {
   id: string;
+  full_name: string;
   email: string;
-  full_name: string | null;
   phone: string | null;
+  hourly_rate: number | null;
+  km_rate: number | null;
 }
 
 export default function CoachesPage() {
@@ -26,9 +28,11 @@ export default function CoachesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
   const [formData, setFormData] = useState({
-    email: "",
     full_name: "",
+    email: "",
     phone: "",
+    hourly_rate: "",
+    km_rate: "",
   });
 
   useEffect(() => {
@@ -60,9 +64,11 @@ export default function CoachesPage() {
   function handleAdd() {
     setSelectedCoach(null);
     setFormData({
-      email: "",
       full_name: "",
+      email: "",
       phone: "",
+      hourly_rate: "",
+      km_rate: "",
     });
     setDialogOpen(true);
   }
@@ -70,9 +76,11 @@ export default function CoachesPage() {
   function handleEdit(coach: Coach) {
     setSelectedCoach(coach);
     setFormData({
+      full_name: coach.full_name,
       email: coach.email,
-      full_name: coach.full_name || "",
       phone: coach.phone || "",
+      hourly_rate: coach.hourly_rate?.toString() || "",
+      km_rate: coach.km_rate?.toString() || "",
     });
     setDialogOpen(true);
   }
@@ -80,11 +88,11 @@ export default function CoachesPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!formData.email) {
+    if (!formData.full_name || !formData.email) {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "E-pošta je obvezna",
+        description: "Ime in e-pošta sta obvezna",
       });
       return;
     }
@@ -93,9 +101,11 @@ export default function CoachesPage() {
       setLoading(true);
 
       const payload = {
+        full_name: formData.full_name,
         email: formData.email,
-        full_name: formData.full_name || null,
         phone: formData.phone || null,
+        hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+        km_rate: formData.km_rate ? parseFloat(formData.km_rate) : null,
       };
 
       if (selectedCoach) {
@@ -110,12 +120,12 @@ export default function CoachesPage() {
           description: "Trener uspešno posodobljen",
         });
       } else {
+        // Note: Creating new users must be done through Supabase Auth
         toast({
           variant: "destructive",
-          title: "Informacija",
-          description: "Trenerje je mogoče dodati samo preko Supabase Authentication",
+          title: "Opozorilo",
+          description: "Nove trenerje ustvarite v Supabase Dashboard → Authentication",
         });
-        setDialogOpen(false);
         return;
       }
 
@@ -173,20 +183,26 @@ export default function CoachesPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Ime in priimek</TableHead>
+                        <TableHead>Ime</TableHead>
                         <TableHead>E-pošta</TableHead>
                         <TableHead>Telefon</TableHead>
+                        <TableHead className="text-right">Vrednost ure (€)</TableHead>
+                        <TableHead className="text-right">Vrednost km (€)</TableHead>
                         <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {coaches.map((coach) => (
                         <TableRow key={coach.id}>
-                          <TableCell className="font-medium">
-                            {coach.full_name || "N/A"}
-                          </TableCell>
+                          <TableCell className="font-medium">{coach.full_name}</TableCell>
                           <TableCell>{coach.email}</TableCell>
                           <TableCell>{coach.phone || "N/A"}</TableCell>
+                          <TableCell className="text-right">
+                            {coach.hourly_rate ? `${coach.hourly_rate.toFixed(2)} €` : "N/A"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {coach.km_rate ? `${coach.km_rate.toFixed(2)} €` : "N/A"}
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-2 justify-end">
                               <Button
@@ -197,6 +213,15 @@ export default function CoachesPage() {
                               >
                                 <Edit className="h-4 w-4 mr-1" />
                                 Uredi
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDelete(coach.id)}
+                                disabled={loading}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Izbriši
                               </Button>
                             </div>
                           </TableCell>
@@ -245,9 +270,37 @@ export default function CoachesPage() {
                     <Input
                       id="phone"
                       type="tel"
+                      placeholder="+386 ..."
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="hourly_rate">Vrednost ure (€)</Label>
+                      <Input
+                        id="hourly_rate"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="npr. 15.00"
+                        value={formData.hourly_rate}
+                        onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="km_rate">Vrednost kilometra (€)</Label>
+                      <Input
+                        id="km_rate"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="npr. 0.37"
+                        value={formData.km_rate}
+                        onChange={(e) => setFormData({ ...formData, km_rate: e.target.value })}
+                      />
+                    </div>
                   </div>
 
                   <DialogFooter className="mt-6">
