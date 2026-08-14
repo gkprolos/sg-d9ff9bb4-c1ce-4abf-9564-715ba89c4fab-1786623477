@@ -38,7 +38,7 @@ interface Activity {
   activity_coaches: Array<{
     role: string;
     coach_id: string;
-    coach: {
+    profiles: {
       id: string;
       first_name: string;
       last_name: string;
@@ -128,7 +128,7 @@ export default function ActivitiesPage() {
           activity_coaches(
             role,
             coach_id,
-            coach:coach_id(
+            profiles!activity_coaches_coach_id_fkey(
               id,
               first_name,
               last_name
@@ -347,13 +347,13 @@ export default function ActivitiesPage() {
                                 {headCoach && (
                                   <div className="text-sm">
                                     <Badge variant="default" className="mr-1">Glavni</Badge>
-                                    {headCoach.coach?.first_name} {headCoach.coach?.last_name}
+                                    {headCoach.profiles?.first_name} {headCoach.profiles?.last_name}
                                   </div>
                                 )}
                                 {assistants.map((assistant, idx) => (
                                   <div key={idx} className="text-sm">
                                     <Badge variant="secondary" className="mr-1">Sotrener</Badge>
-                                    {assistant.coach?.first_name} {assistant.coach?.last_name}
+                                    {assistant.profiles?.first_name} {assistant.profiles?.last_name}
                                   </div>
                                 ))}
                                 {!headCoach && assistants.length === 0 && (
