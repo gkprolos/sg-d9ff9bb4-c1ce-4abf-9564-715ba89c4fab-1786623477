@@ -112,7 +112,7 @@ export default function ActivitiesPage() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      let query = supabase
         .from("activities")
         .select(`
           id,
@@ -135,6 +135,30 @@ export default function ActivitiesPage() {
         `)
         .order("activity_date", { ascending: false })
         .order("start_time", { ascending: true });
+
+      // For coaches, filter by their assigned activities
+      if (!isAdmin && user?.id) {
+        // First get activity IDs where this coach is assigned
+        const { data: coachActivities, error: coachError } = await supabase
+          .from("activity_coaches")
+          .select("activity_id")
+          .eq("coach_id", user.id);
+
+        if (coachError) throw coachError;
+
+        const activityIds = (coachActivities || []).map(ca => ca.activity_id);
+        
+        if (activityIds.length === 0) {
+          // Coach has no activities
+          setActivities([]);
+          setLoading(false);
+          return;
+        }
+
+        query = query.in("id", activityIds);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("Napaka pri nalaganju aktivnosti:", error);

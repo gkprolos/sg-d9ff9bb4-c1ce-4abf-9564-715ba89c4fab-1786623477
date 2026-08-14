@@ -1,19 +1,16 @@
--- Apply RLS policy for coaches to see their activities
+-- Migration: Fix recursive RLS policy on activities
+-- Date: 2026-08-14
+-- Description: Remove recursive policy that causes infinite loop
+
+-- Drop the recursive policy
 DROP POLICY IF EXISTS "activities_select_coaches" ON public.activities;
 
-CREATE POLICY "activities_select_coaches"
+-- Keep only admin policy - coaches will access activities via activity_coaches JOIN
+CREATE POLICY "activities_select_admin"
 ON public.activities
 FOR SELECT
 USING (
-  -- Admin sees all
   _app_internals.is_admin(auth.uid())
-  OR
-  -- Coach sees activities where they are assigned
-  EXISTS (
-    SELECT 1 FROM activity_coaches ac
-    WHERE ac.activity_id = activities.id
-      AND ac.coach_id = auth.uid()
-  )
 );
 
-SELECT 'RLS policy for coach activity access created successfully' as status;
+COMMENT ON POLICY "activities_select_admin" ON public.activities IS 'Admins can see all activities. Coaches access via activity_coaches join.';
