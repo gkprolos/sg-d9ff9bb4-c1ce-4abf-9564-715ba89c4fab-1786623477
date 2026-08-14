@@ -421,6 +421,7 @@ export default function CoachesPage() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
+                      autoComplete="off"
                     />
                   </div>
 
@@ -448,6 +449,7 @@ export default function CoachesPage() {
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       required={!selectedCoach}
                       minLength={6}
+                      autoComplete="new-password"
                     />
                     {selectedCoach && (
                       <p className="text-xs text-muted-foreground">
