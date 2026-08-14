@@ -434,10 +434,9 @@ export default function AttendancePage() {
                         onValueChange={(value) => setNewActivityForm({ ...newActivityForm, venue_id: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Izberi dvorano" />
+                          <SelectValue placeholder="Izberi dvorano (ni obvezno)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Ni izbrana</SelectItem>
                           {venues.map((venue) => (
                             <SelectItem key={venue.id} value={venue.id}>
                               {venue.name}

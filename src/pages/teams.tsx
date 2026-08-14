@@ -542,7 +542,6 @@ export default function TeamsPage() {
                         <SelectValue placeholder="Izberi glavnega trenerja" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Ni izbran</SelectItem>
                         {coaches.map((coach) => (
                           <SelectItem key={coach.id} value={coach.id}>
                             {coach.full_name}
