@@ -25,6 +25,12 @@ const DAYS_OF_WEEK = [
   { value: 0, label: "Nedelja" },
 ];
 
+const ACTIVITY_TYPE_NAMES: Record<number, string> = {
+  1: "Trening v dvorani",
+  2: "Trening ali pripravljalna tekma zunaj dvorane",
+  3: "Uradna tekma"
+};
+
 export default function MySchedulesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -75,9 +81,9 @@ export default function MySchedulesPage() {
           valid_from,
           valid_to,
           is_active,
+          activity_type_id,
           teams(name),
-          venues(name),
-          activity_types(name)
+          venues(name)
         `)
         .eq("is_active", true)
         .order("day_of_week", { ascending: true })
@@ -106,12 +112,7 @@ export default function MySchedulesPage() {
   }
 
   function getActivityTypeName(typeId: number): string {
-    const types: Record<number, string> = {
-      1: "Trening v dvorani",
-      2: "Trening zunaj dvorane",
-      3: "Uradna tekma",
-    };
-    return types[typeId] || "N/A";
+    return ACTIVITY_TYPE_NAMES[typeId] || "N/A";
   }
 
   return (
@@ -189,18 +190,15 @@ export default function MySchedulesPage() {
                             {schedule.start_time} - {schedule.end_time}
                           </TableCell>
                           <TableCell>
-                            {schedule.venues ? formatVenueName(schedule.venues) : "N/A"}
+                            {schedule.teams?.name || "-"}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">
-                              {getActivityTypeName(schedule.default_activity_type_id)}
-                            </Badge>
+                            {schedule.venues?.name || "-"}
                           </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {schedule.valid_from || "-"}{" "}
-                            -{" "}
-                            {schedule.valid_to || "-"}
+                          <TableCell>
+                            {ACTIVITY_TYPE_NAMES[schedule.activity_type_id] || "-"}
                           </TableCell>
+                          <TableCell>{schedule.valid_from || "-"}</TableCell>
                           <TableCell>
                             <Badge variant={schedule.is_active ? "default" : "secondary"}>
                               {schedule.is_active ? "Aktiven" : "Neaktiven"}
