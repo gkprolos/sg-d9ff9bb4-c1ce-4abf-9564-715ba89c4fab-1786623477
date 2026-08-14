@@ -203,8 +203,26 @@ export default function AttendancePage() {
       return;
     }
 
+    if (!user?.id) {
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Uporabnik ni prijavljen",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
+
+      // Get season_id from selected team
+      const { data: teamData, error: teamError } = await supabase
+        .from("teams")
+        .select("season_id")
+        .eq("id", newActivityForm.team_id)
+        .single();
+
+      if (teamError) throw teamError;
 
       // Check if activity already exists for this team and date
       const { data: existing, error: checkError } = await supabase
@@ -232,12 +250,14 @@ export default function AttendancePage() {
         .from("activities")
         .insert([{
           team_id: newActivityForm.team_id,
+          season_id: teamData.season_id,
           activity_date: selectedDate,
           venue_id: newActivityForm.venue_id || null,
           start_time: newActivityForm.start_time,
           end_time: newActivityForm.end_time,
           activity_type_id: 1, // Default to training
           is_completed: false,
+          created_by: user.id,
         }])
         .select()
         .single();

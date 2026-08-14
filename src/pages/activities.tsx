@@ -16,9 +16,9 @@ interface Activity {
   start_time: string;
   end_time: string;
   is_completed: boolean;
+  activity_type_id: number;
   team: { name: string; short_name: string | null };
   venue: { name: string } | null;
-  activity_type: { name: string };
 }
 
 export default function ActivitiesPage() {
@@ -44,9 +44,9 @@ export default function ActivitiesPage() {
           start_time,
           end_time,
           is_completed,
+          activity_type_id,
           team:teams(name, short_name),
-          venue:venues(name),
-          activity_type:activity_types(name)
+          venue:venues(name)
         `)
         .order("activity_date", { ascending: false })
         .order("start_time", { ascending: true });
@@ -126,7 +126,9 @@ export default function ActivitiesPage() {
                           <TableCell>
                             {activity.team.short_name || activity.team.name}
                           </TableCell>
-                          <TableCell>{activity.activity_type.name}</TableCell>
+                          <TableCell>
+                            {activity.activity_type_id === 1 ? "Trening" : activity.activity_type_id === 2 ? "Tekma" : "Drugo"}
+                          </TableCell>
                           <TableCell>{activity.start_time}</TableCell>
                           <TableCell>{activity.end_time}</TableCell>
                           <TableCell>{activity.venue?.name || "N/A"}</TableCell>
