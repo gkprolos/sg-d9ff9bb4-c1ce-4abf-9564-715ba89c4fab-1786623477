@@ -140,6 +140,16 @@ export default function CoachesPage() {
       return;
     }
 
+    // Warn if trying to change password for existing user
+    if (selectedCoach && formData.password) {
+      toast({
+        variant: "destructive",
+        title: "Opozorilo",
+        description: "Spreminjanje gesla trenutno ni podprto. Uporabite Supabase Dashboard → Authentication.",
+      });
+      // Continue with other updates, ignore password
+    }
+
     try {
       setLoading(true);
 
@@ -152,7 +162,7 @@ export default function CoachesPage() {
       };
 
       if (selectedCoach) {
-        // Update existing coach
+        // Update existing coach (password changes not supported)
         const { error } = await supabase
           .from("profiles")
           .update(payload)
@@ -240,40 +250,6 @@ export default function CoachesPage() {
         variant: "destructive",
         title: "Napaka",
         description: error.message || "Napaka pri brisanju trenerja",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleResetPassword() {
-    if (!formData.email) {
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: "E-poštni naslov je obvezen",
-      });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Uspešno",
-        description: `E-poštno sporočilo za ponastavitev gesla poslano na ${formData.email}`,
-      });
-    } catch (error: any) {
-      console.error("Napaka pri pošiljanju emaila:", error);
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: error.message || "Napaka pri pošiljanju emaila",
       });
     } finally {
       setLoading(false);
@@ -448,23 +424,6 @@ export default function CoachesPage() {
                     />
                   </div>
 
-                  {!selectedCoach && (
-                    <div className="space-y-2">
-                      <Label htmlFor="password">
-                        Geslo <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="Minimalno 6 znakov"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        required
-                        minLength={6}
-                      />
-                    </div>
-                  )}
-
                   <div className="space-y-2">
                     <Label htmlFor="phone">Telefon</Label>
                     <Input
@@ -476,23 +435,26 @@ export default function CoachesPage() {
                     />
                   </div>
 
-                  {selectedCoach && (
-                    <div className="space-y-2">
-                      <Label>Geslo</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleResetPassword}
-                        disabled={loading}
-                        className="w-full"
-                      >
-                        Ponastavi geslo
-                      </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">
+                      {selectedCoach ? "Novo geslo (opcijsko)" : "Geslo"} 
+                      {!selectedCoach && <span className="text-destructive"> *</span>}
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Minimalno 6 znakov"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required={!selectedCoach}
+                      minLength={6}
+                    />
+                    {selectedCoach && (
                       <p className="text-xs text-muted-foreground">
-                        Trener bo prejel e-poštno sporočilo s povezavo za ponastavitev gesla
+                        Pustite prazno, če ne želite spreminjati gesla. Za spreminjanje gesla trenutno uporabite Supabase Dashboard.
                       </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
