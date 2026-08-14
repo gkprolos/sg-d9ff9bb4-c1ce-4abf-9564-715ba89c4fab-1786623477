@@ -42,6 +42,7 @@ export default function CoachesPage() {
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
+    password: "",
     phone: "",
     hourly_rate: "",
     km_rate: "",
@@ -78,6 +79,7 @@ export default function CoachesPage() {
     setFormData({
       full_name: "",
       email: "",
+      password: "",
       phone: "",
       hourly_rate: "",
       km_rate: "",
@@ -109,6 +111,16 @@ export default function CoachesPage() {
       return;
     }
 
+    // Password required for new coaches
+    if (!selectedCoach && !formData.password) {
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Geslo je obvezno za novega trenerja",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -121,6 +133,7 @@ export default function CoachesPage() {
       };
 
       if (selectedCoach) {
+        // Update existing coach
         const { error } = await supabase
           .from("profiles")
           .update(payload)
@@ -132,13 +145,36 @@ export default function CoachesPage() {
           description: "Trener uspešno posodobljen",
         });
       } else {
-        // Note: Creating new users must be done through Supabase Auth
-        toast({
-          variant: "destructive",
-          title: "Opozorilo",
-          description: "Nove trenerje ustvarite v Supabase Dashboard → Authentication",
+        // Create new coach via Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.full_name,
+              phone: formData.phone || null,
+              hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+              km_rate: formData.km_rate ? parseFloat(formData.km_rate) : null,
+            },
+          },
         });
-        return;
+
+        if (authError) throw authError;
+
+        // Update profile with additional data
+        if (authData.user) {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update(payload)
+            .eq("id", authData.user.id);
+
+          if (profileError) throw profileError;
+        }
+
+        toast({
+          title: "Uspešno",
+          description: "Trener uspešno ustvarjen. Poslano je bilo potrditveno e-poštno sporočilo.",
+        });
       }
 
       setDialogOpen(false);
@@ -317,21 +353,30 @@ export default function CoachesPage() {
                     <Input
                       id="email"
                       type="email"
+                      placeholder="ime.priimek@example.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
-                      disabled
+                      disabled={!!selectedCoach}
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name">Ime in priimek</Label>
-                    <Input
-                      id="full_name"
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    />
-                  </div>
+                  {!selectedCoach && (
+                    <div className="space-y-2">
+                      <Label htmlFor="password">
+                        Geslo <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="Minimalno 6 znakov"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="phone">Telefon</Label>

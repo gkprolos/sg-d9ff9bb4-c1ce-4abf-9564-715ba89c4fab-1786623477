@@ -1,6 +1,6 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { UserCircle, Plus, Edit, Trash2 } from "lucide-react";
+import { UserCircle, Plus, Edit, Trash2, Upload, Download } from "lucide-react";
+import {
+  parseCSV,
+  validatePlayerRow,
+  generateSampleCSV,
+  downloadCSV,
+  type ParsedData,
+  type ImportRow,
+  type ValidationError,
+} from "@/lib/excelUtils";
 
 interface Player {
   id: string;
@@ -50,6 +59,12 @@ export default function PlayersPage() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importData, setImportData] = useState<ParsedData | null>(null);
+  const [importErrors, setImportErrors] = useState<ValidationError[]>([]);
+  const [importMapping, setImportMapping] = useState<{ [key: string]: string }>({});
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -233,6 +248,142 @@ export default function PlayersPage() {
     }
   }
 
+  function handleImportClick() {
+    setImportDialogOpen(true);
+    setImportData(null);
+    setImportErrors([]);
+    setImportMapping({});
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const parsed = parseCSV(content);
+        
+        if (parsed.headers.length === 0) {
+          toast({
+            variant: "destructive",
+            title: "Napaka",
+            description: "Datoteka je prazna ali neveljavna",
+          });
+          return;
+        }
+
+        setImportData(parsed);
+        
+        // Auto-map common column names
+        const mapping: { [key: string]: string } = {};
+        parsed.headers.forEach(header => {
+          const lower = header.toLowerCase();
+          if (lower.includes('ime') && !lower.includes('priimek')) mapping['first_name'] = header;
+          if (lower.includes('priimek')) mapping['last_name'] = header;
+          if (lower.includes('datum') || lower.includes('birth')) mapping['date_of_birth'] = header;
+          if (lower.includes('spol') || lower.includes('gender')) mapping['gender'] = header;
+          if (lower.includes('naslov') || lower.includes('address')) mapping['address'] = header;
+          if (lower.includes('kraj') || lower.includes('city')) mapping['city'] = header;
+          if (lower.includes('telefon') || lower.includes('phone')) mapping['phone'] = header;
+        });
+        setImportMapping(mapping);
+
+        toast({
+          title: "Datoteka naložena",
+          description: `Prebrano ${parsed.rows.length} vrstic`,
+        });
+      } catch (error: any) {
+        console.error("Napaka pri branju datoteke:", error);
+        toast({
+          variant: "destructive",
+          title: "Napaka",
+          description: error.message || "Napaka pri branju datoteke",
+        });
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  async function handleImport() {
+    if (!importData) return;
+
+    // Validate all rows
+    const errors: ValidationError[] = [];
+    importData.rows.forEach((row, index) => {
+      const rowErrors = validatePlayerRow(row, index, importMapping);
+      errors.push(...rowErrors);
+    });
+
+    if (errors.length > 0) {
+      setImportErrors(errors);
+      toast({
+        variant: "destructive",
+        title: "Validacijske napake",
+        description: `Najdenih ${errors.length} napak. Prosim popravite podatke.`,
+      });
+      return;
+    }
+
+    try {
+      setImporting(true);
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const row of importData.rows) {
+        try {
+          const playerData = {
+            first_name: row[importMapping['first_name']]?.toString().trim() || '',
+            last_name: row[importMapping['last_name']]?.toString().trim() || '',
+            date_of_birth: row[importMapping['date_of_birth']]?.toString().trim() || null,
+            gender: row[importMapping['gender']]?.toString().toUpperCase().trim() || null,
+            address: row[importMapping['address']]?.toString().trim() || null,
+            city: row[importMapping['city']]?.toString().trim() || null,
+            phone: row[importMapping['phone']]?.toString().trim() || null,
+            is_active: true,
+          };
+
+          const { error } = await supabase
+            .from("players")
+            .insert([playerData]);
+
+          if (error) throw error;
+          successCount++;
+        } catch (error) {
+          console.error("Napaka pri uvozu vrstice:", error);
+          failCount++;
+        }
+      }
+
+      toast({
+        title: "Uvoz zaključen",
+        description: `Uspešno: ${successCount}, Neuspešno: ${failCount}`,
+      });
+
+      setImportDialogOpen(false);
+      loadPlayers();
+    } catch (error: any) {
+      console.error("Napaka pri uvozu:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri uvozu",
+      });
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  function handleDownloadTemplate() {
+    const csv = generateSampleCSV();
+    downloadCSV(csv, 'vzorcna_predloga_igralci.csv');
+    toast({
+      title: "Predloga prenesena",
+      description: "Odprite datoteko v Excelu in izpolnite podatke",
+    });
+  }
+
   async function handleDelete(playerId: string) {
     if (!confirm("Ali ste prepričani, da želite izbrisati tega igralca?")) return;
 
@@ -268,12 +419,18 @@ export default function PlayersPage() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">Igralci</h2>
-              <p className="text-muted-foreground">Upravljanje igralcev kluba</p>
+              <p className="text-muted-foreground">Upravljanje igralcev</p>
             </div>
-            <Button onClick={handleAdd}>
-              <Plus className="h-4 w-4 mr-2" />
-              Dodaj igralca
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleImportClick}>
+                <Upload className="h-4 w-4 mr-2" />
+                Uvozi iz Excel
+              </Button>
+              <Button onClick={handleAdd}>
+                <Plus className="h-4 w-4 mr-2" />
+                Dodaj igralca
+              </Button>
+            </div>
           </div>
 
           <Card>
@@ -512,6 +669,126 @@ export default function PlayersPage() {
                   </DialogFooter>
                 </form>
               </ScrollArea>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <DialogContent className="max-w-4xl max-h-[90vh]">
+              <DialogHeader>
+                <DialogTitle>Uvoz igralcev iz Excel/CSV</DialogTitle>
+              </DialogHeader>
+
+              <ScrollArea className="max-h-[70vh] pr-4">
+                <div className="space-y-4">
+                  {!importData ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label>1. Prenesite vzorčno predlogo</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleDownloadTemplate}
+                          className="w-full"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Prenesi vzorčno predlogo (CSV)
+                        </Button>
+                        <p className="text-sm text-muted-foreground">
+                          Odprite predlogo v Excelu, izpolnite podatke in shranite kot CSV.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>2. Naložite datoteko</Label>
+                        <Input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".csv"
+                          onChange={handleFileSelect}
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Podprte so samo CSV datoteke. Obvezna polja: Ime, Priimek
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Predogled podatkov ({importData.rows.length} vrstic)</Label>
+                        <div className="border rounded-lg overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                {importData.headers.slice(0, 5).map((header) => (
+                                  <TableHead key={header}>{header}</TableHead>
+                                ))}
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {importData.rows.slice(0, 3).map((row, index) => (
+                                <TableRow key={index}>
+                                  {importData.headers.slice(0, 5).map((header) => (
+                                    <TableCell key={header}>
+                                      {row[header]?.toString() || '-'}
+                                    </TableCell>
+                                  ))}
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+
+                      {importErrors.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-destructive">
+                            Validacijske napake ({importErrors.length})
+                          </Label>
+                          <ScrollArea className="h-32 border rounded-lg p-2">
+                            {importErrors.map((error, index) => (
+                              <div key={index} className="text-sm text-destructive mb-1">
+                                Vrstica {error.row}, {error.field}: {error.message}
+                              </div>
+                            ))}
+                          </ScrollArea>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Pripravljen na uvoz</p>
+                          <p className="text-xs text-muted-foreground">
+                            {importData.rows.length} igralcev bo dodanih
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </ScrollArea>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setImportDialogOpen(false);
+                    setImportData(null);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                  disabled={importing}
+                >
+                  Prekliči
+                </Button>
+                {importData && (
+                  <Button
+                    onClick={handleImport}
+                    disabled={importing || importErrors.length > 0}
+                  >
+                    {importing ? "Uvažam..." : `Uvozi ${importData.rows.length} igralcev`}
+                  </Button>
+                )}
+              </DialogFooter>
             </DialogContent>
           </Dialog>
 
