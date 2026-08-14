@@ -5,15 +5,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, Plus, Edit, Trash2 } from "lucide-react";
+import { CalendarClock, Plus, Edit, Trash2, Clock } from "lucide-react";
 
 const DAYS = [
   { value: "1", label: "Ponedeljek" },
@@ -27,14 +37,13 @@ const DAYS = [
 
 interface Schedule {
   id: string;
-  team_id: string;
-  venue_id: string;
+  team: { name: string };
+  venue: { name: string };
   day_of_week: number;
   start_time: string;
   end_time: string;
+  default_activity_type_id: number;
   is_active: boolean;
-  teams?: { name: string };
-  venues?: { name: string; city: string };
 }
 
 export default function SchedulesPage() {
@@ -45,12 +54,15 @@ export default function SchedulesPage() {
   const [venues, setVenues] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [scheduleToDelete, setScheduleToDelete] = useState<Schedule | null>(null);
   const [formData, setFormData] = useState({
     team_id: "",
     venue_id: "",
-    day_of_week: "1",
+    day_of_week: "",
     start_time: "",
     end_time: "",
+    default_activity_type_id: "1",
     is_active: true,
   });
 
@@ -145,11 +157,11 @@ export default function SchedulesPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!formData.team_id || !formData.venue_id || !formData.start_time || !formData.end_time) {
+    if (!formData.team_id || !formData.venue_id || !formData.day_of_week || !formData.start_time || !formData.end_time) {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Vsa polja so obvezna",
+        description: "Selekcija, dvorana, dan v tednu, začetek in konec so obvezni",
       });
       return;
     }
@@ -163,7 +175,7 @@ export default function SchedulesPage() {
         day_of_week: parseInt(formData.day_of_week),
         start_time: formData.start_time,
         end_time: formData.end_time,
-        default_activity_type_id: 1, // Default to Training activity type
+        default_activity_type_id: parseInt(formData.default_activity_type_id),
         is_active: formData.is_active,
       };
 
@@ -176,7 +188,7 @@ export default function SchedulesPage() {
         if (error) throw error;
         toast({
           title: "Uspešno",
-          description: "Urnik uspešno posodobljen",
+          description: "Termin uspešno posodobljen",
         });
       } else {
         const { error } = await supabase
@@ -186,18 +198,54 @@ export default function SchedulesPage() {
         if (error) throw error;
         toast({
           title: "Uspešno",
-          description: "Urnik uspešno ustvarjen",
+          description: "Termin uspešno ustvarjen",
         });
       }
 
       setDialogOpen(false);
       loadSchedules();
     } catch (error: any) {
-      console.error("Napaka pri shranjevanju urnika:", error);
+      console.error("Napaka pri shranjevanju termina:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju urnika",
+        description: error.message || "Napaka pri shranjevanju termina",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleDeleteClick(schedule: Schedule) {
+    setScheduleToDelete(schedule);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleConfirmDelete() {
+    if (!scheduleToDelete) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("schedule_templates")
+        .delete()
+        .eq("id", scheduleToDelete.id);
+
+      if (error) throw error;
+      toast({
+        title: "Uspešno",
+        description: "Termin uspešno izbrisan",
+      });
+      
+      setDeleteDialogOpen(false);
+      setScheduleToDelete(null);
+      loadSchedules();
+    } catch (error: any) {
+      console.error("Napaka pri brisanju termina:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri brisanju termina",
       });
     } finally {
       setLoading(false);
@@ -205,7 +253,7 @@ export default function SchedulesPage() {
   }
 
   async function handleDelete(scheduleId: string) {
-    if (!confirm("Ali ste prepričani, da želite izbrisati ta urnik?")) return;
+    if (!confirm("Ali ste prepričani, da želite izbrisati ta termin?")) return;
 
     try {
       setLoading(true);
@@ -217,15 +265,15 @@ export default function SchedulesPage() {
       if (error) throw error;
       toast({
         title: "Uspešno",
-        description: "Urnik uspešno izbrisan",
+        description: "Termin uspešno izbrisan",
       });
       loadSchedules();
     } catch (error: any) {
-      console.error("Napaka pri brisanju urnika:", error);
+      console.error("Napaka pri brisanju termina:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri brisanju urnika",
+        description: error.message || "Napaka pri brisanju termina",
       });
     } finally {
       setLoading(false);
@@ -313,7 +361,7 @@ export default function SchedulesPage() {
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => handleDelete(schedule.id)}
+                                onClick={() => handleDeleteClick(schedule)}
                                 disabled={loading}
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
@@ -458,6 +506,30 @@ export default function SchedulesPage() {
               </ScrollArea>
             </DialogContent>
           </Dialog>
+
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Potrditev brisanja</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Nameravaš izbrisati redni termin{" "}
+                  <strong>
+                    {scheduleToDelete?.team.name} ({getDayName(scheduleToDelete?.day_of_week || 0)} {scheduleToDelete?.start_time})
+                  </strong>
+                  . Izbrišem?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Prekliči</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Izbriši
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </AppLayout>
     </ProtectedRoute>

@@ -9,9 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Edit, Users } from "lucide-react";
+import { Calendar, Edit, Users, Trash2 } from "lucide-react";
 import { useRouter } from "next/router";
 
 interface Activity {
@@ -34,6 +44,8 @@ export default function ActivitiesPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [venues, setVenues] = useState<any[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState<Activity | null>(null);
   const [editForm, setEditForm] = useState({
     activity_date: "",
     start_time: "",
@@ -174,6 +186,44 @@ export default function ActivitiesPage() {
     }
   }
 
+  function handleDeleteClick(activity: Activity) {
+    setActivityToDelete(activity);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleConfirmDelete() {
+    if (!activityToDelete) return;
+
+    try {
+      setLoading(true);
+
+      const { error } = await supabase
+        .from("activities")
+        .delete()
+        .eq("id", activityToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Uspešno",
+        description: "Aktivnost uspešno izbrisana",
+      });
+
+      setDeleteDialogOpen(false);
+      setActivityToDelete(null);
+      loadActivities();
+    } catch (error: any) {
+      console.error("Napaka pri brisanju aktivnosti:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri brisanju aktivnosti",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <ProtectedRoute>
       <AppLayout>
@@ -253,6 +303,15 @@ export default function ActivitiesPage() {
                               >
                                 <Edit className="h-4 w-4 mr-1" />
                                 Uredi
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteClick(activity)}
+                                disabled={loading}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Izbriši
                               </Button>
                             </div>
                           </TableCell>
@@ -338,6 +397,30 @@ export default function ActivitiesPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Potrditev brisanja</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Nameravaš izbrisati aktivnost{" "}
+                  <strong>
+                    {activityToDelete?.team.name} ({new Date(activityToDelete?.activity_date || "").toLocaleDateString("sl-SI")})
+                  </strong>
+                  . Izbrišem?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Prekliči</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Izbriši
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </AppLayout>
     </ProtectedRoute>

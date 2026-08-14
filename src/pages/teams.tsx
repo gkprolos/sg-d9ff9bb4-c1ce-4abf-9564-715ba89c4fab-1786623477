@@ -9,6 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -42,6 +52,8 @@ export default function TeamsPage() {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [coaches, setCoaches] = useState<any[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     short_name: "",
@@ -352,21 +364,29 @@ export default function TeamsPage() {
     }
   }
 
-  async function handleDelete(teamId: string) {
-    if (!confirm("Ali ste prepričani, da želite izbrisati to selekcijo?")) return;
+  function handleDeleteClick(team: Team) {
+    setTeamToDelete(team);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleConfirmDelete() {
+    if (!teamToDelete) return;
 
     try {
       setLoading(true);
       const { error } = await supabase
         .from("teams")
         .delete()
-        .eq("id", teamId);
+        .eq("id", teamToDelete.id);
 
       if (error) throw error;
       toast({
         title: "Uspešno",
         description: "Selekcija uspešno izbrisana",
       });
+      
+      setDeleteDialogOpen(false);
+      setTeamToDelete(null);
       loadTeams();
     } catch (error: any) {
       console.error("Napaka pri brisanju selekcije:", error);
@@ -461,7 +481,7 @@ export default function TeamsPage() {
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => handleDelete(team.id)}
+                                onClick={() => handleDeleteClick(team)}
                                 disabled={loading}
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
@@ -695,6 +715,26 @@ export default function TeamsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Potrditev brisanja</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Nameravaš izbrisati selekcijo <strong>{teamToDelete?.name}</strong>. Izbrišem?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Prekliči</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Izbriši
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </AppLayout>
     </ProtectedRoute>

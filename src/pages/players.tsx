@@ -9,6 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -38,6 +48,8 @@ export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -185,6 +197,42 @@ export default function PlayersPage() {
     }
   }
 
+  function handleDeleteClick(player: Player) {
+    setPlayerToDelete(player);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleConfirmDelete() {
+    if (!playerToDelete) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("players")
+        .delete()
+        .eq("id", playerToDelete.id);
+
+      if (error) throw error;
+      toast({
+        title: "Uspešno",
+        description: "Igralec uspešno izbrisan",
+      });
+      
+      setDeleteDialogOpen(false);
+      setPlayerToDelete(null);
+      loadPlayers();
+    } catch (error: any) {
+      console.error("Napaka pri brisanju igralca:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri brisanju igralca",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleDelete(playerId: string) {
     if (!confirm("Ali ste prepričani, da želite izbrisati tega igralca?")) return;
 
@@ -301,7 +349,7 @@ export default function PlayersPage() {
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => handleDelete(player.id)}
+                                onClick={() => handleDeleteClick(player)}
                                 disabled={loading}
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
@@ -466,6 +514,26 @@ export default function PlayersPage() {
               </ScrollArea>
             </DialogContent>
           </Dialog>
+
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Potrditev brisanja</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Nameravaš izbrisati igralca <strong>{playerToDelete?.first_name} {playerToDelete?.last_name}</strong>. Izbrišem?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Prekliči</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Izbriši
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </AppLayout>
     </ProtectedRoute>

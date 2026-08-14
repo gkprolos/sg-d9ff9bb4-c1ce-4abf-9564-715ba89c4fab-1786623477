@@ -7,10 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { UserCog, Plus, Edit, Trash2 } from "lucide-react";
+import { UserCircle, Plus, Edit, Trash2 } from "lucide-react";
 
 interface Coach {
   id: string;
@@ -27,6 +37,8 @@ export default function CoachesPage() {
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [coachToDelete, setCoachToDelete] = useState<Coach | null>(null);
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
@@ -143,12 +155,68 @@ export default function CoachesPage() {
     }
   }
 
+  function handleDeleteClick(coach: Coach) {
+    setCoachToDelete(coach);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleConfirmDelete() {
+    if (!coachToDelete) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", coachToDelete.id);
+
+      if (error) throw error;
+      toast({
+        title: "Uspešno",
+        description: "Trener uspešno izbrisan",
+      });
+      
+      setDeleteDialogOpen(false);
+      setCoachToDelete(null);
+      loadCoaches();
+    } catch (error: any) {
+      console.error("Napaka pri brisanju trenerja:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri brisanju trenerja",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleDelete(coachId: string) {
-    toast({
-      variant: "destructive",
-      title: "Informacija",
-      description: "Trenerje je mogoče izbrisati samo preko Supabase Dashboard",
-    });
+    if (!confirm("Ali ste prepričani, da želite izbrisati tega trenerja?")) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", coachId);
+
+      if (error) throw error;
+      toast({
+        title: "Uspešno",
+        description: "Trener uspešno izbrisan",
+      });
+      loadCoaches();
+    } catch (error: any) {
+      console.error("Napaka pri brisanju trenerja:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri brisanju trenerja",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -165,7 +233,7 @@ export default function CoachesPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <UserCog className="h-5 w-5" />
+                <UserCircle className="h-5 w-5" />
                 Seznam trenerjev ({coaches.length})
               </CardTitle>
             </CardHeader>
@@ -174,7 +242,7 @@ export default function CoachesPage() {
                 <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
               ) : coaches.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <UserCog className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <UserCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium">Ni trenerjev</p>
                   <p className="text-sm mt-2">Dodajte trenerje preko Supabase Dashboard</p>
                 </div>
@@ -217,7 +285,7 @@ export default function CoachesPage() {
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => handleDelete(coach.id)}
+                                onClick={() => handleDeleteClick(coach)}
                                 disabled={loading}
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
@@ -320,6 +388,26 @@ export default function CoachesPage() {
               </ScrollArea>
             </DialogContent>
           </Dialog>
+
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Potrditev brisanja</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Nameravaš izbrisati trenerja <strong>{coachToDelete?.full_name}</strong>. Izbrišem?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Prekliči</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Izbriši
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </AppLayout>
     </ProtectedRoute>

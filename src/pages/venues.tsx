@@ -8,7 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,10 +28,11 @@ import { MapPin, Plus, Edit, Trash2 } from "lucide-react";
 interface Venue {
   id: string;
   name: string;
-  city: string;
   address: string | null;
-  room_designation: string | null;
+  city: string | null;
+  room_identifier: string | null;
   is_active: boolean;
+  notes: string | null;
 }
 
 export default function VenuesPage() {
@@ -29,12 +41,15 @@ export default function VenuesPage() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [venueToDelete, setVenueToDelete] = useState<Venue | null>(null);
   const [formData, setFormData] = useState({
     name: "",
-    city: "",
     address: "",
-    room_designation: "",
+    city: "",
+    room_identifier: "",
     is_active: true,
+    notes: "",
   });
 
   useEffect(() => {
@@ -90,11 +105,11 @@ export default function VenuesPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!formData.name || !formData.city) {
+    if (!formData.name) {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Naziv in kraj sta obvezna",
+        description: "Naziv je obvezen",
       });
       return;
     }
@@ -104,10 +119,11 @@ export default function VenuesPage() {
 
       const payload = {
         name: formData.name,
-        city: formData.city,
         address: formData.address || null,
-        room_designation: formData.room_designation || null,
+        city: formData.city || null,
+        room_identifier: formData.room_identifier || null,
         is_active: formData.is_active,
+        notes: formData.notes || null,
       };
 
       if (selectedVenue) {
@@ -141,6 +157,42 @@ export default function VenuesPage() {
         variant: "destructive",
         title: "Napaka",
         description: error.message || "Napaka pri shranjevanju dvorane",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleDeleteClick(venue: Venue) {
+    setVenueToDelete(venue);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleConfirmDelete() {
+    if (!venueToDelete) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("venues")
+        .delete()
+        .eq("id", venueToDelete.id);
+
+      if (error) throw error;
+      toast({
+        title: "Uspešno",
+        description: "Dvorana uspešno izbrisana",
+      });
+      
+      setDeleteDialogOpen(false);
+      setVenueToDelete(null);
+      loadVenues();
+    } catch (error: any) {
+      console.error("Napaka pri brisanju dvorane:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri brisanju dvorane",
       });
     } finally {
       setLoading(false);
@@ -245,7 +297,7 @@ export default function VenuesPage() {
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => handleDelete(venue.id)}
+                                onClick={() => handleDeleteClick(venue)}
                                 disabled={loading}
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
@@ -346,6 +398,26 @@ export default function VenuesPage() {
               </ScrollArea>
             </DialogContent>
           </Dialog>
+
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Potrditev brisanja</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Nameravaš izbrisati dvorano <strong>{venueToDelete?.name}</strong>. Izbrišem?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Prekliči</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Izbriši
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </AppLayout>
     </ProtectedRoute>
