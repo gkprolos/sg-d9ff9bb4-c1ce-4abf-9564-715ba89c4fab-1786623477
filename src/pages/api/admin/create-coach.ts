@@ -82,6 +82,19 @@ export default async function handler(
       return res.status(500).json({ error: profileError.message });
     }
 
+    // Insert coach role in user_roles table
+    const { error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({
+        user_id: authData.user.id,
+        role: 'coach',
+      });
+
+    if (roleError) {
+      console.error('User role insert error:', roleError);
+      return res.status(500).json({ error: roleError.message });
+    }
+
     return res.status(200).json({ 
       success: true, 
       user_id: authData.user.id 
