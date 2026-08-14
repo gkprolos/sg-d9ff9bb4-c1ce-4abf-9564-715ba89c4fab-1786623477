@@ -24,7 +24,8 @@ import { UserCircle, Plus, Edit, Trash2 } from "lucide-react";
 
 interface Coach {
   id: string;
-  full_name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string | null;
   hourly_rate: number | null;
@@ -40,7 +41,8 @@ export default function CoachesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [coachToDelete, setCoachToDelete] = useState<Coach | null>(null);
   const [formData, setFormData] = useState({
-    full_name: "",
+    first_name: "",
+    last_name: "",
     email: "",
     password: "",
     phone: "",
@@ -57,8 +59,8 @@ export default function CoachesPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
-        .order("full_name", { ascending: true });
+        .select("id, first_name, last_name, email, phone, hourly_rate, km_rate")
+        .order("last_name", { ascending: true });
 
       if (error) throw error;
       setCoaches(data || []);
@@ -77,7 +79,8 @@ export default function CoachesPage() {
   function handleAdd() {
     setSelectedCoach(null);
     setFormData({
-      full_name: "",
+      first_name: "",
+      last_name: "",
       email: "",
       password: "",
       phone: "",
@@ -90,7 +93,8 @@ export default function CoachesPage() {
   function handleEdit(coach: Coach) {
     setSelectedCoach(coach);
     setFormData({
-      full_name: coach.full_name,
+      first_name: coach.first_name,
+      last_name: coach.last_name,
       email: coach.email,
       password: "", // Not used for editing, but required by formData type
       phone: coach.phone || "",
@@ -103,11 +107,11 @@ export default function CoachesPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!formData.full_name || !formData.email) {
+    if (!formData.first_name || !formData.last_name || !formData.email) {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Ime in e-pošta sta obvezna",
+        description: "Ime, priimek in e-pošta so obvezni",
       });
       return;
     }
@@ -126,7 +130,8 @@ export default function CoachesPage() {
       setLoading(true);
 
       const payload = {
-        full_name: formData.full_name,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
         email: formData.email,
         phone: formData.phone || null,
         hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
@@ -152,7 +157,8 @@ export default function CoachesPage() {
           password: formData.password,
           options: {
             data: {
-              full_name: formData.full_name,
+              first_name: formData.first_name,
+              last_name: formData.last_name,
               phone: formData.phone || null,
               hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
               km_rate: formData.km_rate ? parseFloat(formData.km_rate) : null,
@@ -293,6 +299,7 @@ export default function CoachesPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Ime</TableHead>
+                        <TableHead>Priimek</TableHead>
                         <TableHead>E-pošta</TableHead>
                         <TableHead>Telefon</TableHead>
                         <TableHead className="text-right">Vrednost ure (€)</TableHead>
@@ -303,7 +310,8 @@ export default function CoachesPage() {
                     <TableBody>
                       {coaches.map((coach) => (
                         <TableRow key={coach.id}>
-                          <TableCell className="font-medium">{coach.full_name}</TableCell>
+                          <TableCell className="font-medium">{coach.first_name}</TableCell>
+                          <TableCell>{coach.last_name}</TableCell>
                           <TableCell>{coach.email}</TableCell>
                           <TableCell>{coach.phone || "N/A"}</TableCell>
                           <TableCell className="text-right">
@@ -353,6 +361,33 @@ export default function CoachesPage() {
 
               <ScrollArea className="max-h-[60vh] pr-4">
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name">
+                        Ime <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="first_name"
+                        placeholder="Janez"
+                        value={formData.first_name}
+                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name">
+                        Priimek <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="last_name"
+                        placeholder="Novak"
+                        value={formData.last_name}
+                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="email">
                       E-pošta <span className="text-destructive">*</span>
@@ -446,7 +481,7 @@ export default function CoachesPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Potrditev brisanja</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Nameravaš izbrisati trenerja <strong>{coachToDelete?.full_name}</strong>. Izbrišem?
+                  Nameravaš izbrisati trenerja <strong>{coachToDelete?.first_name} {coachToDelete?.last_name}</strong>. Izbrišem?
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

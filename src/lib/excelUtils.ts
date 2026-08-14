@@ -1,6 +1,7 @@
 /**
  * Excel/CSV parsing utilities for player import
  */
+import * as XLSX from 'xlsx';
 
 export interface ImportRow {
   [key: string]: string | number | null;
@@ -48,12 +49,64 @@ export function parseCSV(content: string): ParsedData {
 }
 
 /**
- * Parse XLSX file (basic implementation - for full support use xlsx library)
+ * Parse XLSX file using xlsx library
  */
 export async function parseXLSX(file: File): Promise<ParsedData> {
-  // This is a placeholder - in production, use 'xlsx' library
-  // For now, we'll only support CSV
-  throw new Error('XLSX parsing requires xlsx library. Please use CSV format.');
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        if (!data) {
+          reject(new Error('Napaka pri branju datoteke'));
+          return;
+        }
+
+        // Read the workbook
+        const workbook = XLSX.read(data, { type: 'binary' });
+        
+        // Get first worksheet
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert to JSON
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        
+        if (jsonData.length === 0) {
+          resolve({ headers: [], rows: [] });
+          return;
+        }
+
+        // First row is headers
+        const headers = jsonData[0].map(h => String(h || '').trim());
+        
+        // Remaining rows are data
+        const rows: ImportRow[] = [];
+        for (let i = 1; i < jsonData.length; i++) {
+          const rowData = jsonData[i];
+          const row: ImportRow = {};
+          
+          headers.forEach((header, index) => {
+            const value = rowData[index];
+            row[header] = value !== undefined && value !== null ? String(value).trim() : null;
+          });
+          
+          rows.push(row);
+        }
+
+        resolve({ headers, rows });
+      } catch (error: any) {
+        reject(new Error(`Napaka pri branju XLSX datoteke: ${error.message}`));
+      }
+    };
+
+    reader.onerror = () => {
+      reject(new Error('Napaka pri branju datoteke'));
+    };
+
+    reader.readAsBinaryString(file);
+  });
 }
 
 /**
@@ -113,7 +166,57 @@ export function validatePlayerRow(
 }
 
 /**
- * Generate sample CSV template
+ * Generate sample XLSX template
+ */
+export function generateSampleXLSX(): Blob {
+  const headers = [
+    'Ime',
+    'Priimek',
+    'Datum rojstva',
+    'Spol',
+    'Naslov',
+    'Kraj',
+    'Telefon',
+  ];
+
+  const sampleRows = [
+    ['Janez', 'Novak', '2010-05-15', 'M', 'Cankarjeva 12', 'Ljubljana', '041234567'],
+    ['Ana', 'Kovač', '2011-03-22', 'F', 'Prešernova 5', 'Maribor', '040987654'],
+  ];
+
+  // Create worksheet
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
+  
+  // Create workbook
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Igralci');
+
+  // Generate XLSX file
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  
+  return new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+/**
+ * Download XLSX file
+ */
+export function downloadXLSX(filename: string) {
+  const blob = generateSampleXLSX();
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Generate sample CSV template (legacy support)
  */
 export function generateSampleCSV(): string {
   const headers = [
@@ -140,7 +243,7 @@ export function generateSampleCSV(): string {
 }
 
 /**
- * Download CSV file
+ * Download CSV file (legacy support)
  */
 export function downloadCSV(content: string, filename: string) {
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
@@ -154,4 +257,5 @@ export function downloadCSV(content: string, filename: string) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

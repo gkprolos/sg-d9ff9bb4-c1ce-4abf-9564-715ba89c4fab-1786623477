@@ -27,9 +27,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserCircle, Plus, Edit, Trash2, Upload, Download } from "lucide-react";
 import {
   parseCSV,
+  parseXLSX,
   validatePlayerRow,
-  generateSampleCSV,
-  downloadCSV,
+  downloadXLSX,
   type ParsedData,
   type ImportRow,
   type ValidationError,
@@ -259,51 +259,104 @@ export default function PlayersPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        const parsed = parseCSV(content);
-        
-        if (parsed.headers.length === 0) {
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+    if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+      // Parse XLSX file
+      parseXLSX(file)
+        .then((parsed) => {
+          if (parsed.headers.length === 0) {
+            toast({
+              variant: "destructive",
+              title: "Napaka",
+              description: "Datoteka je prazna ali neveljavna",
+            });
+            return;
+          }
+
+          setImportData(parsed);
+          
+          // Auto-map common column names
+          const mapping: { [key: string]: string } = {};
+          parsed.headers.forEach(header => {
+            const lower = header.toLowerCase();
+            if (lower.includes('ime') && !lower.includes('priimek')) mapping['first_name'] = header;
+            if (lower.includes('priimek')) mapping['last_name'] = header;
+            if (lower.includes('datum') || lower.includes('birth')) mapping['date_of_birth'] = header;
+            if (lower.includes('spol') || lower.includes('gender')) mapping['gender'] = header;
+            if (lower.includes('naslov') || lower.includes('address')) mapping['address'] = header;
+            if (lower.includes('kraj') || lower.includes('city')) mapping['city'] = header;
+            if (lower.includes('telefon') || lower.includes('phone')) mapping['phone'] = header;
+          });
+          setImportMapping(mapping);
+
+          toast({
+            title: "Datoteka naložena",
+            description: `Prebrano ${parsed.rows.length} vrstic`,
+          });
+        })
+        .catch((error: any) => {
+          console.error("Napaka pri branju XLSX datoteke:", error);
           toast({
             variant: "destructive",
             title: "Napaka",
-            description: "Datoteka je prazna ali neveljavna",
+            description: error.message || "Napaka pri branju XLSX datoteke",
           });
-          return;
+        });
+    } else if (fileExtension === 'csv') {
+      // Parse CSV file
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const content = event.target?.result as string;
+          const parsed = parseCSV(content);
+          
+          if (parsed.headers.length === 0) {
+            toast({
+              variant: "destructive",
+              title: "Napaka",
+              description: "Datoteka je prazna ali neveljavna",
+            });
+            return;
+          }
+
+          setImportData(parsed);
+          
+          // Auto-map common column names
+          const mapping: { [key: string]: string } = {};
+          parsed.headers.forEach(header => {
+            const lower = header.toLowerCase();
+            if (lower.includes('ime') && !lower.includes('priimek')) mapping['first_name'] = header;
+            if (lower.includes('priimek')) mapping['last_name'] = header;
+            if (lower.includes('datum') || lower.includes('birth')) mapping['date_of_birth'] = header;
+            if (lower.includes('spol') || lower.includes('gender')) mapping['gender'] = header;
+            if (lower.includes('naslov') || lower.includes('address')) mapping['address'] = header;
+            if (lower.includes('kraj') || lower.includes('city')) mapping['city'] = header;
+            if (lower.includes('telefon') || lower.includes('phone')) mapping['phone'] = header;
+          });
+          setImportMapping(mapping);
+
+          toast({
+            title: "Datoteka naložena",
+            description: `Prebrano ${parsed.rows.length} vrstic`,
+          });
+        } catch (error: any) {
+          console.error("Napaka pri branju CSV datoteke:", error);
+          toast({
+            variant: "destructive",
+            title: "Napaka",
+            description: error.message || "Napaka pri branju CSV datoteke",
+          });
         }
-
-        setImportData(parsed);
-        
-        // Auto-map common column names
-        const mapping: { [key: string]: string } = {};
-        parsed.headers.forEach(header => {
-          const lower = header.toLowerCase();
-          if (lower.includes('ime') && !lower.includes('priimek')) mapping['first_name'] = header;
-          if (lower.includes('priimek')) mapping['last_name'] = header;
-          if (lower.includes('datum') || lower.includes('birth')) mapping['date_of_birth'] = header;
-          if (lower.includes('spol') || lower.includes('gender')) mapping['gender'] = header;
-          if (lower.includes('naslov') || lower.includes('address')) mapping['address'] = header;
-          if (lower.includes('kraj') || lower.includes('city')) mapping['city'] = header;
-          if (lower.includes('telefon') || lower.includes('phone')) mapping['phone'] = header;
-        });
-        setImportMapping(mapping);
-
-        toast({
-          title: "Datoteka naložena",
-          description: `Prebrano ${parsed.rows.length} vrstic`,
-        });
-      } catch (error: any) {
-        console.error("Napaka pri branju datoteke:", error);
-        toast({
-          variant: "destructive",
-          title: "Napaka",
-          description: error.message || "Napaka pri branju datoteke",
-        });
-      }
-    };
-    reader.readAsText(file);
+      };
+      reader.readAsText(file);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Podprte so samo XLSX in CSV datoteke",
+      });
+    }
   }
 
   async function handleImport() {
@@ -376,8 +429,7 @@ export default function PlayersPage() {
   }
 
   function handleDownloadTemplate() {
-    const csv = generateSampleCSV();
-    downloadCSV(csv, 'vzorcna_predloga_igralci.csv');
+    downloadXLSX('vzorcna_predloga_igralci.xlsx');
     toast({
       title: "Predloga prenesena",
       description: "Odprite datoteko v Excelu in izpolnite podatke",
@@ -675,7 +727,7 @@ export default function PlayersPage() {
           <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
             <DialogContent className="max-w-4xl max-h-[90vh]">
               <DialogHeader>
-                <DialogTitle>Uvoz igralcev iz Excel/CSV</DialogTitle>
+                <DialogTitle>Uvoz igralcev iz Excel</DialogTitle>
               </DialogHeader>
 
               <ScrollArea className="max-h-[70vh] pr-4">
@@ -691,10 +743,10 @@ export default function PlayersPage() {
                           className="w-full"
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Prenesi vzorčno predlogo (CSV)
+                          Prenesi vzorčno predlogo (XLSX)
                         </Button>
                         <p className="text-sm text-muted-foreground">
-                          Odprite predlogo v Excelu, izpolnite podatke in shranite kot CSV.
+                          Odprite predlogo v Excelu, izpolnite podatke in shranite.
                         </p>
                       </div>
 
@@ -703,11 +755,11 @@ export default function PlayersPage() {
                         <Input
                           ref={fileInputRef}
                           type="file"
-                          accept=".csv"
+                          accept=".xlsx,.xls,.csv"
                           onChange={handleFileSelect}
                         />
                         <p className="text-sm text-muted-foreground">
-                          Podprte so samo CSV datoteke. Obvezna polja: Ime, Priimek
+                          Podprte so XLSX in CSV datoteke. Obvezna polja: Ime, Priimek
                         </p>
                       </div>
                     </>
