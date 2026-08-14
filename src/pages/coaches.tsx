@@ -246,6 +246,40 @@ export default function CoachesPage() {
     }
   }
 
+  async function handleResetPassword() {
+    if (!formData.email) {
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "E-poštni naslov je obvezen",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Uspešno",
+        description: `E-poštno sporočilo za ponastavitev gesla poslano na ${formData.email}`,
+      });
+    } catch (error: any) {
+      console.error("Napaka pri pošiljanju emaila:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri pošiljanju emaila",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleDelete(coachId: string) {
     if (!confirm("Ali ste prepričani, da želite izbrisati tega trenerja?")) return;
 
@@ -441,6 +475,24 @@ export default function CoachesPage() {
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     />
                   </div>
+
+                  {selectedCoach && (
+                    <div className="space-y-2">
+                      <Label>Geslo</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleResetPassword}
+                        disabled={loading}
+                        className="w-full"
+                      >
+                        Ponastavi geslo
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Trener bo prejel e-poštno sporočilo s povezavo za ponastavitev gesla
+                      </p>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
