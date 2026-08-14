@@ -19,7 +19,6 @@ interface Venue {
   name: string;
   city: string;
   address: string | null;
-  postal_code: string | null;
   room_designation: string | null;
   is_active: boolean;
 }
@@ -34,7 +33,6 @@ export default function VenuesPage() {
     name: "",
     city: "",
     address: "",
-    postal_code: "",
     room_designation: "",
     is_active: true,
   });
@@ -71,7 +69,6 @@ export default function VenuesPage() {
       name: "",
       city: "",
       address: "",
-      postal_code: "",
       room_designation: "",
       is_active: true,
     });
@@ -84,7 +81,6 @@ export default function VenuesPage() {
       name: venue.name,
       city: venue.city,
       address: venue.address || "",
-      postal_code: venue.postal_code || "",
       room_designation: venue.room_designation || "",
       is_active: venue.is_active,
     });
@@ -110,7 +106,6 @@ export default function VenuesPage() {
         name: formData.name,
         city: formData.city,
         address: formData.address || null,
-        postal_code: formData.postal_code || null,
         room_designation: formData.room_designation || null,
         is_active: formData.is_active,
       };
@@ -310,16 +305,6 @@ export default function VenuesPage() {
                       placeholder="npr. Podlubnik 1a"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="postal_code">Poštna številka</Label>
-                    <Input
-                      id="postal_code"
-                      placeholder="npr. 4220"
-                      value={formData.postal_code}
-                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
                     />
                   </div>
 

@@ -163,6 +163,7 @@ export default function SchedulesPage() {
         day_of_week: parseInt(formData.day_of_week),
         start_time: formData.start_time,
         end_time: formData.end_time,
+        default_activity_type_id: 1, // Default to Training activity type
         is_active: formData.is_active,
       };
 
