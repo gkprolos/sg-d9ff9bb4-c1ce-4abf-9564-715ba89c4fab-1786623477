@@ -15,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarProvider,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -254,117 +255,411 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col border-r bg-card">
-        <NavContent />
-      </aside>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:block w-64 border-r bg-background">
+          <div className="flex h-16 items-center border-b px-6">
+            <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                SK
+              </div>
+              <span>Športni Klub</span>
+            </Link>
+          </div>
 
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card border-b">
-        <div className="flex items-center justify-between px-4 h-16">
-          <div className="flex items-center gap-2">
-            <Sheet open={open} onOpenChange={setOpen}>
+          <ScrollArea className="flex-1 px-3 py-4">
+            <Sidebar>
+              <SidebarContent>
+                <SidebarGroup>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link href="/dashboard">
+                            <LayoutDashboard className="h-4 w-4" />
+                            <span>{isAdmin ? "Nadzorna plošča" : "Moj pregled"}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+
+                      {isAdmin && (
+                        <>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/activities">
+                                <Activity className="h-4 w-4" />
+                                <span>Aktivnosti</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/seasons">
+                                <Calendar className="h-4 w-4" />
+                                <span>Sezone</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        </>
+                      )}
+
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link href="/attendance">
+                            <ClipboardCheck className="h-4 w-4" />
+                            <span>{isAdmin ? "Prisotnost" : "Vnos prisotnosti"}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+
+                      {isAdmin ? (
+                        <>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/teams">
+                                <Users className="h-4 w-4" />
+                                <span>Selekcije</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/players">
+                                <UserCog className="h-4 w-4" />
+                                <span>Igralci</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/coaches">
+                                <ClipboardList className="h-4 w-4" />
+                                <span>Trenerji</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/venues">
+                                <Building className="h-4 w-4" />
+                                <span>Dvorane</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/schedules">
+                                <Clock className="h-4 w-4" />
+                                <span>Urniki</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        </>
+                      ) : (
+                        <>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/players">
+                                <UserCog className="h-4 w-4" />
+                                <span>Igralci</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/teams">
+                                <Users className="h-4 w-4" />
+                                <span>Selekcije</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/venues">
+                                <Building className="h-4 w-4" />
+                                <span>Dvorane</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/schedules">
+                                <Clock className="h-4 w-4" />
+                                <span>Urniki</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        </>
+                      )}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </SidebarContent>
+            </Sidebar>
+          </ScrollArea>
+        </aside>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-6">
+            {/* Mobile Menu */}
+            <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
+                <Button variant="outline" size="icon" className="lg:hidden">
+                  <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72 p-0">
-                <NavContent />
+              <SheetContent side="left" className="w-64 p-0">
+                <div className="flex h-16 items-center border-b px-6">
+                  <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                      SK
+                    </div>
+                    <span>Športni Klub</span>
+                  </Link>
+                </div>
+                <ScrollArea className="flex-1 px-3 py-4">
+                  <nav className="space-y-1">
+                    <Link
+                      href="/dashboard"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                        router.pathname === "/dashboard"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      {isAdmin ? "Nadzorna plošča" : "Moj pregled"}
+                    </Link>
+
+                    {isAdmin && (
+                      <>
+                        <Link
+                          href="/activities"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/activities"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Activity className="h-4 w-4" />
+                          Aktivnosti
+                        </Link>
+                        <Link
+                          href="/seasons"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/seasons"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Calendar className="h-4 w-4" />
+                          Sezone
+                        </Link>
+                      </>
+                    )}
+
+                    <Link
+                      href="/attendance"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                        router.pathname === "/attendance"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      <ClipboardCheck className="h-4 w-4" />
+                      {isAdmin ? "Prisotnost" : "Vnos prisotnosti"}
+                    </Link>
+
+                    {isAdmin ? (
+                      <>
+                        <Link
+                          href="/teams"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/teams"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Users className="h-4 w-4" />
+                          Selekcije
+                        </Link>
+                        <Link
+                          href="/players"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/players"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <UserCog className="h-4 w-4" />
+                          Igralci
+                        </Link>
+                        <Link
+                          href="/coaches"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/coaches"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <ClipboardList className="h-4 w-4" />
+                          Trenerji
+                        </Link>
+                        <Link
+                          href="/venues"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/venues"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Building className="h-4 w-4" />
+                          Dvorane
+                        </Link>
+                        <Link
+                          href="/schedules"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/schedules"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Clock className="h-4 w-4" />
+                          Urniki
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/players"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/players"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <UserCog className="h-4 w-4" />
+                          Igralci
+                        </Link>
+                        <Link
+                          href="/teams"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/teams"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Users className="h-4 w-4" />
+                          Selekcije
+                        </Link>
+                        <Link
+                          href="/venues"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/venues"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Building className="h-4 w-4" />
+                          Dvorane
+                        </Link>
+                        <Link
+                          href="/schedules"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/schedules"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Clock className="h-4 w-4" />
+                          Urniki
+                        </Link>
+                      </>
+                    )}
+
+                    <Separator className="my-3" />
+
+                    <Link
+                      href="/settings"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                        router.pathname === "/settings"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      <Settings className="h-4 w-4" />
+                      Nastavitve
+                    </Link>
+                  </nav>
+                </ScrollArea>
               </SheetContent>
             </Sheet>
-            <div className="flex items-center gap-2">
-              <img 
-                src="/LOGO-2015-C_B.gif" 
-                alt="OK Lubnik" 
-                className="h-8 w-auto"
-              />
-              <span className="font-semibold">OK Lubnik</span>
-            </div>
-          </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    {user?.email
-                      ?.split("@")[0]
-                      .substring(0, 2)
-                      .toUpperCase() || "??"}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col">
-                  <span>{user?.email}</span>
-                  <span className="text-xs font-normal text-muted-foreground">
-                    {isAdmin ? "Administrator" : "Trener"}
-                  </span>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Odjava
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <div className="flex-1" />
+
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar>
+                    <AvatarFallback>
+                      {user?.user_metadata?.full_name
+                        ?.split(" ")
+                        .map((n: string) => n[0])
+                        .join("")
+                        .toUpperCase() || <UserCircle className="h-5 w-5" />}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user?.user_metadata?.full_name || user?.email}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push("/settings")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Nastavitve
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Odjava
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </header>
+
+          {/* Page Content */}
+          <main className="flex-1 overflow-y-auto p-6">
+            {children}
+          </main>
         </div>
       </div>
-
-      {/* Desktop Header */}
-      <div className="hidden lg:block lg:pl-72">
-        <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card px-6">
-          <div>
-            <h1 className="text-xl font-semibold">
-              {navigation.find((item) => item.href === router.pathname)?.name || "Nadzorna plošča"}
-            </h1>
-            <p className="text-sm text-muted-foreground">Sezona 2026/2027</p>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {user?.email
-                      ?.split("@")[0]
-                      .substring(0, 2)
-                      .toUpperCase() || "??"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="text-left">
-                  <p className="text-sm font-medium">{user?.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {isAdmin ? "Administrator" : "Trener"}
-                  </p>
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Moj račun</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push("/settings")}>
-                <Settings className="mr-2 h-4 w-4" />
-                Nastavitve
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Odjava
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <main className="lg:pl-72 pt-16 lg:pt-0">
-        <div className="px-4 sm:px-6 lg:px-8 py-8">{children}</div>
-      </main>
-    </div>
+    </SidebarProvider>
   );
 }
