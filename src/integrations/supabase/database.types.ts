@@ -1093,7 +1093,7 @@ export type Database = {
       create_or_open_activity: {
         Args: {
           p_activity_date: string
-          p_activity_type_id?: number
+          p_activity_type_id: number
           p_custom_venue?: string
           p_end_time?: string
           p_is_home_game?: boolean

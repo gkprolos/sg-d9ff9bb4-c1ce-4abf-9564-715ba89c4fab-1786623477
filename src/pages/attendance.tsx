@@ -30,6 +30,12 @@ interface Player {
   attendance_status?: number | null;
 }
 
+interface CreateActivityResult {
+  activity_id: string;
+  is_new: boolean;
+  role: string;
+}
+
 export default function AttendancePage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -279,9 +285,10 @@ export default function AttendancePage() {
 
       console.log('[DEBUG] RPC result:', result);
 
-      const activityId = result.activity_id;
-      const isNew = result.is_new;
-      const role = result.role;
+      const typedResult = result as CreateActivityResult;
+      const activityId = typedResult.activity_id;
+      const isNew = typedResult.is_new;
+      const role = typedResult.role;
 
       if (isNew) {
         toast({
