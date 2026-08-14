@@ -40,8 +40,7 @@ interface Activity {
     coach_id: string;
     profiles: {
       id: string;
-      first_name: string;
-      last_name: string;
+      full_name: string;
     };
   }>;
 }
@@ -130,8 +129,7 @@ export default function ActivitiesPage() {
             coach_id,
             profiles!activity_coaches_coach_id_fkey(
               id,
-              first_name,
-              last_name
+              full_name
             )
           )
         `)
@@ -347,13 +345,13 @@ export default function ActivitiesPage() {
                                 {headCoach && (
                                   <div className="text-sm">
                                     <Badge variant="default" className="mr-1">Glavni</Badge>
-                                    {headCoach.profiles?.first_name} {headCoach.profiles?.last_name}
+                                    {headCoach.profiles?.full_name}
                                   </div>
                                 )}
                                 {assistants.map((assistant, idx) => (
                                   <div key={idx} className="text-sm">
                                     <Badge variant="secondary" className="mr-1">Sotrener</Badge>
-                                    {assistant.profiles?.first_name} {assistant.profiles?.last_name}
+                                    {assistant.profiles?.full_name}
                                   </div>
                                 ))}
                                 {!headCoach && assistants.length === 0 && (
