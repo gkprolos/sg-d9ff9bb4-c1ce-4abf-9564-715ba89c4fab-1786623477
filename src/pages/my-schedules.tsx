@@ -174,9 +174,11 @@ export default function MySchedulesPage() {
                       <TableRow>
                         <TableHead>Dan</TableHead>
                         <TableHead>Čas</TableHead>
+                        <TableHead>Selekcija</TableHead>
                         <TableHead>Dvorana</TableHead>
                         <TableHead>Tip aktivnosti</TableHead>
-                        <TableHead>Veljavnost</TableHead>
+                        <TableHead>Veljavnost od</TableHead>
+                        <TableHead>Veljavnost do</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -199,6 +201,7 @@ export default function MySchedulesPage() {
                             {ACTIVITY_TYPE_NAMES[schedule.activity_type_id] || "-"}
                           </TableCell>
                           <TableCell>{schedule.valid_from || "-"}</TableCell>
+                          <TableCell>{schedule.valid_to || "-"}</TableCell>
                           <TableCell>
                             <Badge variant={schedule.is_active ? "default" : "secondary"}>
                               {schedule.is_active ? "Aktiven" : "Neaktiven"}
