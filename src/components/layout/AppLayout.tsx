@@ -646,7 +646,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   Nastavitve
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Odjava
                 </DropdownMenuItem>
