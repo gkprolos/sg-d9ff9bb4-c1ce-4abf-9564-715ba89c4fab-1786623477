@@ -92,31 +92,45 @@ export default function AttendancePage() {
 
   async function loadTeams() {
     try {
+      console.log('[DEBUG ATTENDANCE] Loading teams...');
       const { data, error } = await supabase
         .from("teams")
         .select("id, name, short_name")
         .eq("is_archived", false)
         .order("name", { ascending: true });
 
+      console.log('[DEBUG ATTENDANCE] Teams response:', { data, error, count: data?.length || 0 });
       if (error) throw error;
       setTeams(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju selekcij:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: `Napaka pri nalaganju selekcij: ${error.message}`,
+      });
     }
   }
 
   async function loadVenues() {
     try {
+      console.log('[DEBUG ATTENDANCE] Loading venues...');
       const { data, error } = await supabase
         .from("venues")
         .select("id, name, city")
         .eq("is_active", true)
         .order("name", { ascending: true });
 
+      console.log('[DEBUG ATTENDANCE] Venues response:', { data, error, count: data?.length || 0 });
       if (error) throw error;
       setVenues(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju dvoran:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: `Napaka pri nalaganju dvoran: ${error.message}`,
+      });
     }
   }
 
