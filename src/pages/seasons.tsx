@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import {
   getAllSeasons,
@@ -285,67 +286,69 @@ export default function SeasonsPage() {
           </Card>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>
                   {selectedSeason ? "Uredi sezono" : "Dodaj sezono"}
                 </DialogTitle>
               </DialogHeader>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">
-                    Naziv sezone <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="npr. 2026/2027"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
+              <ScrollArea className="max-h-[60vh] pr-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">
+                      Naziv sezone <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      placeholder="npr. 2026/2027"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="start_date">
-                    Datum začetka <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="start_date"
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    required
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="start_date">
+                      Datum začetka <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="start_date"
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="end_date">
-                    Datum konca <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="end_date"
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    required
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="end_date">
+                      Datum konca <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="end_date"
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                      required
+                    />
+                  </div>
 
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setDialogOpen(false)}
-                    disabled={loading}
-                  >
-                    Prekliči
-                  </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Shranjujem..." : selectedSeason ? "Posodobi" : "Dodaj"}
-                  </Button>
-                </DialogFooter>
-              </form>
+                  <DialogFooter className="mt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                      disabled={loading}
+                    >
+                      Prekliči
+                    </Button>
+                    <Button type="submit" disabled={loading}>
+                      {loading ? "Shranjujem..." : selectedSeason ? "Posodobi" : "Dodaj"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </ScrollArea>
             </DialogContent>
           </Dialog>
         </div>
