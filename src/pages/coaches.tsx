@@ -59,11 +59,25 @@ export default function CoachesPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, email, phone, hourly_rate, km_rate")
-        .order("last_name", { ascending: true });
+        .select("id, full_name, email, phone, hourly_rate, km_rate")
+        .order("full_name", { ascending: true });
 
       if (error) throw error;
-      setCoaches(data || []);
+      
+      // Split full_name into first_name and last_name for display
+      const coaches = (data || []).map(coach => {
+        const nameParts = coach.full_name?.split(' ') || ['', ''];
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        return {
+          ...coach,
+          first_name: firstName,
+          last_name: lastName,
+        };
+      });
+      
+      setCoaches(coaches);
     } catch (error: any) {
       console.error("Napaka pri nalaganju trenerjev:", error);
       toast({
@@ -130,8 +144,7 @@ export default function CoachesPage() {
       setLoading(true);
 
       const payload = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
+        full_name: `${formData.first_name} ${formData.last_name}`.trim(),
         email: formData.email,
         phone: formData.phone || null,
         hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
@@ -157,8 +170,7 @@ export default function CoachesPage() {
           password: formData.password,
           options: {
             data: {
-              first_name: formData.first_name,
-              last_name: formData.last_name,
+              full_name: `${formData.first_name} ${formData.last_name}`.trim(),
               phone: formData.phone || null,
               hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
               km_rate: formData.km_rate ? parseFloat(formData.km_rate) : null,
