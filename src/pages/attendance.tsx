@@ -300,6 +300,20 @@ export default function AttendancePage() {
 
       if (error) throw error;
 
+      // Add creator as head coach
+      const { error: coachError } = await supabase
+        .from("activity_coaches")
+        .insert({
+          activity_id: data.id,
+          coach_id: user.id,
+          role: "head",
+        });
+
+      if (coachError) {
+        console.error("Napaka pri dodajanju trenerja:", coachError);
+        // Don't throw - activity is created, just log the error
+      }
+
       toast({
         title: "Uspešno",
         description: "Aktivnost ustvarjena",
