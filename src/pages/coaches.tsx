@@ -153,8 +153,9 @@ export default function CoachesPage() {
     try {
       setLoading(true);
 
+      const full_name = `${formData.first_name} ${formData.last_name}`.trim();
       const payload = {
-        full_name: `${formData.first_name} ${formData.last_name}`.trim(),
+        full_name,
         email: formData.email,
         phone: formData.phone || null,
         hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
@@ -174,35 +175,31 @@ export default function CoachesPage() {
           description: "Trener uspešno posodobljen",
         });
       } else {
-        // Create new coach via Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            data: {
-              full_name: `${formData.first_name} ${formData.last_name}`.trim(),
-              phone: formData.phone || null,
-              hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
-              km_rate: formData.km_rate ? parseFloat(formData.km_rate) : null,
-            },
+        // Create new coach via Admin API route (keeps current user logged in)
+        const response = await fetch('/api/admin/create-coach', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            full_name,
+            phone: formData.phone || null,
+            hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+            km_rate: formData.km_rate ? parseFloat(formData.km_rate) : null,
+          }),
         });
 
-        if (authError) throw authError;
+        const result = await response.json();
 
-        // Update profile with additional data
-        if (authData.user) {
-          const { error: profileError } = await supabase
-            .from("profiles")
-            .update(payload)
-            .eq("id", authData.user.id);
-
-          if (profileError) throw profileError;
+        if (!response.ok) {
+          throw new Error(result.error || 'Napaka pri ustvarjanju trenerja');
         }
 
         toast({
           title: "Uspešno",
-          description: "Trener uspešno ustvarjen. Poslano je bilo potrditveno e-poštno sporočilo.",
+          description: "Trener uspešno ustvarjen",
         });
       }
 
