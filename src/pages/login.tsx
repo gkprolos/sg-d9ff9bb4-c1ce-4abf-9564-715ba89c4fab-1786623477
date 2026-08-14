@@ -66,10 +66,14 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <div className="w-16 h-16 rounded-lg bg-primary flex items-center justify-center mx-auto mb-4">
-            <span className="text-primary-foreground font-bold text-2xl">ŠK</span>
+          <div className="mx-auto mb-4">
+            <img 
+              src="/LOGO-2015-C_B.gif" 
+              alt="Odbojkarski klub Lubnik" 
+              className="h-24 w-auto mx-auto"
+            />
           </div>
-          <CardTitle className="text-2xl font-bold">Športni Klub</CardTitle>
+          <CardTitle className="text-2xl font-bold">Odbojkarski klub Lubnik Škofja Loka</CardTitle>
           <CardDescription>Prijavite se v svoj račun</CardDescription>
         </CardHeader>
         <CardContent>

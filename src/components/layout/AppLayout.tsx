@@ -80,12 +80,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const NavContent = () => (
     <>
       <div className="px-6 py-4">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-lg">ŠK</span>
-          </div>
+        <div className="flex items-center gap-3">
+          <img 
+            src="/LOGO-2015-C_B.gif" 
+            alt="OK Lubnik" 
+            className="h-12 w-auto"
+          />
           <div>
-            <h2 className="font-semibold text-lg">Športni Klub</h2>
+            <h2 className="font-semibold text-base leading-tight">OK Lubnik</h2>
             <p className="text-xs text-muted-foreground">Sezona 2026/2027</p>
           </div>
         </div>
@@ -164,10 +166,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SheetContent>
             </Sheet>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">ŠK</span>
-              </div>
-              <span className="font-semibold">Športni Klub</span>
+              <img 
+                src="/LOGO-2015-C_B.gif" 
+                alt="OK Lubnik" 
+                className="h-8 w-auto"
+              />
+              <span className="font-semibold">OK Lubnik</span>
             </div>
           </div>
 
