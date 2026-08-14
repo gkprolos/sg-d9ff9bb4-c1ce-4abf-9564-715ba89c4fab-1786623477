@@ -159,7 +159,8 @@ export default function AttendancePage() {
       if (error) throw error;
       setActivities(data || []);
       
-      if (data && data.length === 1) {
+      // Auto-select if only one activity and nothing is selected yet
+      if (data && data.length === 1 && !selectedActivity) {
         setSelectedActivity(data[0].id);
       }
     } catch (error: any) {
@@ -323,6 +324,14 @@ export default function AttendancePage() {
       setShowNewActivity(false);
       setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "" });
       await loadActivitiesForDate();
+      
+      // Explicitly load players for the newly created/opened activity
+      // Wait a bit for state to settle before loading players
+      setTimeout(() => {
+        if (activityId === selectedActivity) {
+          loadPlayersForActivity();
+        }
+      }, 100);
     } catch (error: any) {
       console.error("Napaka pri ustvarjanju aktivnosti:", error);
       // Error toast already shown above

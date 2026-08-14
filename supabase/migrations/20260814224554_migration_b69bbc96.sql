@@ -1,8 +1,24 @@
--- Drop the trigger that prevents activity deletion completely
-DROP TRIGGER IF EXISTS validate_activity_coaches_trigger ON public.activities;
-DROP TRIGGER IF EXISTS validate_activity_coaches_trigger ON public.activity_coaches;
+-- Migration: Add RLS policy for coaches to see their activities
+-- Date: 2026-08-14
+-- Description: Coaches can SELECT activities where they are assigned as head or assistant
 
--- Drop the validation function with CASCADE to remove all dependent triggers
-DROP FUNCTION IF EXISTS _app_internals.validate_activity_coaches() CASCADE;
+-- Drop existing coach SELECT policy if it exists
+DROP POLICY IF EXISTS "activities_select_coaches" ON public.activities;
 
-SELECT 'All triggers removed - activities can now be deleted' as status;
+-- Create new policy: coaches see activities where they are assigned
+CREATE POLICY "activities_select_coaches"
+ON public.activities
+FOR SELECT
+USING (
+  -- Admin sees all
+  _app_internals.is_admin(auth.uid())
+  OR
+  -- Coach sees activities where they are assigned
+  EXISTS (
+    SELECT 1 FROM activity_coaches ac
+    WHERE ac.activity_id = activities.id
+      AND ac.coach_id = auth.uid()
+  )
+);
+
+COMMENT ON POLICY "activities_select_coaches" ON public.activities IS 'Coaches can see activities where they are assigned as head or assistant';
