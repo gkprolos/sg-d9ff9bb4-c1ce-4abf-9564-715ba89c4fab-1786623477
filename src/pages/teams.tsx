@@ -26,6 +26,7 @@ interface Team {
   notes: string | null;
   season_id: string;
   head_coach_id: string | null;
+  head_coach?: { full_name: string } | null;
 }
 
 export default function TeamsPage() {
@@ -233,7 +234,10 @@ export default function TeamsPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from("teams")
-        .select("*")
+        .select(`
+          *,
+          head_coach:profiles!head_coach_id(full_name)
+        `)
         .order("name", { ascending: true });
 
       if (error) throw error;
@@ -416,6 +420,7 @@ export default function TeamsPage() {
                         <TableHead>Oznaka</TableHead>
                         <TableHead>Starostna kategorija</TableHead>
                         <TableHead>Spol</TableHead>
+                        <TableHead>Glavni trener</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
@@ -427,6 +432,7 @@ export default function TeamsPage() {
                           <TableCell>{team.short_name || "N/A"}</TableCell>
                           <TableCell>{team.age_category || "N/A"}</TableCell>
                           <TableCell>{team.gender || "N/A"}</TableCell>
+                          <TableCell>{team.head_coach?.full_name || "Ni izbran"}</TableCell>
                           <TableCell>
                             <Badge variant={team.is_active ? "default" : "secondary"}>
                               {team.is_active ? "Aktivna" : "Neaktivna"}
