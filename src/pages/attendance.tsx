@@ -251,98 +251,58 @@ export default function AttendancePage() {
     try {
       setLoading(true);
 
-      // Get season_id from selected team
-      const { data: teamData, error: teamError } = await supabase
-        .from("teams")
-        .select("season_id, name")
-        .eq("id", newActivityForm.team_id)
-        .single();
+      // Get team name for toast messages
+      const selectedTeam = teams.find(t => t.id === newActivityForm.team_id);
+      const teamName = selectedTeam?.name || "izbrano selekcijo";
 
-      if (teamError) {
-        console.error("Team fetch error:", teamError);
-        throw new Error(`Napaka pri nalaganju selekcije: ${teamError.message}`);
-      }
+      console.log('[DEBUG] Calling create_or_open_activity RPC for team:', teamName, 'on date:', selectedDate);
 
-      console.log('[DEBUG] Creating activity for team:', teamData.name, 'on date:', selectedDate);
-
-      // Check if activity already exists for this team and date
-      const { data: existing, error: checkError } = await supabase
-        .from("activities")
-        .select("id")
-        .eq("team_id", newActivityForm.team_id)
-        .eq("activity_date", selectedDate)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error("Check existing error:", checkError);
-        throw new Error(`Napaka pri preverjanju obstoječih aktivnosti: ${checkError.message}`);
-      }
-
-      if (existing) {
-        console.log('[DEBUG] Activity already exists, ID:', existing.id);
-        toast({
-          variant: "destructive",
-          title: "Aktivnost že obstaja",
-          description: `Za selekcijo ${teamData.name} na datum ${new Date(selectedDate).toLocaleDateString('sl-SI')} že obstaja aktivnost. Odprl sem obstoječo aktivnost.`,
-        });
-        setSelectedActivity(existing.id);
-        setShowNewActivity(false);
-        await loadActivitiesForDate();
-        return;
-      }
-
-      console.log('[DEBUG] Inserting new activity...');
-      const { data, error } = await supabase
-        .from("activities")
-        .insert([{
-          team_id: newActivityForm.team_id,
-          season_id: teamData.season_id,
-          activity_date: selectedDate,
-          venue_id: newActivityForm.venue_id || null,
-          start_time: newActivityForm.start_time,
-          end_time: newActivityForm.end_time,
-          activity_type_id: 1, // Default to training
-          is_completed: false,
-          created_by: user.id,
-        }])
-        .select()
-        .single();
+      // Call atomic RPC function
+      const { data: result, error } = await supabase.rpc(
+        "create_or_open_activity",
+        {
+          p_team_id: newActivityForm.team_id,
+          p_activity_date: selectedDate,
+          p_activity_type_id: 1, // Default to training
+          p_venue_id: newActivityForm.venue_id || null,
+          p_custom_venue: null,
+          p_start_time: newActivityForm.start_time || null,
+          p_end_time: newActivityForm.end_time || null,
+          p_is_home_game: null,
+        }
+      );
 
       if (error) {
-        console.error("Activity insert error:", error);
-        if (error.code === '42501') {
-          throw new Error('Nimaš dovoljenj za kreiranje aktivnosti. Prosim, odjavi se in se ponovno prijavi, ali kontaktiraj administratorja.');
-        }
-        throw error;
+        console.error("RPC create_or_open_activity error:", error);
+        throw new Error(error.message);
       }
 
-      console.log('[DEBUG] Activity created successfully, ID:', data.id);
+      console.log('[DEBUG] RPC result:', result);
 
-      // Add creator as head coach
-      console.log('[DEBUG] Adding coach to activity_coaches...');
-      const { error: coachError } = await supabase
-        .from("activity_coaches")
-        .insert({
-          activity_id: data.id,
-          coach_id: user.id,
-          role: "head",
-        });
+      const activityId = result.activity_id;
+      const isNew = result.is_new;
+      const role = result.role;
 
-      if (coachError) {
-        console.error("Napaka pri dodajanju trenerja:", coachError);
+      if (isNew) {
         toast({
-          variant: "default",
-          title: "Opozorilo",
-          description: "Aktivnost je ustvarjena, vendar nisi bil dodan kot trener. Prosim, kontaktiraj administratorja.",
+          title: "Uspešno ustvarjena aktivnost!",
+          description: `Aktivnost za ${teamName} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} je bila uspešno ustvarjena. Ti si glavni trener.`,
         });
+      } else {
+        if (role === 'head' || role === 'assistant') {
+          toast({
+            title: "Aktivnost že obstaja",
+            description: `Za ${teamName} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} že obstaja aktivnost. Priključil si se kot ${role === 'head' ? 'glavni trener' : 'sotrener'}.`,
+          });
+        } else {
+          toast({
+            title: "Aktivnost že obstaja",
+            description: `Za ${teamName} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} že obstaja aktivnost. Odprl sem jo.`,
+          });
+        }
       }
 
-      toast({
-        title: "Uspešno ustvarjena aktivnost!",
-        description: `Aktivnost za ${teamData.name} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} je bila uspešno ustvarjena.`,
-      });
-
-      setSelectedActivity(data.id);
+      setSelectedActivity(activityId);
       setShowNewActivity(false);
       setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "" });
       await loadActivitiesForDate();
@@ -351,7 +311,7 @@ export default function AttendancePage() {
       toast({
         variant: "destructive",
         title: "Napaka pri ustvarjanju aktivnosti",
-        description: error.message || "Prosim, poskusi ponovno. Če problem ostane, se odjavi in ponovno prijavi.",
+        description: error.message || "Prosim, poskusi ponovno. Če problem ostane, kontaktiraj administratorja.",
       });
     } finally {
       setLoading(false);

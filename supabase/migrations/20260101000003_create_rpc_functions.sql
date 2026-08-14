@@ -6,7 +6,7 @@
 -- FUNKCIJA: create_or_open_activity
 -- Opis: Atomsko ustvarjanje ali odpiranje aktivnosti
 -- ============================================================================
-CREATE FUNCTION public.create_or_open_activity(
+CREATE OR REPLACE FUNCTION public.create_or_open_activity(
   p_team_id UUID,
   p_activity_date DATE,
   p_activity_type_id INT DEFAULT NULL,
@@ -28,11 +28,32 @@ DECLARE
   v_activity_id UUID;
   v_existing_activity RECORD;
   v_role TEXT;
+  v_profile_active BOOLEAN;
+  v_user_role TEXT;
 BEGIN
   -- 1. IDENTITETA IZ auth.uid()
   v_coach_id := auth.uid();
   IF v_coach_id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Niste prijavljeni');
+  END IF;
+
+  -- Check if user has active profile
+  SELECT is_active INTO v_profile_active
+  FROM profiles
+  WHERE id = v_coach_id;
+
+  IF NOT FOUND OR v_profile_active IS FALSE THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Profil ni aktiven');
+  END IF;
+
+  -- Check if user has coach or admin role
+  SELECT role INTO v_user_role
+  FROM user_roles
+  WHERE user_id = v_coach_id
+    AND role IN ('coach', 'admin');
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Nimaš pravic trenerja ali administratorja');
   END IF;
 
   -- 2. PREVERI AKTIVEN TRENER
@@ -75,12 +96,7 @@ BEGIN
     );
   END IF;
 
-  -- 6. PREVERI DOVOLJENJE TRENERJA
-  IF NOT _app_internals.coach_can_access_team(v_coach_id, p_team_id) THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Nimate dostopa do te selekcije');
-  END IF;
-
-  -- 7. PREVERI OBSTOJ AKTIVNOSTI
+  -- 6. PREVERI OBSTOJ AKTIVNOSTI
   SELECT * INTO v_existing_activity
   FROM public.activities
   WHERE team_id = p_team_id
@@ -133,7 +149,7 @@ BEGIN
     END IF;
   END IF;
 
-  -- 8. NOVA AKTIVNOST - Poišči predlogo urnika
+  -- 7. NOVA AKTIVNOST - Poišči predlogo urnika
   SELECT * INTO v_template
   FROM public.schedule_templates
   WHERE team_id = p_team_id
@@ -176,7 +192,7 @@ BEGIN
     END IF;
   END IF;
 
-  -- 9. Določi vlogo
+  -- 8. Določi vlogo
   IF _app_internals.coach_can_be_head(v_coach_id, p_team_id) THEN
     v_role := 'head';
   ELSIF _app_internals.coach_can_be_assistant(v_coach_id, p_team_id) THEN
@@ -185,7 +201,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Nimate dovoljenja za nobeno vlogo pri tej selekciji');
   END IF;
 
-  -- 10. USTVARI AKTIVNOST
+  -- 9. USTVARI AKTIVNOST
   BEGIN
     INSERT INTO public.activities (
       season_id,
