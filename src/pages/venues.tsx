@@ -9,84 +9,56 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Plus, Edit, Trash2 } from "lucide-react";
+import { MapPin, Plus, Edit, Trash2 } from "lucide-react";
 
-interface Team {
+interface Venue {
   id: string;
   name: string;
-  short_name: string | null;
-  age_category: string | null;
-  gender: string | null;
+  city: string;
+  address: string | null;
+  postal_code: string | null;
+  room_designation: string | null;
   is_active: boolean;
-  notes: string | null;
-  season_id: string;
 }
 
-export default function TeamsPage() {
+export default function VenuesPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [seasons, setSeasons] = useState<any[]>([]);
+  const [venues, setVenues] = useState<Venue[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [formData, setFormData] = useState({
     name: "",
-    short_name: "",
-    age_category: "",
-    gender: "",
+    city: "",
+    address: "",
+    postal_code: "",
+    room_designation: "",
     is_active: true,
-    notes: "",
-    season_id: "",
   });
 
   useEffect(() => {
-    loadSeasons();
-    loadTeams();
+    loadVenues();
   }, []);
 
-  async function loadSeasons() {
-    try {
-      const { data, error } = await supabase
-        .from("seasons")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setSeasons(data || []);
-      if (data && data.length > 0) {
-        setFormData((prev) => ({ ...prev, season_id: data[0].id }));
-      }
-    } catch (error: any) {
-      console.error("Napaka pri nalaganju sezon:", error);
-    }
-  }
-
-  async function loadTeams() {
+  async function loadVenues() {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("teams")
+        .from("venues")
         .select("*")
         .order("name", { ascending: true });
 
       if (error) throw error;
-      // Map is_archived (DB) to is_active (UI)
-      const mappedTeams = (data || []).map((team: any) => ({
-        ...team,
-        is_active: !team.is_archived,
-      }));
-      setTeams(mappedTeams);
+      setVenues(data || []);
     } catch (error: any) {
-      console.error("Napaka pri nalaganju selekcij:", error);
+      console.error("Napaka pri nalaganju dvoran:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti selekcij",
+        description: error.message || "Ni mogoče naložiti dvoran",
       });
     } finally {
       setLoading(false);
@@ -94,29 +66,27 @@ export default function TeamsPage() {
   }
 
   function handleAdd() {
-    setSelectedTeam(null);
+    setSelectedVenue(null);
     setFormData({
       name: "",
-      short_name: "",
-      age_category: "",
-      gender: "",
+      city: "",
+      address: "",
+      postal_code: "",
+      room_designation: "",
       is_active: true,
-      notes: "",
-      season_id: seasons[0]?.id || "",
     });
     setDialogOpen(true);
   }
 
-  function handleEdit(team: Team) {
-    setSelectedTeam(team);
+  function handleEdit(venue: Venue) {
+    setSelectedVenue(venue);
     setFormData({
-      name: team.name,
-      short_name: team.short_name || "",
-      age_category: team.age_category || "",
-      gender: team.gender || "",
-      is_active: team.is_active,
-      notes: team.notes || "",
-      season_id: team.season_id,
+      name: venue.name,
+      city: venue.city,
+      address: venue.address || "",
+      postal_code: venue.postal_code || "",
+      room_designation: venue.room_designation || "",
+      is_active: venue.is_active,
     });
     setDialogOpen(true);
   }
@@ -124,11 +94,11 @@ export default function TeamsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!formData.name || !formData.season_id) {
+    if (!formData.name || !formData.city) {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Naziv in sezona sta obvezna",
+        description: "Naziv in kraj sta obvezna",
       });
       return;
     }
@@ -138,73 +108,72 @@ export default function TeamsPage() {
 
       const payload = {
         name: formData.name,
-        short_name: formData.short_name || null,
-        age_category: formData.age_category || null,
-        gender: formData.gender || null,
-        is_archived: !formData.is_active, // Map UI is_active to DB is_archived
-        notes: formData.notes || null,
-        season_id: formData.season_id,
+        city: formData.city,
+        address: formData.address || null,
+        postal_code: formData.postal_code || null,
+        room_designation: formData.room_designation || null,
+        is_active: formData.is_active,
       };
 
-      if (selectedTeam) {
+      if (selectedVenue) {
         const { error } = await supabase
-          .from("teams")
+          .from("venues")
           .update(payload)
-          .eq("id", selectedTeam.id);
+          .eq("id", selectedVenue.id);
 
         if (error) throw error;
         toast({
           title: "Uspešno",
-          description: "Selekcija uspešno posodobljena",
+          description: "Dvorana uspešno posodobljena",
         });
       } else {
         const { error } = await supabase
-          .from("teams")
+          .from("venues")
           .insert([payload]);
 
         if (error) throw error;
         toast({
           title: "Uspešno",
-          description: "Selekcija uspešno ustvarjena",
+          description: "Dvorana uspešno ustvarjena",
         });
       }
 
       setDialogOpen(false);
-      loadTeams();
+      loadVenues();
     } catch (error: any) {
-      console.error("Napaka pri shranjevanju selekcije:", error);
+      console.error("Napaka pri shranjevanju dvorane:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju selekcije",
+        description: error.message || "Napaka pri shranjevanju dvorane",
       });
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleDelete(teamId: string) {
-    if (!confirm("Ali ste prepričani, da želite izbrisati to selekcijo?")) return;
+  async function handleDelete(venueId: string) {
+    if (!confirm("Ali ste prepričani, da želite izbrisati to dvorano?")) return;
 
     try {
       setLoading(true);
       const { error } = await supabase
-        .from("teams")
+        .from("venues")
         .delete()
-        .eq("id", teamId);
+        .eq("id", venueId);
 
       if (error) throw error;
       toast({
         title: "Uspešno",
-        description: "Selekcija uspešno izbrisana",
+        description: "Dvorana uspešno izbrisana",
       });
-      loadTeams();
+      loadVenues();
     } catch (error: any) {
-      console.error("Napaka pri brisanju selekcije:", error);
+      console.error("Napaka pri brisanju dvorane:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri brisanju selekcije",
+        description: error.message || "Napaka pri brisanju dvorane",
       });
     } finally {
       setLoading(false);
@@ -217,30 +186,30 @@ export default function TeamsPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight">Selekcije</h2>
-              <p className="text-muted-foreground">Upravljanje selekcij kluba</p>
+              <h2 className="text-3xl font-bold tracking-tight">Dvorane</h2>
+              <p className="text-muted-foreground">Upravljanje dvoran</p>
             </div>
             <Button onClick={handleAdd}>
               <Plus className="h-4 w-4 mr-2" />
-              Dodaj selekcijo
+              Dodaj dvorano
             </Button>
           </div>
 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Seznam selekcij ({teams.length})
+                <MapPin className="h-5 w-5" />
+                Seznam dvoran ({venues.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading && teams.length === 0 ? (
+              {loading && venues.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
-              ) : teams.length === 0 ? (
+              ) : venues.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">Ni selekcij</p>
-                  <p className="text-sm mt-2">Dodajte prvo selekcijo</p>
+                  <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Ni dvoran</p>
+                  <p className="text-sm mt-2">Dodajte prvo dvorano</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -248,23 +217,23 @@ export default function TeamsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Naziv</TableHead>
-                        <TableHead>Oznaka</TableHead>
-                        <TableHead>Starostna kategorija</TableHead>
-                        <TableHead>Spol</TableHead>
+                        <TableHead>Kraj</TableHead>
+                        <TableHead>Naslov</TableHead>
+                        <TableHead>Oznaka prostora</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {teams.map((team) => (
-                        <TableRow key={team.id}>
-                          <TableCell className="font-medium">{team.name}</TableCell>
-                          <TableCell>{team.short_name || "N/A"}</TableCell>
-                          <TableCell>{team.age_category || "N/A"}</TableCell>
-                          <TableCell>{team.gender || "N/A"}</TableCell>
+                      {venues.map((venue) => (
+                        <TableRow key={venue.id}>
+                          <TableCell className="font-medium">{venue.name}</TableCell>
+                          <TableCell>{venue.city}</TableCell>
+                          <TableCell>{venue.address || "N/A"}</TableCell>
+                          <TableCell>{venue.room_designation || "N/A"}</TableCell>
                           <TableCell>
-                            <Badge variant={team.is_active ? "default" : "secondary"}>
-                              {team.is_active ? "Aktivna" : "Neaktivna"}
+                            <Badge variant={venue.is_active ? "default" : "secondary"}>
+                              {venue.is_active ? "Aktivna" : "Neaktivna"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
@@ -272,7 +241,7 @@ export default function TeamsPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleEdit(team)}
+                                onClick={() => handleEdit(venue)}
                                 disabled={loading}
                               >
                                 <Edit className="h-4 w-4 mr-1" />
@@ -281,7 +250,7 @@ export default function TeamsPage() {
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => handleDelete(team.id)}
+                                onClick={() => handleDelete(venue.id)}
                                 disabled={loading}
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
@@ -302,7 +271,7 @@ export default function TeamsPage() {
             <DialogContent className="max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>
-                  {selectedTeam ? "Uredi selekcijo" : "Dodaj selekcijo"}
+                  {selectedVenue ? "Uredi dvorano" : "Dodaj dvorano"}
                 </DialogTitle>
               </DialogHeader>
 
@@ -314,7 +283,7 @@ export default function TeamsPage() {
                     </Label>
                     <Input
                       id="name"
-                      placeholder="npr. Kadetinje 1"
+                      placeholder="npr. Športna dvorana Poden"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
@@ -322,54 +291,56 @@ export default function TeamsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="short_name">Oznaka / kratek naziv</Label>
+                    <Label htmlFor="city">
+                      Kraj <span className="text-destructive">*</span>
+                    </Label>
                     <Input
-                      id="short_name"
-                      placeholder="npr. KAD1"
-                      value={formData.short_name}
-                      onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
+                      id="city"
+                      placeholder="npr. Škofja Loka"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="age_category">Starostna kategorija</Label>
+                    <Label htmlFor="address">Naslov</Label>
                     <Input
-                      id="age_category"
-                      placeholder="npr. U15, U17"
-                      value={formData.age_category}
-                      onChange={(e) => setFormData({ ...formData, age_category: e.target.value })}
+                      id="address"
+                      placeholder="npr. Podlubnik 1a"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Spol</Label>
+                    <Label htmlFor="postal_code">Poštna številka</Label>
                     <Input
-                      id="gender"
-                      placeholder="npr. Ž, M, Mešano"
-                      value={formData.gender}
-                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                      id="postal_code"
+                      placeholder="npr. 4220"
+                      value={formData.postal_code}
+                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="room_designation">Oznaka prostora</Label>
+                    <Input
+                      id="room_designation"
+                      placeholder="npr. Mala dvorana"
+                      value={formData.room_designation}
+                      onChange={(e) => setFormData({ ...formData, room_designation: e.target.value })}
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="is_active">Aktivna selekcija</Label>
+                    <Label htmlFor="is_active">Aktivna dvorana</Label>
                     <Switch
                       id="is_active"
                       checked={formData.is_active}
                       onCheckedChange={(checked) =>
                         setFormData({ ...formData, is_active: checked })
                       }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Opombe</Label>
-                    <Textarea
-                      id="notes"
-                      placeholder="Dodatne opombe..."
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      rows={3}
                     />
                   </div>
 
@@ -383,7 +354,7 @@ export default function TeamsPage() {
                       Prekliči
                     </Button>
                     <Button type="submit" disabled={loading}>
-                      {loading ? "Shranjujem..." : selectedTeam ? "Posodobi" : "Dodaj"}
+                      {loading ? "Shranjujem..." : selectedVenue ? "Posodobi" : "Dodaj"}
                     </Button>
                   </DialogFooter>
                 </form>

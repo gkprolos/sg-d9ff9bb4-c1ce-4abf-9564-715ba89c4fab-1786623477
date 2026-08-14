@@ -1,0 +1,464 @@
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Clock, Plus, Edit, Trash2 } from "lucide-react";
+
+const DAYS = [
+  { value: "1", label: "Ponedeljek" },
+  { value: "2", label: "Torek" },
+  { value: "3", label: "Sreda" },
+  { value: "4", label: "Četrtek" },
+  { value: "5", label: "Petek" },
+  { value: "6", label: "Sobota" },
+  { value: "0", label: "Nedelja" },
+];
+
+interface Schedule {
+  id: string;
+  team_id: string;
+  venue_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_active: boolean;
+  teams?: { name: string };
+  venues?: { name: string; city: string };
+}
+
+export default function SchedulesPage() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [venues, setVenues] = useState<any[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [formData, setFormData] = useState({
+    team_id: "",
+    venue_id: "",
+    day_of_week: "1",
+    start_time: "",
+    end_time: "",
+    is_active: true,
+  });
+
+  useEffect(() => {
+    loadTeams();
+    loadVenues();
+    loadSchedules();
+  }, []);
+
+  async function loadTeams() {
+    try {
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id, name")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setTeams(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju selekcij:", error);
+    }
+  }
+
+  async function loadVenues() {
+    try {
+      const { data, error } = await supabase
+        .from("venues")
+        .select("id, name, city")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setVenues(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju dvoran:", error);
+    }
+  }
+
+  async function loadSchedules() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("schedule_templates")
+        .select(`
+          *,
+          teams(name),
+          venues(name, city)
+        `)
+        .order("day_of_week", { ascending: true })
+        .order("start_time", { ascending: true });
+
+      if (error) throw error;
+      setSchedules(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju urnikov:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Ni mogoče naložiti urnikov",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleAdd() {
+    setSelectedSchedule(null);
+    setFormData({
+      team_id: teams[0]?.id || "",
+      venue_id: venues[0]?.id || "",
+      day_of_week: "1",
+      start_time: "",
+      end_time: "",
+      is_active: true,
+    });
+    setDialogOpen(true);
+  }
+
+  function handleEdit(schedule: Schedule) {
+    setSelectedSchedule(schedule);
+    setFormData({
+      team_id: schedule.team_id,
+      venue_id: schedule.venue_id,
+      day_of_week: schedule.day_of_week.toString(),
+      start_time: schedule.start_time,
+      end_time: schedule.end_time,
+      is_active: schedule.is_active,
+    });
+    setDialogOpen(true);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!formData.team_id || !formData.venue_id || !formData.start_time || !formData.end_time) {
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Vsa polja so obvezna",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const payload = {
+        team_id: formData.team_id,
+        venue_id: formData.venue_id,
+        day_of_week: parseInt(formData.day_of_week),
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        is_active: formData.is_active,
+      };
+
+      if (selectedSchedule) {
+        const { error } = await supabase
+          .from("schedule_templates")
+          .update(payload)
+          .eq("id", selectedSchedule.id);
+
+        if (error) throw error;
+        toast({
+          title: "Uspešno",
+          description: "Urnik uspešno posodobljen",
+        });
+      } else {
+        const { error } = await supabase
+          .from("schedule_templates")
+          .insert([payload]);
+
+        if (error) throw error;
+        toast({
+          title: "Uspešno",
+          description: "Urnik uspešno ustvarjen",
+        });
+      }
+
+      setDialogOpen(false);
+      loadSchedules();
+    } catch (error: any) {
+      console.error("Napaka pri shranjevanju urnika:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri shranjevanju urnika",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(scheduleId: string) {
+    if (!confirm("Ali ste prepričani, da želite izbrisati ta urnik?")) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("schedule_templates")
+        .delete()
+        .eq("id", scheduleId);
+
+      if (error) throw error;
+      toast({
+        title: "Uspešno",
+        description: "Urnik uspešno izbrisan",
+      });
+      loadSchedules();
+    } catch (error: any) {
+      console.error("Napaka pri brisanju urnika:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri brisanju urnika",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function getDayLabel(dayOfWeek: number): string {
+    return DAYS.find((d) => d.value === dayOfWeek.toString())?.label || "N/A";
+  }
+
+  return (
+    <ProtectedRoute allowedRoles={["admin"]}>
+      <AppLayout>
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Urniki</h2>
+              <p className="text-muted-foreground">Upravljanje urnikov treningov</p>
+            </div>
+            <Button onClick={handleAdd}>
+              <Plus className="h-4 w-4 mr-2" />
+              Dodaj urnik
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Seznam urnikov ({schedules.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading && schedules.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
+              ) : schedules.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Ni urnikov</p>
+                  <p className="text-sm mt-2">Dodajte prvi urnik</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Selekcija</TableHead>
+                        <TableHead>Dvorana</TableHead>
+                        <TableHead>Dan</TableHead>
+                        <TableHead>Čas</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Akcije</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {schedules.map((schedule) => (
+                        <TableRow key={schedule.id}>
+                          <TableCell className="font-medium">
+                            {schedule.teams?.name || "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            {schedule.venues?.name || "N/A"}
+                            {schedule.venues?.city && ` (${schedule.venues.city})`}
+                          </TableCell>
+                          <TableCell>{getDayLabel(schedule.day_of_week)}</TableCell>
+                          <TableCell>
+                            {schedule.start_time} - {schedule.end_time}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={schedule.is_active ? "default" : "secondary"}>
+                              {schedule.is_active ? "Aktiven" : "Neaktiven"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(schedule)}
+                                disabled={loading}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Uredi
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDelete(schedule.id)}
+                                disabled={loading}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Izbriši
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogContent className="max-h-[90vh]">
+              <DialogHeader>
+                <DialogTitle>
+                  {selectedSchedule ? "Uredi urnik" : "Dodaj urnik"}
+                </DialogTitle>
+              </DialogHeader>
+
+              <ScrollArea className="max-h-[60vh] pr-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="team_id">
+                      Selekcija <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={formData.team_id}
+                      onValueChange={(value) => setFormData({ ...formData, team_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Izberite selekcijo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teams.map((team) => (
+                          <SelectItem key={team.id} value={team.id}>
+                            {team.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="venue_id">
+                      Dvorana <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={formData.venue_id}
+                      onValueChange={(value) => setFormData({ ...formData, venue_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Izberite dvorano" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {venues.map((venue) => (
+                          <SelectItem key={venue.id} value={venue.id}>
+                            {venue.name} ({venue.city})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="day_of_week">
+                      Dan <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={formData.day_of_week}
+                      onValueChange={(value) => setFormData({ ...formData, day_of_week: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Izberite dan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DAYS.map((day) => (
+                          <SelectItem key={day.value} value={day.value}>
+                            {day.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="start_time">
+                        Začetek <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="start_time"
+                        type="time"
+                        value={formData.start_time}
+                        onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="end_time">
+                        Konec <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="end_time"
+                        type="time"
+                        value={formData.end_time}
+                        onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="is_active">Aktiven urnik</Label>
+                    <Switch
+                      id="is_active"
+                      checked={formData.is_active}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, is_active: checked })
+                      }
+                    />
+                  </div>
+
+                  <DialogFooter className="mt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                      disabled={loading}
+                    >
+                      Prekliči
+                    </Button>
+                    <Button type="submit" disabled={loading}>
+                      {loading ? "Shranjujem..." : selectedSchedule ? "Posodobi" : "Dodaj"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </AppLayout>
+    </ProtectedRoute>
+  );
+}

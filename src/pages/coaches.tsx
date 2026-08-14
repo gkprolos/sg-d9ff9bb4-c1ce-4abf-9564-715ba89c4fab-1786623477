@@ -1,0 +1,274 @@
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { UserCog, Plus, Edit, Trash2 } from "lucide-react";
+
+interface Coach {
+  id: string;
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+}
+
+export default function CoachesPage() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
+  const [formData, setFormData] = useState({
+    email: "",
+    full_name: "",
+    phone: "",
+  });
+
+  useEffect(() => {
+    loadCoaches();
+  }, []);
+
+  async function loadCoaches() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("full_name", { ascending: true });
+
+      if (error) throw error;
+      setCoaches(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju trenerjev:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Ni mogoče naložiti trenerjev",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleAdd() {
+    setSelectedCoach(null);
+    setFormData({
+      email: "",
+      full_name: "",
+      phone: "",
+    });
+    setDialogOpen(true);
+  }
+
+  function handleEdit(coach: Coach) {
+    setSelectedCoach(coach);
+    setFormData({
+      email: coach.email,
+      full_name: coach.full_name || "",
+      phone: coach.phone || "",
+    });
+    setDialogOpen(true);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!formData.email) {
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "E-pošta je obvezna",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const payload = {
+        email: formData.email,
+        full_name: formData.full_name || null,
+        phone: formData.phone || null,
+      };
+
+      if (selectedCoach) {
+        const { error } = await supabase
+          .from("profiles")
+          .update(payload)
+          .eq("id", selectedCoach.id);
+
+        if (error) throw error;
+        toast({
+          title: "Uspešno",
+          description: "Trener uspešno posodobljen",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Informacija",
+          description: "Trenerje je mogoče dodati samo preko Supabase Authentication",
+        });
+        setDialogOpen(false);
+        return;
+      }
+
+      setDialogOpen(false);
+      loadCoaches();
+    } catch (error: any) {
+      console.error("Napaka pri shranjevanju trenerja:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri shranjevanju trenerja",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(coachId: string) {
+    toast({
+      variant: "destructive",
+      title: "Informacija",
+      description: "Trenerje je mogoče izbrisati samo preko Supabase Dashboard",
+    });
+  }
+
+  return (
+    <ProtectedRoute allowedRoles={["admin"]}>
+      <AppLayout>
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Trenerji</h2>
+              <p className="text-muted-foreground">Upravljanje trenerjev kluba</p>
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserCog className="h-5 w-5" />
+                Seznam trenerjev ({coaches.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading && coaches.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
+              ) : coaches.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <UserCog className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Ni trenerjev</p>
+                  <p className="text-sm mt-2">Dodajte trenerje preko Supabase Dashboard</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ime in priimek</TableHead>
+                        <TableHead>E-pošta</TableHead>
+                        <TableHead>Telefon</TableHead>
+                        <TableHead className="text-right">Akcije</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {coaches.map((coach) => (
+                        <TableRow key={coach.id}>
+                          <TableCell className="font-medium">
+                            {coach.full_name || "N/A"}
+                          </TableCell>
+                          <TableCell>{coach.email}</TableCell>
+                          <TableCell>{coach.phone || "N/A"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(coach)}
+                                disabled={loading}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Uredi
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogContent className="max-h-[90vh]">
+              <DialogHeader>
+                <DialogTitle>Uredi trenerja</DialogTitle>
+              </DialogHeader>
+
+              <ScrollArea className="max-h-[60vh] pr-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">
+                      E-pošta <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      disabled
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="full_name">Ime in priimek</Label>
+                    <Input
+                      id="full_name"
+                      value={formData.full_name}
+                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefon</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                  </div>
+
+                  <DialogFooter className="mt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                      disabled={loading}
+                    >
+                      Prekliči
+                    </Button>
+                    <Button type="submit" disabled={loading}>
+                      {loading ? "Shranjujem..." : "Posodobi"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </AppLayout>
+    </ProtectedRoute>
+  );
+}
