@@ -94,7 +94,7 @@ export default function AttendancePage() {
     try {
       const { data, error } = await supabase
         .from("teams")
-        .select("id, name")
+        .select("id, name, short_name")
         .eq("is_archived", false)
         .order("name", { ascending: true });
 
@@ -109,7 +109,7 @@ export default function AttendancePage() {
     try {
       const { data, error } = await supabase
         .from("venues")
-        .select("id, name")
+        .select("id, name, city")
         .eq("is_active", true)
         .order("name", { ascending: true });
 
