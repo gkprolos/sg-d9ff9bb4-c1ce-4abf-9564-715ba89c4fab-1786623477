@@ -224,7 +224,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link href="/players">
+                    <Link href="/my-players">
                       <UserCog className="h-4 w-4" />
                       <span>Igralci</span>
                     </Link>
@@ -232,7 +232,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link href="/teams">
+                    <Link href="/my-teams">
                       <Users className="h-4 w-4" />
                       <span>Selekcije</span>
                     </Link>
@@ -240,7 +240,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link href="/venues">
+                    <Link href="/my-venues">
                       <Building className="h-4 w-4" />
                       <span>Dvorane</span>
                     </Link>
@@ -248,7 +248,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link href="/schedules">
+                    <Link href="/my-schedules">
                       <Clock className="h-4 w-4" />
                       <span>Urniki</span>
                     </Link>
@@ -400,7 +400,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           </SidebarMenuItem>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
-                              <Link href="/players">
+                              <Link href="/my-players">
                                 <UserCog className="h-4 w-4" />
                                 <span>Igralci</span>
                               </Link>
@@ -408,7 +408,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           </SidebarMenuItem>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
-                              <Link href="/teams">
+                              <Link href="/my-teams">
                                 <Users className="h-4 w-4" />
                                 <span>Selekcije</span>
                               </Link>
@@ -416,7 +416,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           </SidebarMenuItem>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
-                              <Link href="/venues">
+                              <Link href="/my-venues">
                                 <Building className="h-4 w-4" />
                                 <span>Dvorane</span>
                               </Link>
@@ -424,7 +424,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           </SidebarMenuItem>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
-                              <Link href="/schedules">
+                              <Link href="/my-schedules">
                                 <Clock className="h-4 w-4" />
                                 <span>Urniki</span>
                               </Link>
@@ -598,16 +598,52 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           Moje aktivnosti
                         </Link>
                         <Link
-                          href="/players"
+                          href="/my-players"
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/players"
+                            router.pathname === "/my-players"
                               ? "bg-primary text-primary-foreground"
                               : "hover:bg-muted"
                           )}
                         >
                           <UserCog className="h-4 w-4" />
                           Igralci
+                        </Link>
+                        <Link
+                          href="/my-teams"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-teams"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Users className="h-4 w-4" />
+                          Selekcije
+                        </Link>
+                        <Link
+                          href="/my-venues"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-venues"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Building className="h-4 w-4" />
+                          Dvorane
+                        </Link>
+                        <Link
+                          href="/my-schedules"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-schedules"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Clock className="h-4 w-4" />
+                          Urniki
                         </Link>
                       </>
                     )}

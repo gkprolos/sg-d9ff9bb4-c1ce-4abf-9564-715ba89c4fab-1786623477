@@ -9,10 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { getTeamsByCoach } from "@/services/teamsService";
 import { getSchedulesByTeam } from "@/services/schedulesService";
 import { formatVenueName } from "@/services/venuesService";
 import { Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const DAYS_OF_WEEK = [
   { value: 1, label: "Ponedeljek" },
@@ -21,7 +21,7 @@ const DAYS_OF_WEEK = [
   { value: 4, label: "Četrtek" },
   { value: 5, label: "Petek" },
   { value: 6, label: "Sobota" },
-  { value: 7, label: "Nedelja" },
+  { value: 0, label: "Nedelja" },
 ];
 
 export default function MySchedulesPage() {
