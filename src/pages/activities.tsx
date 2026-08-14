@@ -1,5 +1,6 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -89,6 +90,23 @@ export default function ActivitiesPage() {
     } catch (error: any) {
       console.error("Napaka pri nalaganju dvoran:", error);
     }
+  }
+
+  async function loadTeams() {
+    // Not needed for this page, but called in useEffect
+  }
+
+  async function loadCoaches() {
+    // Not needed for this page, but called in useEffect
+  }
+
+  function handleAdd() {
+    // Navigate to attendance page for new activity
+    router.push("/attendance");
+  }
+
+  function handleEdit(activity: Activity) {
+    handleEditClick(activity);
   }
 
   async function loadActivities() {

@@ -337,18 +337,20 @@ export default function DashboardPage() {
             </>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Dobrodošli!</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                {isAdmin
-                  ? "Uporabite navigacijo za upravljanje sezon, selekcij, igralcev in aktivnosti."
-                  : "Uporabite navigacijo za vnos prisotnosti in pregled vaših aktivnosti."}
-              </p>
-            </CardContent>
-          </Card>
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Dobrodošli!</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  {isAdmin
+                    ? "Uporabite navigacijo za upravljanje sezon, selekcij, igralcev in aktivnosti."
+                    : "Uporabite navigacijo za vnos prisotnosti in pregled vaših aktivnosti."}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </AppLayout>
     </ProtectedRoute>
