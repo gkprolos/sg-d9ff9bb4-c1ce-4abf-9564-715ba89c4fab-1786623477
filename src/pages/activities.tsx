@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Edit, Users, Trash2, Plus, ClipboardCheck } from "lucide-react";
+import { Calendar, Edit, Trash2, Plus, ClipboardCheck } from "lucide-react";
 import { useRouter } from "next/router";
 
 interface Activity {
@@ -32,9 +32,24 @@ interface Activity {
   end_time: string;
   is_completed: boolean;
   activity_type_id: number;
-  team: { name: string; short_name: string | null };
-  venue: { name: string } | null;
+  is_home_game: boolean;
+  teams: { id: string; name: string; short_name: string | null };
+  venues: { name: string } | null;
+  activity_coaches: Array<{
+    role: string;
+    profiles: {
+      id: string;
+      first_name: string;
+      last_name: string;
+    };
+  }>;
 }
+
+const ACTIVITY_TYPE_NAMES: Record<number, string> = {
+  1: "Trening v dvorani",
+  2: "Trening ali pripravljalna tekma zunaj dvorane",
+  3: "Uradna tekma"
+};
 
 export default function ActivitiesPage() {
   const router = useRouter();
@@ -43,7 +58,6 @@ export default function ActivitiesPage() {
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [dateFilter, setDateFilter] = useState("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [venues, setVenues] = useState<any[]>([]);
@@ -58,9 +72,7 @@ export default function ActivitiesPage() {
 
   useEffect(() => {
     loadActivities();
-    loadTeams();
     loadVenues();
-    loadCoaches();
   }, []);
 
   useEffect(() => {
@@ -92,28 +104,15 @@ export default function ActivitiesPage() {
     }
   }
 
-  async function loadTeams() {
-    // Not needed for this page, but called in useEffect
-  }
-
-  async function loadCoaches() {
-    // Not needed for this page, but called in useEffect
-  }
-
   function handleAdd() {
-    // Navigate to attendance page for new activity
     router.push("/attendance");
-  }
-
-  function handleEdit(activity: Activity) {
-    handleEditClick(activity);
   }
 
   async function loadActivities() {
     try {
       setLoading(true);
       
-      let query = supabase
+      const { data, error } = await supabase
         .from("activities")
         .select(`
           id,
@@ -123,10 +122,8 @@ export default function ActivitiesPage() {
           activity_type_id,
           is_home_game,
           is_completed,
-          created_at,
           teams!inner(id, name, short_name),
           venues(name),
-          season:seasons!inner(id, name),
           activity_coaches(
             role,
             profiles:coach_id(
@@ -138,22 +135,6 @@ export default function ActivitiesPage() {
         `)
         .order("activity_date", { ascending: false })
         .order("start_time", { ascending: true });
-
-      // Apply filters
-      if (filters.seasonId) {
-        query = query.eq("season_id", filters.seasonId);
-      }
-      if (filters.teamId) {
-        query = query.eq("team_id", filters.teamId);
-      }
-      if (filters.startDate) {
-        query = query.gte("activity_date", filters.startDate);
-      }
-      if (filters.endDate) {
-        query = query.lte("activity_date", filters.endDate);
-      }
-
-      const { data, error } = await query;
 
       if (error) {
         console.error("Napaka pri nalaganju aktivnosti:", error);
@@ -173,8 +154,8 @@ export default function ActivitiesPage() {
     }
   }
 
-  function handleAttendance(activityId: string) {
-    router.push(`/attendance?activity=${activityId}`);
+  function getActivityTypeName(typeId: number): string {
+    return ACTIVITY_TYPE_NAMES[typeId] || "N/A";
   }
 
   function handleEditClick(activity: Activity) {
@@ -183,10 +164,9 @@ export default function ActivitiesPage() {
       activity_date: activity.activity_date,
       start_time: activity.start_time,
       end_time: activity.end_time,
-      venue_id: activity.venue?.name ? "" : "", // We need venue_id, not name
+      venue_id: "",
     });
     
-    // Load full activity details including venue_id
     supabase
       .from("activities")
       .select("venue_id")
@@ -263,7 +243,15 @@ export default function ActivitiesPage() {
         .delete()
         .eq("id", activityToDelete.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Napaka pri brisanju aktivnosti:", error);
+        toast({
+          variant: "destructive",
+          title: "Napaka pri brisanju",
+          description: error.message || "Napaka pri brisanju aktivnosti",
+        });
+        throw error;
+      }
 
       toast({
         title: "Uspešno",
@@ -275,11 +263,6 @@ export default function ActivitiesPage() {
       loadActivities();
     } catch (error: any) {
       console.error("Napaka pri brisanju aktivnosti:", error);
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: error.message || "Napaka pri brisanju aktivnosti",
-      });
     } finally {
       setLoading(false);
     }
@@ -301,7 +284,7 @@ export default function ActivitiesPage() {
                 }
               </p>
             </div>
-            <Button onClick={handleAdd} disabled={loading || !isAdmin}>
+            <Button onClick={handleAdd} disabled={loading}>
               <Plus className="h-4 w-4 mr-2" />
               Dodaj aktivnost
             </Button>
@@ -340,8 +323,8 @@ export default function ActivitiesPage() {
                     </TableHeader>
                     <TableBody>
                       {activities.map((activity) => {
-                        const headCoach = activity.activity_coaches?.find((ac: any) => ac.role === 'head');
-                        const assistants = activity.activity_coaches?.filter((ac: any) => ac.role === 'assistant') || [];
+                        const headCoach = activity.activity_coaches?.find((ac) => ac.role === 'head');
+                        const assistants = activity.activity_coaches?.filter((ac) => ac.role === 'assistant') || [];
                         
                         return (
                           <TableRow key={activity.id}>
@@ -365,7 +348,7 @@ export default function ActivitiesPage() {
                                     {headCoach.profiles?.first_name} {headCoach.profiles?.last_name}
                                   </div>
                                 )}
-                                {assistants.map((assistant: any, idx: number) => (
+                                {assistants.map((assistant, idx) => (
                                   <div key={idx} className="text-sm">
                                     <Badge variant="secondary" className="mr-1">Sotrener</Badge>
                                     {assistant.profiles?.first_name} {assistant.profiles?.last_name}
@@ -390,7 +373,7 @@ export default function ActivitiesPage() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 justify-end">
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -403,14 +386,14 @@ export default function ActivitiesPage() {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => handleEdit(activity)}
+                                      onClick={() => handleEditClick(activity)}
                                     >
                                       <Edit className="h-4 w-4" />
                                     </Button>
                                     <Button
                                       size="sm"
                                       variant="destructive"
-                                      onClick={() => handleDelete(activity.id)}
+                                      onClick={() => handleDeleteClick(activity)}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -509,7 +492,7 @@ export default function ActivitiesPage() {
                 <AlertDialogDescription>
                   Nameravaš izbrisati aktivnost{" "}
                   <strong>
-                    {activityToDelete?.team.name} ({new Date(activityToDelete?.activity_date || "").toLocaleDateString("sl-SI")})
+                    {activityToDelete?.teams.name} ({new Date(activityToDelete?.activity_date || "").toLocaleDateString("sl-SI")})
                   </strong>
                   . Izbrišem?
                 </AlertDialogDescription>
