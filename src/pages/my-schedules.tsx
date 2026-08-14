@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { getActiveTeams } from "@/services/teamsService";
 import { getSchedulesByTeam } from "@/services/schedulesService";
 import { formatVenueName } from "@/services/venuesService";
 import { Clock } from "lucide-react";
@@ -46,7 +47,7 @@ export default function MySchedulesPage() {
     if (!user) return;
 
     try {
-      const data = await getTeamsByCoach(user.id);
+      const data = await getActiveTeams();
       setTeams(data);
       if (data.length > 0) {
         setSelectedTeamId(data[0].id);
