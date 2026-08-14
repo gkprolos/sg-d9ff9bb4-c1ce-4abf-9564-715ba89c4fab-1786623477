@@ -59,17 +59,17 @@ export default function TeamsPage() {
 
     if (!matchesSearch) return false;
 
-    // Gender filter - if team gender is M or Ž, filter by player gender
-    // If team gender is "Mešano" or empty, show all
+    // Gender filter - if team gender is M or F, filter by player gender
+    // If team gender is "Mixed" or empty, show all
     if (!selectedTeam?.gender) return true;
     
     const teamGender = selectedTeam.gender.toUpperCase().trim();
     
-    // If team is "Mešano" or "Mixed", show all players
-    if (teamGender === "MEŠANO" || teamGender === "MIXED" || teamGender === "") return true;
+    // If team is "Mixed", show all players
+    if (teamGender === "MIXED" || teamGender === "") return true;
     
-    // If team is M or Ž, filter by player gender
-    if (teamGender === "M" || teamGender === "Ž") {
+    // If team is M or F, filter by player gender
+    if (teamGender === "M" || teamGender === "F") {
       return player.gender?.toUpperCase() === teamGender;
     }
     
@@ -505,8 +505,8 @@ export default function TeamsPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="M">M (Moški)</SelectItem>
-                        <SelectItem value="Ž">Ž (Ženski)</SelectItem>
-                        <SelectItem value="Mešano">Mešano</SelectItem>
+                        <SelectItem value="F">F (Ženski)</SelectItem>
+                        <SelectItem value="Mixed">Mixed (Mešano)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

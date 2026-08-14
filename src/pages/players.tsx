@@ -374,7 +374,7 @@ export default function PlayersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="M">M (Moški)</SelectItem>
-                        <SelectItem value="Ž">Ž (Ženski)</SelectItem>
+                        <SelectItem value="F">F (Ženski)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
