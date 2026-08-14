@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { getTeamsByCoach } from "@/services/teamsService";
+import { getActiveTeams } from "@/services/teamsService";
 import { Users } from "lucide-react";
 
 export default function MyTeamsPage() {
@@ -17,14 +17,12 @@ export default function MyTeamsPage() {
 
   useEffect(() => {
     loadTeams();
-  }, [user]);
+  }, []);
 
   async function loadTeams() {
-    if (!user) return;
-
     try {
       setLoading(true);
-      const data = await getTeamsByCoach(user.id);
+      const data = await getActiveTeams();
       setTeams(data);
     } catch (error: any) {
       console.error("Napaka pri nalaganju selekcij:", error);
@@ -85,8 +83,8 @@ export default function MyTeamsPage() {
                           <TableCell>{team.age_category || "N/A"}</TableCell>
                           <TableCell>{team.gender || "N/A"}</TableCell>
                           <TableCell>
-                            <Badge variant={team.is_active ? "default" : "secondary"}>
-                              {team.is_active ? "Aktivna" : "Neaktivna"}
+                            <Badge variant={team.is_archived ? "secondary" : "default"}>
+                              {team.is_archived ? "Neaktivna" : "Aktivna"}
                             </Badge>
                           </TableCell>
                         </TableRow>

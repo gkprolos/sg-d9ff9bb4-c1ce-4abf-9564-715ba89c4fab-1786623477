@@ -86,7 +86,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { name: "Nastavitve", href: "/settings", icon: Settings },
   ];
 
-  const navigation = isAdmin ? adminNavigation : coachNavigation;
+  const navigation = isAdmin
+    ? [
+        { name: "Nadzorna plošča", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Aktivnosti", href: "/activities", icon: Activity },
+        { name: "Prisotnost", href: "/attendance", icon: ClipboardCheck },
+        { name: "Selekcije", href: "/teams", icon: Users },
+        { name: "Igralci", href: "/players", icon: UserCog },
+        { name: "Trenerji", href: "/coaches", icon: ClipboardList },
+        { name: "Dvorane", href: "/venues", icon: Building },
+        { name: "Urniki", href: "/schedules", icon: Clock },
+        { name: "Sezone", href: "/seasons", icon: Calendar },
+        { name: "Nastavitve", href: "/settings", icon: Settings },
+      ]
+    : [
+        { name: "Moj pregled", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Vnos prisotnosti", href: "/attendance", icon: ClipboardCheck },
+        { name: "Moje aktivnosti", href: "/activities", icon: Activity },
+        { name: "Igralci", href: "/my-players", icon: UserCog },
+        { name: "Selekcije", href: "/my-teams", icon: Users },
+        { name: "Dvorane", href: "/my-venues", icon: Building },
+        { name: "Urniki", href: "/my-schedules", icon: Clock },
+      ];
 
   const NavContent = () => (
     <>

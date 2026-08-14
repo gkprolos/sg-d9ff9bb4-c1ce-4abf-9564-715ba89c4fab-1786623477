@@ -64,15 +64,37 @@ export default function MySchedulesPage() {
   async function loadSchedules() {
     try {
       setLoading(true);
-      const data = await getSchedulesByTeam(selectedTeamId);
-      setSchedules(data);
+      const { data, error } = await supabase
+        .from("schedule_templates")
+        .select(`
+          id,
+          day_of_week,
+          start_time,
+          end_time,
+          valid_from,
+          valid_to,
+          is_active,
+          teams(name),
+          venues(name),
+          activity_types(name)
+        `)
+        .eq("is_active", true)
+        .order("day_of_week", { ascending: true })
+        .order("start_time", { ascending: true });
+
+      if (error) {
+        console.error("Napaka pri nalaganju urnikov:", error);
+        toast({
+          variant: "destructive",
+          title: "Napaka",
+          description: error.message || "Ni mogoče naložiti urnikov",
+        });
+        throw error;
+      }
+
+      setSchedules(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju urnikov:", error);
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: error.message || "Ni mogoče naložiti urnikov",
-      });
     } finally {
       setLoading(false);
     }
@@ -174,13 +196,9 @@ export default function MySchedulesPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {schedule.valid_from
-                              ? new Date(schedule.valid_from).toLocaleDateString("sl-SI")
-                              : "N/A"}{" "}
+                            {schedule.valid_from || "-"}{" "}
                             -{" "}
-                            {schedule.valid_until
-                              ? new Date(schedule.valid_until).toLocaleDateString("sl-SI")
-                              : "N/A"}
+                            {schedule.valid_to || "-"}
                           </TableCell>
                           <TableCell>
                             <Badge variant={schedule.is_active ? "default" : "secondary"}>

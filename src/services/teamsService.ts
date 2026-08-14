@@ -1,44 +1,42 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export async function getTeamsByCoach(coachId: string) {
+/**
+ * Get all active (non-archived) teams
+ * Any active coach can view all teams
+ */
+export async function getActiveTeams() {
   const { data, error } = await supabase
-    .from("team_coaches")
+    .from("teams")
     .select(`
-      teams(
-        id,
-        name,
-        season_id,
-        age_category,
-        gender,
-        is_archived
-      )
+      id,
+      name,
+      short_name,
+      season_id,
+      age_category,
+      gender,
+      is_archived,
+      seasons(name, is_active)
     `)
-    .eq("coach_id", coachId)
-    .eq("teams.is_archived", false);
+    .eq("is_archived", false)
+    .order("name", { ascending: true });
 
   if (error) throw error;
-
-  // Flatten the nested structure
-  return (data?.map((item: any) => item.teams).filter(Boolean) || []);
+  return data || [];
 }
 
-export async function getTeamPlayers(teamId: string) {
+/**
+ * Get team by ID
+ */
+export async function getTeamById(teamId: string) {
   const { data, error } = await supabase
-    .from("team_players")
+    .from("teams")
     .select(`
-      players(
-        id,
-        first_name,
-        last_name,
-        birth_date,
-        jersey_number,
-        is_active
-      )
+      *,
+      seasons(name, is_active)
     `)
-    .eq("team_id", teamId)
-    .eq("players.is_active", true);
+    .eq("id", teamId)
+    .single();
 
   if (error) throw error;
-
-  return (data?.map((item: any) => item.players).filter(Boolean) || []);
+  return data;
 }
