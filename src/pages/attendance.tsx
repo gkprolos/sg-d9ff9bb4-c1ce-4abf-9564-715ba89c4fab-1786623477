@@ -285,7 +285,7 @@ export default function AttendancePage() {
 
       console.log('[DEBUG] RPC result:', result);
 
-      const typedResult = result as CreateActivityResult;
+      const typedResult = result as unknown as CreateActivityResult;
       const activityId = typedResult.activity_id;
       const isNew = typedResult.is_new;
       const role = typedResult.role;
