@@ -22,19 +22,20 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  v_coach_id UUID;
-  v_team RECORD;
-  v_template RECORD;
   v_activity_id UUID;
+  v_season_id UUID;
+  v_coach_id UUID;
   v_existing_activity RECORD;
-  v_role TEXT;
+  v_coach_count INT;
+  v_coach_role TEXT;
   v_profile_active BOOLEAN;
   v_user_role TEXT;
 BEGIN
-  -- 1. IDENTITETA IZ auth.uid()
+  -- Get current user
   v_coach_id := auth.uid();
+  
   IF v_coach_id IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Niste prijavljeni');
+    RAISE EXCEPTION 'Uporabnik ni prijavljen';
   END IF;
 
   -- Check if user has active profile
@@ -43,7 +44,7 @@ BEGIN
   WHERE id = v_coach_id;
 
   IF NOT FOUND OR v_profile_active IS FALSE THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Profil ni aktiven');
+    RAISE EXCEPTION 'Profil ni aktiven';
   END IF;
 
   -- Check if user has coach or admin role
@@ -53,222 +54,144 @@ BEGIN
     AND role IN ('coach', 'admin');
 
   IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Nimaš pravic trenerja ali administratorja');
+    RAISE EXCEPTION 'Nimaš pravic trenerja ali administratorja';
   END IF;
 
-  -- 2. PREVERI AKTIVEN TRENER
-  IF NOT _app_internals.is_active_user(v_coach_id) THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Vaš uporabniški račun ni aktiven');
-  END IF;
-
-  -- 3. PREVERI SELEKCIJO IN SEZONO
-  SELECT t.*, s.id as season_id, s.start_date, s.end_date, s.is_archived as season_archived
-  INTO v_team
-  FROM public.teams t
-  JOIN public.seasons s ON t.season_id = s.id
-  WHERE t.id = p_team_id;
+  -- Get season_id and verify team is active
+  SELECT season_id INTO v_season_id
+  FROM teams
+  WHERE id = p_team_id
+    AND is_archived = false;
 
   IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Selekcija ne obstaja');
+    RAISE EXCEPTION 'Selekcija ne obstaja ali je arhivirana';
   END IF;
 
-  IF v_team.is_archived THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Selekcija je arhivirana');
+  -- Verify season is not archived
+  IF EXISTS (
+    SELECT 1 FROM seasons
+    WHERE id = v_season_id AND is_archived = true
+  ) THEN
+    RAISE EXCEPTION 'Sezona je arhivirana';
   END IF;
 
-  IF v_team.season_archived THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Sezona je arhivirana');
-  END IF;
-
-  -- 4. PREVERI DATUM ZNOTRAJ SEZONE
-  IF p_activity_date < v_team.start_date OR p_activity_date > v_team.end_date THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'error', format('Datum mora biti znotraj sezone %s - %s', v_team.start_date, v_team.end_date)
-    );
-  END IF;
-
-  -- 5. PREVERI ZAKLENJEN MESEC
-  IF _app_internals.is_month_locked(p_activity_date) AND NOT _app_internals.is_admin(v_coach_id) THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'error', format('Mesec %s je zaklenjen za urejanje', to_char(p_activity_date, 'YYYY-MM'))
-    );
-  END IF;
-
-  -- 6. PREVERI OBSTOJ AKTIVNOSTI
+  -- Try to find existing activity for this team+date+season
   SELECT * INTO v_existing_activity
-  FROM public.activities
+  FROM activities
   WHERE team_id = p_team_id
-    AND season_id = v_team.season_id
-    AND activity_date = p_activity_date;
+    AND activity_date = p_activity_date
+    AND season_id = v_season_id;
 
   IF FOUND THEN
-    -- AKTIVNOST ŽE OBSTAJA
-    IF v_existing_activity.is_completed THEN
+    -- Activity exists - check if this coach can join
+    v_activity_id := v_existing_activity.id;
+
+    -- Count existing coaches
+    SELECT COUNT(*) INTO v_coach_count
+    FROM activity_coaches
+    WHERE activity_id = v_activity_id;
+
+    -- Check if coach already assigned
+    IF EXISTS (
+      SELECT 1 FROM activity_coaches
+      WHERE activity_id = v_activity_id
+        AND coach_id = v_coach_id
+    ) THEN
+      -- Coach already assigned - just return activity
       RETURN jsonb_build_object(
-        'success', false,
-        'error', 'Aktivnost je že zaključena in je ni mogoče urejati. Za popravek kontaktirajte administratorja.'
+        'activity_id', v_activity_id,
+        'is_new', false,
+        'role', (
+          SELECT role FROM activity_coaches
+          WHERE activity_id = v_activity_id AND coach_id = v_coach_id
+        )
       );
     END IF;
 
-    -- Preveri ali je trener že dodan
-    SELECT role INTO v_role
-    FROM public.activity_coaches
-    WHERE activity_id = v_existing_activity.id AND coach_id = v_coach_id;
-
-    IF FOUND THEN
-      RETURN jsonb_build_object(
-        'success', true,
-        'activity_id', v_existing_activity.id,
-        'mode', 'existing',
-        'role', v_role,
-        'message', format('Aktivnost že obstaja. Vaša vloga: %s', 
-          CASE WHEN v_role = 'head' THEN 'Glavni trener' ELSE 'Sotrener' END)
-      );
-    ELSE
-      -- Dodaj kot sotrenerja
-      IF NOT _app_internals.coach_can_be_assistant(v_coach_id, p_team_id) THEN
-        RETURN jsonb_build_object(
-          'success', false,
-          'error', format('Aktivnost že obstaja (ustvaril %s). Vi nimate dovoljenja za sodelovanje kot sotrener.',
-            (SELECT full_name FROM public.profiles WHERE id = v_existing_activity.created_by))
-        );
-      END IF;
-
-      INSERT INTO public.activity_coaches (activity_id, coach_id, role)
-      VALUES (v_existing_activity.id, v_coach_id, 'assistant');
-
-      RETURN jsonb_build_object(
-        'success', true,
-        'activity_id', v_existing_activity.id,
-        'mode', 'joined_as_assistant',
-        'role', 'assistant',
-        'message', 'Uspešno dodani kot sotrener'
-      );
+    -- Reject if already 2 coaches
+    IF v_coach_count >= 2 THEN
+      RAISE EXCEPTION 'Za to aktivnost sta že dodeljena dva trenerja. Tretji trener ni dovoljen.';
     END IF;
-  END IF;
 
-  -- 7. NOVA AKTIVNOST - Poišči predlogo urnika
-  SELECT * INTO v_template
-  FROM public.schedule_templates
-  WHERE team_id = p_team_id
-    AND day_of_week = EXTRACT(ISODOW FROM p_activity_date)
-    AND (valid_from IS NULL OR p_activity_date >= valid_from)
-    AND (valid_to IS NULL OR p_activity_date <= valid_to)
-    AND is_active = true
-  ORDER BY valid_from DESC NULLS LAST
-  LIMIT 1;
-
-  -- Če NI predloge, obvezni podatki morajo biti podani
-  IF NOT FOUND THEN
-    IF p_start_time IS NULL OR p_end_time IS NULL THEN
-      RETURN jsonb_build_object(
-        'success', false,
-        'error', 'Za ta dan ni rednega termina. Prosimo vnesite začetni in končni čas.',
-        'requires_manual_input', true
-      );
-    END IF;
-    IF p_venue_id IS NULL AND p_custom_venue IS NULL THEN
-      RETURN jsonb_build_object(
-        'success', false,
-        'error', 'Za ta dan ni rednega termina. Prosimo vnesite lokacijo.',
-        'requires_manual_input', true
-      );
-    END IF;
-    IF p_activity_type_id IS NULL THEN
-      RETURN jsonb_build_object(
-        'success', false,
-        'error', 'Za ta dan ni rednega termina. Prosimo vnesite vrsto aktivnosti.',
-        'requires_manual_input', true
-      );
-    END IF;
-    IF p_activity_type_id = 3 AND p_is_home_game IS NULL THEN
-      RETURN jsonb_build_object(
-        'success', false,
-        'error', 'Pri tekmi je obvezna izbira domača/gostovanje.',
-        'requires_manual_input', true
-      );
-    END IF;
-  END IF;
-
-  -- 8. Določi vlogo
-  IF _app_internals.coach_can_be_head(v_coach_id, p_team_id) THEN
-    v_role := 'head';
-  ELSIF _app_internals.coach_can_be_assistant(v_coach_id, p_team_id) THEN
-    v_role := 'assistant';
-  ELSE
-    RETURN jsonb_build_object('success', false, 'error', 'Nimate dovoljenja za nobeno vlogo pri tej selekciji');
-  END IF;
-
-  -- 9. USTVARI AKTIVNOST
-  BEGIN
-    INSERT INTO public.activities (
-      season_id,
-      team_id,
-      activity_date,
-      activity_type_id,
-      venue_id,
-      custom_venue,
-      start_time,
-      end_time,
-      is_home_game,
-      created_by
-    ) VALUES (
-      v_team.season_id,
-      p_team_id,
-      p_activity_date,
-      COALESCE(p_activity_type_id, v_template.default_activity_type_id),
-      COALESCE(p_venue_id, v_template.venue_id),
-      COALESCE(p_custom_venue, v_template.custom_venue),
-      COALESCE(p_start_time, v_template.start_time),
-      COALESCE(p_end_time, v_template.end_time),
-      p_is_home_game,
-      v_coach_id
-    )
-    RETURNING id INTO v_activity_id;
-
-    INSERT INTO public.activity_coaches (activity_id, coach_id, role)
-    VALUES (v_activity_id, v_coach_id, v_role);
+    -- Add as assistant (second coach)
+    INSERT INTO activity_coaches (activity_id, coach_id, role)
+    VALUES (v_activity_id, v_coach_id, 'assistant');
 
     RETURN jsonb_build_object(
-      'success', true,
       'activity_id', v_activity_id,
-      'mode', 'created',
-      'role', v_role,
-      'used_template', FOUND,
-      'message', format('Aktivnost ustvarjena. Vaša vloga: %s',
-        CASE WHEN v_role = 'head' THEN 'Glavni trener' ELSE 'Sotrener' END)
+      'is_new', false,
+      'role', 'assistant'
     );
+  ELSE
+    -- Activity doesn't exist - create new one
+    BEGIN
+      -- Insert activity
+      INSERT INTO activities (
+        team_id,
+        season_id,
+        activity_date,
+        activity_type_id,
+        venue_id,
+        custom_venue,
+        start_time,
+        end_time,
+        is_home_game,
+        created_by
+      ) VALUES (
+        p_team_id,
+        v_season_id,
+        p_activity_date,
+        p_activity_type_id,
+        p_venue_id,
+        p_custom_venue,
+        p_start_time,
+        p_end_time,
+        p_is_home_game,
+        v_coach_id
+      )
+      RETURNING id INTO v_activity_id;
 
-  EXCEPTION
-    WHEN unique_violation THEN
-      -- SOČASNI VNOS
-      SELECT id INTO v_activity_id
-      FROM public.activities
-      WHERE team_id = p_team_id
-        AND season_id = v_team.season_id
-        AND activity_date = p_activity_date;
+      -- Add creator as head coach
+      INSERT INTO activity_coaches (activity_id, coach_id, role)
+      VALUES (v_activity_id, v_coach_id, 'head');
 
-      IF _app_internals.coach_can_be_assistant(v_coach_id, p_team_id) THEN
-        INSERT INTO public.activity_coaches (activity_id, coach_id, role)
+      RETURN jsonb_build_object(
+        'activity_id', v_activity_id,
+        'is_new', true,
+        'role', 'head'
+      );
+
+    EXCEPTION
+      WHEN unique_violation THEN
+        -- Another coach created activity concurrently
+        -- Fetch the activity and try to join as assistant
+        SELECT id INTO v_activity_id
+        FROM activities
+        WHERE team_id = p_team_id
+          AND activity_date = p_activity_date
+          AND season_id = v_season_id;
+
+        -- Count coaches again
+        SELECT COUNT(*) INTO v_coach_count
+        FROM activity_coaches
+        WHERE activity_id = v_activity_id;
+
+        IF v_coach_count >= 2 THEN
+          RAISE EXCEPTION 'Za to aktivnost sta že dodeljena dva trenerja. Tretji trener ni dovoljen.';
+        END IF;
+
+        -- Add as assistant
+        INSERT INTO activity_coaches (activity_id, coach_id, role)
         VALUES (v_activity_id, v_coach_id, 'assistant')
         ON CONFLICT (activity_id, coach_id) DO NOTHING;
 
         RETURN jsonb_build_object(
-          'success', true,
           'activity_id', v_activity_id,
-          'mode', 'concurrent_join',
-          'role', 'assistant',
-          'message', 'Aktivnost je ravnokar ustvaril drug trener. Dodani ste bili kot sotrener.'
+          'is_new', false,
+          'role', 'assistant'
         );
-      ELSE
-        RETURN jsonb_build_object(
-          'success', false,
-          'error', 'Aktivnost je pravkar ustvaril drug trener. Vi nimate dovoljenja za sodelovanje.'
-        );
-      END IF;
-  END;
+    END;
+  END IF;
 END;
 $$;
 
