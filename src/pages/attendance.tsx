@@ -92,18 +92,13 @@ export default function AttendancePage() {
 
   async function loadTeams() {
     try {
-      console.log('[DEBUG] Loading teams...');
       const { data, error } = await supabase
         .from("teams")
         .select("id, name, short_name")
         .eq("is_archived", false)
         .order("name", { ascending: true });
 
-      if (error) {
-        console.error('[DEBUG] Teams error:', error);
-        throw error;
-      }
-      console.log('[DEBUG] Teams loaded:', data?.length || 0, 'teams');
+      if (error) throw error;
       setTeams(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju selekcij:", error);
@@ -112,18 +107,13 @@ export default function AttendancePage() {
 
   async function loadVenues() {
     try {
-      console.log('[DEBUG] Loading venues...');
       const { data, error } = await supabase
         .from("venues")
         .select("id, name, city")
         .eq("is_active", true)
         .order("name", { ascending: true });
 
-      if (error) {
-        console.error('[DEBUG] Venues error:', error);
-        throw error;
-      }
-      console.log('[DEBUG] Venues loaded:', data?.length || 0, 'venues');
+      if (error) throw error;
       setVenues(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju dvoran:", error);

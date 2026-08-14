@@ -268,12 +268,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Desktop Sidebar */}
         <aside className="hidden lg:block w-64 border-r bg-background">
           <div className="flex h-16 items-center border-b px-6">
-            <Link href="/dashboard" className="flex items-center gap-3">
-              <img 
-                src="/LOGO-2015-C_B.gif" 
-                alt="OK Lubnik" 
-                className="h-10 w-auto"
-              />
+            <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <span className="text-lg font-bold">OK</span>
+              </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold leading-tight">OK Lubnik</span>
                 <span className="text-xs text-muted-foreground leading-tight">Športni klub</span>
@@ -434,12 +432,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
                 <div className="flex h-16 items-center border-b px-6">
-                  <Link href="/dashboard" className="flex items-center gap-3">
-                    <img 
-                      src="/LOGO-2015-C_B.gif" 
-                      alt="OK Lubnik" 
-                      className="h-10 w-auto"
-                    />
+                  <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                      <span className="text-lg font-bold">OK</span>
+                    </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold leading-tight">OK Lubnik</span>
                       <span className="text-xs text-muted-foreground leading-tight">Športni klub</span>
