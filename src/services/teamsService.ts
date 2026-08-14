@@ -10,11 +10,11 @@ export async function getTeamsByCoach(coachId: string) {
         season_id,
         age_category,
         gender,
-        is_active
+        is_archived
       )
     `)
     .eq("coach_id", coachId)
-    .eq("teams.is_active", true);
+    .eq("teams.is_archived", false);
 
   if (error) throw error;
 
