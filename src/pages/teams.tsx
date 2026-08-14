@@ -45,15 +45,16 @@ export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [seasons, setSeasons] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [playersDialogOpen, setPlayersDialogOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [teamPlayers, setTeamPlayers] = useState<any[]>([]);
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [genderFilter, setGenderFilter] = useState<string>("all");
   const [coaches, setCoaches] = useState<any[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
+  const [managePlayersDialogOpen, setManagePlayersDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     short_name: "",
@@ -75,21 +76,13 @@ export default function TeamsPage() {
 
     if (!matchesSearch) return false;
 
-    // Gender filter - if team gender is M or F, filter by player gender
-    // If team gender is "Mixed" or empty, show all
-    if (!selectedTeam?.gender) return true;
-    
-    const teamGender = selectedTeam.gender.toUpperCase().trim();
-    
-    // If team is "Mixed", show all players
-    if (teamGender === "MIXED" || teamGender === "") return true;
-    
-    // If team is M or F, filter by player gender
-    if (teamGender === "M" || teamGender === "F") {
-      return player.gender?.toUpperCase() === teamGender;
+    // Gender filter from dropdown
+    if (genderFilter !== "all") {
+      if (!player.gender || player.gender.toUpperCase() !== genderFilter.toUpperCase()) {
+        return false;
+      }
     }
-    
-    // For any other team gender value, show all players
+
     return true;
   });
 
@@ -138,7 +131,16 @@ export default function TeamsPage() {
     try {
       const { data, error } = await supabase
         .from("players")
-        .select("id, first_name, last_name, date_of_birth, gender")
+        .select(`
+          id, 
+          first_name, 
+          last_name, 
+          date_of_birth, 
+          gender,
+          teams:team_players(
+            teams(id, name, short_name)
+          )
+        `)
         .eq("is_active", true)
         .order("last_name", { ascending: true });
 
@@ -172,9 +174,10 @@ export default function TeamsPage() {
   async function handleManagePlayers(team: Team) {
     setSelectedTeam(team);
     setSearchTerm(""); // Reset search when opening dialog
+    setGenderFilter("all"); // Reset gender filter when opening dialog
     await loadAllPlayers();
     await loadTeamPlayers(team.id);
-    setPlayersDialogOpen(true);
+    setManagePlayersDialogOpen(true);
   }
 
   async function togglePlayer(playerId: string) {
@@ -617,11 +620,11 @@ export default function TeamsPage() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={playersDialogOpen} onOpenChange={setPlayersDialogOpen}>
+          <Dialog open={managePlayersDialogOpen} onOpenChange={setManagePlayersDialogOpen}>
             <DialogContent className="max-w-4xl max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>
-                  Upravljanje igralcev - {selectedTeamForPlayers?.name}
+                  Upravljanje igralcev - {selectedTeam?.name}
                 </DialogTitle>
               </DialogHeader>
 
@@ -648,11 +651,7 @@ export default function TeamsPage() {
                       placeholder="Ime ali priimek..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                        }
-                      }}
+                      onKeyDown={handleSearchKeyDown}
                     />
                   </div>
 
@@ -673,7 +672,7 @@ export default function TeamsPage() {
                           {filteredPlayers.map((player) => {
                             const isSelected = selectedPlayers.includes(player.id);
                             const otherTeams = player.teams
-                              ?.filter((tp: any) => tp.teams.id !== selectedTeamForPlayers?.id)
+                              ?.filter((tp: any) => tp.teams.id !== selectedTeam?.id)
                               .map((tp: any) => tp.teams) || [];
 
                             return (
@@ -682,15 +681,7 @@ export default function TeamsPage() {
                                   <input
                                     type="checkbox"
                                     checked={isSelected}
-                                    onChange={() => {
-                                      if (isSelected) {
-                                        setSelectedPlayers(
-                                          selectedPlayers.filter((id) => id !== player.id)
-                                        );
-                                      } else {
-                                        setSelectedPlayers([...selectedPlayers, player.id]);
-                                      }
-                                    }}
+                                    onChange={() => togglePlayer(player.id)}
                                     className="h-4 w-4"
                                   />
                                 </TableCell>
@@ -730,13 +721,10 @@ export default function TeamsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setPlayersDialogOpen(false)}
+                  onClick={() => setManagePlayersDialogOpen(false)}
                   disabled={loading}
                 >
-                  Prekliči
-                </Button>
-                <Button onClick={handleSaveTeamPlayers} disabled={loading}>
-                  {loading ? "Shranjujem..." : "Shrani"}
+                  Zapri
                 </Button>
               </DialogFooter>
             </DialogContent>
