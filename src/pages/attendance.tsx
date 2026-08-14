@@ -233,7 +233,7 @@ export default function AttendancePage() {
     if (!newActivityForm.team_id || !newActivityForm.start_time || !newActivityForm.end_time) {
       toast({
         variant: "destructive",
-        title: "Napaka",
+        title: "Manjkajo podatki",
         description: "Selekcija, začetek in konec so obvezni",
       });
       return;
@@ -242,8 +242,8 @@ export default function AttendancePage() {
     if (!user?.id) {
       toast({
         variant: "destructive",
-        title: "Napaka",
-        description: "Uporabnik ni prijavljen",
+        title: "Napaka pri avtentikaciji",
+        description: "Uporabnik ni prijavljen. Prosim, odjavi se in se ponovno prijavi.",
       });
       return;
     }
@@ -254,11 +254,16 @@ export default function AttendancePage() {
       // Get season_id from selected team
       const { data: teamData, error: teamError } = await supabase
         .from("teams")
-        .select("season_id")
+        .select("season_id, name")
         .eq("id", newActivityForm.team_id)
         .single();
 
-      if (teamError) throw teamError;
+      if (teamError) {
+        console.error("Team fetch error:", teamError);
+        throw new Error(`Napaka pri nalaganju selekcije: ${teamError.message}`);
+      }
+
+      console.log('[DEBUG] Creating activity for team:', teamData.name, 'on date:', selectedDate);
 
       // Check if activity already exists for this team and date
       const { data: existing, error: checkError } = await supabase
@@ -268,13 +273,17 @@ export default function AttendancePage() {
         .eq("activity_date", selectedDate)
         .maybeSingle();
 
-      if (checkError) throw checkError;
+      if (checkError) {
+        console.error("Check existing error:", checkError);
+        throw new Error(`Napaka pri preverjanju obstoječih aktivnosti: ${checkError.message}`);
+      }
 
       if (existing) {
+        console.log('[DEBUG] Activity already exists, ID:', existing.id);
         toast({
           variant: "destructive",
           title: "Aktivnost že obstaja",
-          description: "Za to selekcijo in datum že obstaja aktivnost",
+          description: `Za selekcijo ${teamData.name} na datum ${new Date(selectedDate).toLocaleDateString('sl-SI')} že obstaja aktivnost. Odprl sem obstoječo aktivnost.`,
         });
         setSelectedActivity(existing.id);
         setShowNewActivity(false);
@@ -282,6 +291,7 @@ export default function AttendancePage() {
         return;
       }
 
+      console.log('[DEBUG] Inserting new activity...');
       const { data, error } = await supabase
         .from("activities")
         .insert([{
@@ -298,9 +308,18 @@ export default function AttendancePage() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Activity insert error:", error);
+        if (error.code === '42501') {
+          throw new Error('Nimaš dovoljenj za kreiranje aktivnosti. Prosim, odjavi se in se ponovno prijavi, ali kontaktiraj administratorja.');
+        }
+        throw error;
+      }
+
+      console.log('[DEBUG] Activity created successfully, ID:', data.id);
 
       // Add creator as head coach
+      console.log('[DEBUG] Adding coach to activity_coaches...');
       const { error: coachError } = await supabase
         .from("activity_coaches")
         .insert({
@@ -311,23 +330,28 @@ export default function AttendancePage() {
 
       if (coachError) {
         console.error("Napaka pri dodajanju trenerja:", coachError);
-        // Don't throw - activity is created, just log the error
+        toast({
+          variant: "default",
+          title: "Opozorilo",
+          description: "Aktivnost je ustvarjena, vendar nisi bil dodan kot trener. Prosim, kontaktiraj administratorja.",
+        });
       }
 
       toast({
-        title: "Uspešno",
-        description: "Aktivnost ustvarjena",
+        title: "Uspešno ustvarjena aktivnost!",
+        description: `Aktivnost za ${teamData.name} na ${new Date(selectedDate).toLocaleDateString('sl-SI')} je bila uspešno ustvarjena.`,
       });
 
       setSelectedActivity(data.id);
       setShowNewActivity(false);
+      setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "" });
       await loadActivitiesForDate();
     } catch (error: any) {
       console.error("Napaka pri ustvarjanju aktivnosti:", error);
       toast({
         variant: "destructive",
-        title: "Napaka",
-        description: error.message || "Napaka pri ustvarjanju aktivnosti",
+        title: "Napaka pri ustvarjanju aktivnosti",
+        description: error.message || "Prosim, poskusi ponovno. Če problem ostane, se odjavi in ponovno prijavi.",
       });
     } finally {
       setLoading(false);
