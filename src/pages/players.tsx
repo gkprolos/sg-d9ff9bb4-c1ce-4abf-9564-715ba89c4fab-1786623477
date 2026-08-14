@@ -41,7 +41,6 @@ export default function PlayersPage() {
     last_name: "",
     date_of_birth: "",
     address: "",
-    postal_code: "",
     city: "",
     phone: "",
     is_active: true,
@@ -88,7 +87,6 @@ export default function PlayersPage() {
       last_name: "",
       date_of_birth: "",
       address: "",
-      postal_code: "",
       city: "",
       phone: "",
       is_active: true,
@@ -106,7 +104,6 @@ export default function PlayersPage() {
       last_name: player.last_name,
       date_of_birth: player.date_of_birth || "",
       address: player.address || "",
-      postal_code: player.postal_code || "",
       city: player.city || "",
       phone: player.phone || "",
       is_active: player.is_active,
@@ -137,7 +134,6 @@ export default function PlayersPage() {
         last_name: formData.last_name,
         date_of_birth: formData.date_of_birth || null,
         address: formData.address || null,
-        postal_code: formData.postal_code || null,
         city: formData.city || null,
         phone: formData.phone || null,
         is_active: formData.is_active,
@@ -370,23 +366,13 @@ export default function PlayersPage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="postal_code">Poštna številka</Label>
-                      <Input
-                        id="postal_code"
-                        value={formData.postal_code}
-                        onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="city">Kraj</Label>
-                      <Input
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">Kraj</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    />
                   </div>
 
                   <div className="space-y-2">
