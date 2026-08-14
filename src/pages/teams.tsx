@@ -618,99 +618,125 @@ export default function TeamsPage() {
           </Dialog>
 
           <Dialog open={playersDialogOpen} onOpenChange={setPlayersDialogOpen}>
-            <DialogContent className="max-h-[90vh] max-w-2xl">
+            <DialogContent className="max-w-4xl max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>
-                  Upravljanje igralcev - {selectedTeam?.name}
+                  Upravljanje igralcev - {selectedTeamForPlayers?.name}
                 </DialogTitle>
               </DialogHeader>
 
-              <ScrollArea className="max-h-[60vh] pr-4">
+              <ScrollArea className="max-h-[70vh] pr-4">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b">
-                    <p className="text-sm text-muted-foreground">
-                      Izbranih: {selectedPlayers.length} / {allPlayers.length}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedPlayers(allPlayers.map(p => p.id))}
-                    >
-                      Izberi vse
-                    </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="gender_filter">Filter po spolu</Label>
+                    <Select value={genderFilter} onValueChange={setGenderFilter}>
+                      <SelectTrigger id="gender_filter">
+                        <SelectValue placeholder="Vsi igralci" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Vsi igralci</SelectItem>
+                        <SelectItem value="M">Samo moški (M)</SelectItem>
+                        <SelectItem value="F">Samo ženske (F)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="search">Iskanje igralcev</Label>
+                    <Label htmlFor="player_search">Iskanje igralca</Label>
                     <Input
-                      id="search"
-                      placeholder="Vnesi ime ali priimek... (Enter za dodajanje)"
+                      id="player_search"
+                      placeholder="Ime ali priimek..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyDown={handleSearchKeyDown}
-                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                        }
+                      }}
                     />
-                    {exactMatch && (
-                      <p className="text-xs text-muted-foreground">
-                        Pritisni Enter za {selectedPlayers.includes(exactMatch.id) ? "odstranitev" : "dodajanje"}: {exactMatch.first_name} {exactMatch.last_name}
-                      </p>
-                    )}
                   </div>
 
                   <div className="space-y-2">
-                    {filteredPlayers.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        {searchTerm ? "Ni rezultatov iskanja" : "Ni igralcev"}
-                      </p>
-                    ) : (
-                      filteredPlayers.map((player) => (
-                        <div
-                          key={player.id}
-                          className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
-                            selectedPlayers.includes(player.id) ? "bg-primary/5 border-primary" : ""
-                          }`}
-                          onClick={() => togglePlayer(player.id)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                              selectedPlayers.includes(player.id) 
-                                ? "bg-primary border-primary" 
-                                : "border-muted-foreground"
-                            }`}>
-                              {selectedPlayers.includes(player.id) && (
-                                <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium">
-                                {player.first_name} {player.last_name}
-                              </p>
-                              {player.date_of_birth && (
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(player.date_of_birth).toLocaleDateString("sl-SI")}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
+                    <Label>Igralci</Label>
+                    <ScrollArea className="h-[400px] border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="text-xs">
+                            <TableHead className="w-[50px]"></TableHead>
+                            <TableHead>Ime</TableHead>
+                            <TableHead>Priimek</TableHead>
+                            <TableHead>Datum rojstva</TableHead>
+                            <TableHead>Druge selekcije</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredPlayers.map((player) => {
+                            const isSelected = selectedPlayers.includes(player.id);
+                            const otherTeams = player.teams
+                              ?.filter((tp: any) => tp.teams.id !== selectedTeamForPlayers?.id)
+                              .map((tp: any) => tp.teams) || [];
+
+                            return (
+                              <TableRow key={player.id} className="text-sm">
+                                <TableCell className="py-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => {
+                                      if (isSelected) {
+                                        setSelectedPlayers(
+                                          selectedPlayers.filter((id) => id !== player.id)
+                                        );
+                                      } else {
+                                        setSelectedPlayers([...selectedPlayers, player.id]);
+                                      }
+                                    }}
+                                    className="h-4 w-4"
+                                  />
+                                </TableCell>
+                                <TableCell className="font-medium py-2">
+                                  {player.first_name}
+                                </TableCell>
+                                <TableCell className="py-2">{player.last_name}</TableCell>
+                                <TableCell className="py-2">
+                                  {player.date_of_birth
+                                    ? new Date(player.date_of_birth).toLocaleDateString("sl-SI")
+                                    : "N/A"}
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <div className="flex flex-wrap gap-1">
+                                    {otherTeams.length > 0 ? (
+                                      otherTeams.map((team: any, idx: number) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
+                                          {team.short_name || team.name}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">-</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
                   </div>
                 </div>
               </ScrollArea>
 
-              <DialogFooter className="mt-6">
+              <DialogFooter>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    setPlayersDialogOpen(false);
-                    setSearchTerm("");
-                  }}
+                  onClick={() => setPlayersDialogOpen(false)}
+                  disabled={loading}
                 >
-                  Zapri
+                  Prekliči
+                </Button>
+                <Button onClick={handleSaveTeamPlayers} disabled={loading}>
+                  {loading ? "Shranjujem..." : "Shrani"}
                 </Button>
               </DialogFooter>
             </DialogContent>

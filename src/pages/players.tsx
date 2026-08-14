@@ -505,33 +505,32 @@ export default function PlayersPage() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Igralec</TableHead>
-                        <TableHead>Selekcije</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Akcije</TableHead>
+                      <TableRow className="text-xs">
+                        <TableHead className="w-[120px]">Ime</TableHead>
+                        <TableHead className="w-[120px]">Priimek</TableHead>
+                        <TableHead className="w-[110px]">Datum rojstva</TableHead>
+                        <TableHead className="w-[60px]">Spol</TableHead>
+                        <TableHead className="w-[120px]">Kraj</TableHead>
+                        <TableHead className="w-[110px]">Telefon</TableHead>
+                        <TableHead className="w-[150px]">Selekcije</TableHead>
+                        <TableHead className="w-[90px]">Status</TableHead>
+                        <TableHead className="text-right w-[160px]">Akcije</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {players.map((player) => (
-                        <TableRow key={player.id}>
-                          <TableCell>
-                            <div className="flex flex-col gap-1">
-                              <span className="font-medium">
-                                {player.first_name} {player.last_name}
-                              </span>
-                              <span className="text-sm text-muted-foreground">
-                                {player.date_of_birth && (
-                                  <>
-                                    {new Date(player.date_of_birth).toLocaleDateString("sl-SI")}
-                                    {player.city && <> • {player.city}</>}
-                                  </>
-                                )}
-                                {!player.date_of_birth && player.city && player.city}
-                              </span>
-                            </div>
+                        <TableRow key={player.id} className="text-sm">
+                          <TableCell className="font-medium py-2">{player.first_name}</TableCell>
+                          <TableCell className="py-2">{player.last_name}</TableCell>
+                          <TableCell className="py-2">
+                            {player.date_of_birth
+                              ? new Date(player.date_of_birth).toLocaleDateString("sl-SI")
+                              : "N/A"}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-2">{player.gender || "N/A"}</TableCell>
+                          <TableCell className="py-2">{player.city || "N/A"}</TableCell>
+                          <TableCell className="py-2">{player.phone || "N/A"}</TableCell>
+                          <TableCell className="py-2">
                             <div className="flex flex-wrap gap-1">
                               {player.teams && player.teams.length > 0 ? (
                                 player.teams.map((tp: any, idx: number) => (
@@ -540,24 +539,25 @@ export default function PlayersPage() {
                                   </Badge>
                                 ))
                               ) : (
-                                <span className="text-xs text-muted-foreground">Ni selekcije</span>
+                                <span className="text-xs text-muted-foreground">-</span>
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant={player.is_active ? "default" : "secondary"}>
+                          <TableCell className="py-2">
+                            <Badge variant={player.is_active ? "default" : "secondary"} className="text-xs">
                               {player.is_active ? "Aktiven" : "Neaktiven"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex gap-2 justify-end">
+                          <TableCell className="text-right py-2">
+                            <div className="flex gap-1 justify-end">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEdit(player)}
                                 disabled={loading}
+                                className="h-7 text-xs"
                               >
-                                <Edit className="h-4 w-4 mr-1" />
+                                <Edit className="h-3 w-3 mr-1" />
                                 Uredi
                               </Button>
                               <Button
@@ -565,8 +565,9 @@ export default function PlayersPage() {
                                 variant="destructive"
                                 onClick={() => handleDeleteClick(player)}
                                 disabled={loading}
+                                className="h-7 text-xs"
                               >
-                                <Trash2 className="h-4 w-4 mr-1" />
+                                <Trash2 className="h-3 w-3 mr-1" />
                                 Izbriši
                               </Button>
                             </div>
