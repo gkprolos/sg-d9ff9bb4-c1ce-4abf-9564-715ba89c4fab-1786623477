@@ -32,7 +32,11 @@ export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [seasons, setSeasons] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [playersDialogOpen, setPlayersDialogOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [teamPlayers, setTeamPlayers] = useState<any[]>([]);
+  const [allPlayers, setAllPlayers] = useState<any[]>([]);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     short_name: "",
@@ -64,6 +68,112 @@ export default function TeamsPage() {
     } catch (error: any) {
       console.error("Napaka pri nalaganju sezon:", error);
     }
+  }
+
+  async function loadAllPlayers() {
+    try {
+      const { data, error } = await supabase
+        .from("players")
+        .select("id, first_name, last_name, date_of_birth")
+        .eq("is_active", true)
+        .order("last_name", { ascending: true });
+
+      if (error) throw error;
+      setAllPlayers(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju igralcev:", error);
+    }
+  }
+
+  async function loadTeamPlayers(teamId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("team_players")
+        .select(`
+          id,
+          player_id,
+          players(first_name, last_name, date_of_birth)
+        `)
+        .eq("team_id", teamId)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      setTeamPlayers(data || []);
+      setSelectedPlayers((data || []).map((tp: any) => tp.player_id));
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju igralcev selekcije:", error);
+    }
+  }
+
+  async function handleManagePlayers(team: Team) {
+    setSelectedTeam(team);
+    await loadAllPlayers();
+    await loadTeamPlayers(team.id);
+    setPlayersDialogOpen(true);
+  }
+
+  async function handleSavePlayers() {
+    if (!selectedTeam) return;
+
+    try {
+      setLoading(true);
+
+      // Get current player IDs
+      const currentPlayerIds = teamPlayers.map((tp: any) => tp.player_id);
+      
+      // Find players to add (in selectedPlayers but not in currentPlayerIds)
+      const playersToAdd = selectedPlayers.filter(id => !currentPlayerIds.includes(id));
+      
+      // Find players to remove (in currentPlayerIds but not in selectedPlayers)
+      const playersToRemove = currentPlayerIds.filter(id => !selectedPlayers.includes(id));
+
+      // Add new players
+      if (playersToAdd.length > 0) {
+        const { error: addError } = await supabase
+          .from("team_players")
+          .insert(playersToAdd.map(playerId => ({
+            team_id: selectedTeam.id,
+            player_id: playerId,
+          })));
+
+        if (addError) throw addError;
+      }
+
+      // Remove players
+      if (playersToRemove.length > 0) {
+        const { error: removeError } = await supabase
+          .from("team_players")
+          .delete()
+          .eq("team_id", selectedTeam.id)
+          .in("player_id", playersToRemove);
+
+        if (removeError) throw removeError;
+      }
+
+      toast({
+        title: "Uspešno",
+        description: "Igralci selekcije uspešno posodobljeni",
+      });
+
+      setPlayersDialogOpen(false);
+    } catch (error: any) {
+      console.error("Napaka pri shranjevanju igralcev:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri shranjevanju igralcev",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function togglePlayer(playerId: string) {
+    setSelectedPlayers(prev => 
+      prev.includes(playerId) 
+        ? prev.filter(id => id !== playerId)
+        : [...prev, playerId]
+    );
   }
 
   async function loadTeams() {
@@ -272,6 +382,15 @@ export default function TeamsPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                onClick={() => handleManagePlayers(team)}
+                                disabled={loading}
+                              >
+                                <Users className="h-4 w-4 mr-1" />
+                                Igralci
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={() => handleEdit(team)}
                                 disabled={loading}
                               >
@@ -388,6 +507,83 @@ export default function TeamsPage() {
                   </DialogFooter>
                 </form>
               </ScrollArea>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={playersDialogOpen} onOpenChange={setPlayersDialogOpen}>
+            <DialogContent className="max-h-[90vh] max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>
+                  Upravljanje igralcev - {selectedTeam?.name}
+                </DialogTitle>
+              </DialogHeader>
+
+              <ScrollArea className="max-h-[60vh] pr-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b">
+                    <p className="text-sm text-muted-foreground">
+                      Izbranih: {selectedPlayers.length} / {allPlayers.length}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedPlayers(allPlayers.map(p => p.id))}
+                    >
+                      Izberi vse
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {allPlayers.map((player) => (
+                      <div
+                        key={player.id}
+                        className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                          selectedPlayers.includes(player.id) ? "bg-primary/5 border-primary" : ""
+                        }`}
+                        onClick={() => togglePlayer(player.id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                            selectedPlayers.includes(player.id) 
+                              ? "bg-primary border-primary" 
+                              : "border-muted-foreground"
+                          }`}>
+                            {selectedPlayers.includes(player.id) && (
+                              <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {player.first_name} {player.last_name}
+                            </p>
+                            {player.date_of_birth && (
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(player.date_of_birth).toLocaleDateString("sl-SI")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ScrollArea>
+
+              <DialogFooter className="mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPlayersDialogOpen(false)}
+                  disabled={loading}
+                >
+                  Prekliči
+                </Button>
+                <Button onClick={handleSavePlayers} disabled={loading}>
+                  {loading ? "Shranjujem..." : "Shrani"}
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>

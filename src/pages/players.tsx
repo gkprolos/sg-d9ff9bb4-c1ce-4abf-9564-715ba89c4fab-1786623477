@@ -21,10 +21,10 @@ interface Player {
   last_name: string;
   date_of_birth: string | null;
   address: string | null;
-  postal_code: string | null;
   city: string | null;
   phone: string | null;
   is_active: boolean;
+  teams?: Array<{ teams: { name: string; short_name: string | null } }>;
   joined_date: string | null;
   left_date: string | null;
   notes: string | null;
@@ -59,7 +59,12 @@ export default function PlayersPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from("players")
-        .select("*")
+        .select(`
+          *,
+          teams:team_players(
+            teams(name, short_name)
+          )
+        `)
         .order("last_name", { ascending: true });
 
       if (error) throw error;
@@ -242,10 +247,11 @@ export default function PlayersPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Priimek in ime</TableHead>
+                        <TableHead>Ime</TableHead>
+                        <TableHead>Priimek</TableHead>
                         <TableHead>Datum rojstva</TableHead>
                         <TableHead>Kraj</TableHead>
-                        <TableHead>Telefon</TableHead>
+                        <TableHead>Selekcije</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
@@ -253,16 +259,27 @@ export default function PlayersPage() {
                     <TableBody>
                       {players.map((player) => (
                         <TableRow key={player.id}>
-                          <TableCell className="font-medium">
-                            {player.last_name} {player.first_name}
-                          </TableCell>
+                          <TableCell className="font-medium">{player.first_name}</TableCell>
+                          <TableCell>{player.last_name}</TableCell>
                           <TableCell>
                             {player.date_of_birth
                               ? new Date(player.date_of_birth).toLocaleDateString("sl-SI")
                               : "N/A"}
                           </TableCell>
                           <TableCell>{player.city || "N/A"}</TableCell>
-                          <TableCell>{player.phone || "N/A"}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {player.teams && player.teams.length > 0 ? (
+                                player.teams.map((tp: any, idx: number) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs">
+                                    {tp.teams.short_name || tp.teams.name}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Ni selekcije</span>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge variant={player.is_active ? "default" : "secondary"}>
                               {player.is_active ? "Aktiven" : "Neaktiven"}
