@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .maybeSingle();
 
         console.log('[DEBUG AUTH] User:', session.user.email, 'Role:', data?.role || 'NO ROLE');
-        setUserRole(data?.role || null);
+        setUserRole((data?.role as "admin" | "coach") || null);
       }
 
       setLoading(false);
