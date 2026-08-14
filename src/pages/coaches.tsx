@@ -92,6 +92,7 @@ export default function CoachesPage() {
     setFormData({
       full_name: coach.full_name,
       email: coach.email,
+      password: "", // Not used for editing, but required by formData type
       phone: coach.phone || "",
       hourly_rate: coach.hourly_rate?.toString() || "",
       km_rate: coach.km_rate?.toString() || "",
@@ -264,6 +265,10 @@ export default function CoachesPage() {
               <h2 className="text-3xl font-bold tracking-tight">Trenerji</h2>
               <p className="text-muted-foreground">Upravljanje trenerjev kluba</p>
             </div>
+            <Button onClick={handleAdd}>
+              <Plus className="h-4 w-4 mr-2" />
+              Dodaj trenerja
+            </Button>
           </div>
 
           <Card>
@@ -341,7 +346,9 @@ export default function CoachesPage() {
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogContent className="max-h-[90vh]">
               <DialogHeader>
-                <DialogTitle>Uredi trenerja</DialogTitle>
+                <DialogTitle>
+                  {selectedCoach ? "Uredi trenerja" : "Dodaj trenerja"}
+                </DialogTitle>
               </DialogHeader>
 
               <ScrollArea className="max-h-[60vh] pr-4">
@@ -426,7 +433,7 @@ export default function CoachesPage() {
                       Prekliči
                     </Button>
                     <Button type="submit" disabled={loading}>
-                      {loading ? "Shranjujem..." : "Posodobi"}
+                      {loading ? "Shranjujem..." : selectedCoach ? "Posodobi" : "Dodaj"}
                     </Button>
                   </DialogFooter>
                 </form>
