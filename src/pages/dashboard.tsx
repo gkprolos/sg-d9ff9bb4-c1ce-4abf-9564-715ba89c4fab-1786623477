@@ -13,7 +13,9 @@ import {
   TrendingUp,
   Award,
   DollarSign,
+  ClipboardCheck,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface DashboardStats {
   activePlayers: number;
@@ -156,15 +158,26 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">
-              {isAdmin ? "Nadzorna plošča" : "Moj pregled"}
+              {isAdmin 
+                ? "Nadzorna plošča" 
+                : `Tvoj mesečni pregled za ${currentMonthName}`
+              }
             </h2>
             <p className="text-muted-foreground">
               {isAdmin 
-                ? "Pregled celotnega kluba" 
-                : `Tvoj mesečni pregled za ${currentMonthName}`
+                ? "Pregled statistike športnega kluba" 
+                : `Pregled tvojih aktivnosti in obračuna`
               }
             </p>
           </div>
+
+          {!isAdmin && (
+            <Button size="lg" onClick={() => window.location.href = '/attendance'}>
+              <ClipboardCheck className="h-5 w-5 mr-2" />
+              Vnos prisotnosti
+            </Button>
+          )}
+        </div>
 
           {isAdmin ? (
             // Admin Dashboard

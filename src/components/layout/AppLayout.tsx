@@ -195,6 +195,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
+                    <Link href="/activities">
+                      <Activity className="h-4 w-4" />
+                      <span>Moje aktivnosti</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
                     <Link href="/players">
                       <UserCog className="h-4 w-4" />
                       <span>Igralci</span>
@@ -261,10 +269,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <aside className="hidden lg:block w-64 border-r bg-background">
           <div className="flex h-16 items-center border-b px-6">
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                SK
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <span className="text-lg font-bold">OK</span>
               </div>
-              <span>Športni Klub</span>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold leading-tight">OK Lubnik</span>
+                <span className="text-xs text-muted-foreground leading-tight">Športni klub</span>
+              </div>
             </Link>
           </div>
 
@@ -360,6 +371,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
+                              <Link href="/activities">
+                                <Activity className="h-4 w-4" />
+                                <span>Moje aktivnosti</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
                               <Link href="/players">
                                 <UserCog className="h-4 w-4" />
                                 <span>Igralci</span>
@@ -414,10 +433,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <SheetContent side="left" className="w-64 p-0">
                 <div className="flex h-16 items-center border-b px-6">
                   <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                      SK
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                      <span className="text-lg font-bold">OK</span>
                     </div>
-                    <span>Športni Klub</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold leading-tight">OK Lubnik</span>
+                      <span className="text-xs text-muted-foreground leading-tight">Športni klub</span>
+                    </div>
                   </Link>
                 </div>
                 <ScrollArea className="flex-1 px-3 py-4">
@@ -543,6 +565,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     ) : (
                       <>
                         <Link
+                          href="/activities"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/activities"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Activity className="h-4 w-4" />
+                          Moje aktivnosti
+                        </Link>
+                        <Link
                           href="/players"
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
@@ -553,42 +587,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         >
                           <UserCog className="h-4 w-4" />
                           Igralci
-                        </Link>
-                        <Link
-                          href="/teams"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/teams"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Users className="h-4 w-4" />
-                          Selekcije
-                        </Link>
-                        <Link
-                          href="/venues"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/venues"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Building className="h-4 w-4" />
-                          Dvorane
-                        </Link>
-                        <Link
-                          href="/schedules"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/schedules"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Clock className="h-4 w-4" />
-                          Urniki
                         </Link>
                       </>
                     )}

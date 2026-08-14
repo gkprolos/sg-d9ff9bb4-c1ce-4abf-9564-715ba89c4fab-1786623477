@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Edit, Users, Trash2 } from "lucide-react";
+import { Calendar, Edit, Users, Trash2, Plus, ClipboardCheck } from "lucide-react";
 import { useRouter } from "next/router";
 
 interface Activity {
@@ -37,8 +37,10 @@ interface Activity {
 
 export default function ActivitiesPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [dateFilter, setDateFilter] = useState("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -55,8 +57,24 @@ export default function ActivitiesPage() {
 
   useEffect(() => {
     loadActivities();
+    loadTeams();
     loadVenues();
-  }, [dateFilter]);
+    loadCoaches();
+  }, []);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (!user) return;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      setIsAdmin(!!data);
+    }
+    checkAdmin();
+  }, [user]);
 
   async function loadVenues() {
     try {
@@ -230,9 +248,20 @@ export default function ActivitiesPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight">Aktivnosti</h2>
-              <p className="text-muted-foreground">Pregled vseh aktivnosti</p>
+              <h2 className="text-3xl font-bold tracking-tight">
+                {isAdmin ? "Aktivnosti" : "Moje aktivnosti"}
+              </h2>
+              <p className="text-muted-foreground">
+                {isAdmin 
+                  ? "Upravljanje vseh aktivnosti kluba" 
+                  : "Pregled aktivnosti kjer si glavni trener ali sotrener"
+                }
+              </p>
             </div>
+            <Button onClick={handleAdd} disabled={loading || !isAdmin}>
+              <Plus className="h-4 w-4 mr-2" />
+              Dodaj aktivnost
+            </Button>
           </div>
 
           <Card>
@@ -291,15 +320,16 @@ export default function ActivitiesPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleAttendance(activity.id)}
+                                onClick={() => router.push(`/attendance?activity=${activity.id}`)}
                               >
-                                <Users className="h-4 w-4 mr-1" />
+                                <ClipboardCheck className="h-4 w-4 mr-1" />
                                 Prisotnost
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleEditClick(activity)}
+                                onClick={() => handleEdit(activity)}
+                                disabled={loading || !isAdmin}
                               >
                                 <Edit className="h-4 w-4 mr-1" />
                                 Uredi
@@ -308,7 +338,7 @@ export default function ActivitiesPage() {
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => handleDeleteClick(activity)}
-                                disabled={loading}
+                                disabled={loading || !isAdmin}
                               >
                                 <Trash2 className="h-4 w-4 mr-1" />
                                 Izbriši
