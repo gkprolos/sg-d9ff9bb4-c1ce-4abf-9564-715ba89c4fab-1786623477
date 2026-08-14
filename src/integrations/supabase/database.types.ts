@@ -955,6 +955,7 @@ export type Database = {
           age_category: string | null
           created_at: string
           gender: string | null
+          head_coach_id: string | null
           id: string
           is_archived: boolean
           name: string
@@ -967,6 +968,7 @@ export type Database = {
           age_category?: string | null
           created_at?: string
           gender?: string | null
+          head_coach_id?: string | null
           id?: string
           is_archived?: boolean
           name: string
@@ -979,6 +981,7 @@ export type Database = {
           age_category?: string | null
           created_at?: string
           gender?: string | null
+          head_coach_id?: string | null
           id?: string
           is_archived?: boolean
           name?: string
@@ -988,6 +991,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "teams_head_coach_id_fkey"
+            columns: ["head_coach_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "teams_season_id_fkey"
             columns: ["season_id"]

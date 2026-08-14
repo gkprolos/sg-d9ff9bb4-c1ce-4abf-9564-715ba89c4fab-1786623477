@@ -237,7 +237,7 @@ export default function AttendancePage() {
           start_time: newActivityForm.start_time,
           end_time: newActivityForm.end_time,
           activity_type_id: 1, // Default to training
-          status: "draft",
+          is_completed: false,
         }])
         .select()
         .single();
@@ -530,7 +530,7 @@ export default function AttendancePage() {
                         </TableCell>
                         <TableCell>
                           <Input
-                            ref={el => inputRefs.current[index] = el}
+                            ref={el => { inputRefs.current[index] = el; }}
                             type="text"
                             inputMode="numeric"
                             className="w-16 text-center"

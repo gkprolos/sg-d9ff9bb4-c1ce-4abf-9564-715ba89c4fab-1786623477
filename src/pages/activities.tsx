@@ -15,7 +15,7 @@ interface Activity {
   activity_date: string;
   start_time: string;
   end_time: string;
-  status: string;
+  is_completed: boolean;
   team: { name: string; short_name: string | null };
   venue: { name: string } | null;
   activity_type: { name: string };
@@ -43,7 +43,7 @@ export default function ActivitiesPage() {
           activity_date,
           start_time,
           end_time,
-          status,
+          is_completed,
           team:teams(name, short_name),
           venue:venues(name),
           activity_type:activity_types(name)
@@ -131,8 +131,8 @@ export default function ActivitiesPage() {
                           <TableCell>{activity.end_time}</TableCell>
                           <TableCell>{activity.venue?.name || "N/A"}</TableCell>
                           <TableCell>
-                            <Badge variant={activity.status === "completed" ? "default" : "secondary"}>
-                              {activity.status === "draft" ? "Osnutek" : "Zaključeno"}
+                            <Badge variant={activity.is_completed ? "default" : "secondary"}>
+                              {activity.is_completed ? "Zaključeno" : "Osnutek"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
