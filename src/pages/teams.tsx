@@ -62,11 +62,17 @@ export default function TeamsPage() {
     // If team gender is "Mešano" or empty, show all
     if (!selectedTeam?.gender) return true;
     
-    const teamGender = selectedTeam.gender.toUpperCase();
-    if (teamGender === "MEŠANO" || teamGender === "MIXED") return true;
+    const teamGender = selectedTeam.gender.toUpperCase().trim();
     
-    // Player gender is derived from first name patterns (or could be a DB field)
-    // For now, show all if team is M or Ž (would need gender field in players table)
+    // If team is "Mešano" or "Mixed", show all players
+    if (teamGender === "MEŠANO" || teamGender === "MIXED" || teamGender === "") return true;
+    
+    // If team is M or Ž, filter by player gender
+    if (teamGender === "M" || teamGender === "Ž") {
+      return player.gender?.toUpperCase() === teamGender;
+    }
+    
+    // For any other team gender value, show all players
     return true;
   });
 
@@ -100,7 +106,7 @@ export default function TeamsPage() {
     try {
       const { data, error } = await supabase
         .from("players")
-        .select("id, first_name, last_name, date_of_birth")
+        .select("id, first_name, last_name, date_of_birth, gender")
         .eq("is_active", true)
         .order("last_name", { ascending: true });
 

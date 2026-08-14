@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -20,6 +21,7 @@ interface Player {
   first_name: string;
   last_name: string;
   date_of_birth: string | null;
+  gender: string | null;
   address: string | null;
   city: string | null;
   phone: string | null;
@@ -40,6 +42,7 @@ export default function PlayersPage() {
     first_name: "",
     last_name: "",
     date_of_birth: "",
+    gender: "",
     address: "",
     city: "",
     phone: "",
@@ -86,6 +89,7 @@ export default function PlayersPage() {
       first_name: "",
       last_name: "",
       date_of_birth: "",
+      gender: "",
       address: "",
       city: "",
       phone: "",
@@ -103,6 +107,7 @@ export default function PlayersPage() {
       first_name: player.first_name,
       last_name: player.last_name,
       date_of_birth: player.date_of_birth || "",
+      gender: player.gender || "",
       address: player.address || "",
       city: player.city || "",
       phone: player.phone || "",
@@ -133,6 +138,7 @@ export default function PlayersPage() {
         first_name: formData.first_name,
         last_name: formData.last_name,
         date_of_birth: formData.date_of_birth || null,
+        gender: formData.gender || null,
         address: formData.address || null,
         city: formData.city || null,
         phone: formData.phone || null,
@@ -355,6 +361,22 @@ export default function PlayersPage() {
                       value={formData.date_of_birth}
                       onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Spol</Label>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                    >
+                      <SelectTrigger id="gender">
+                        <SelectValue placeholder="Izberi spol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">M (Moški)</SelectItem>
+                        <SelectItem value="Ž">Ž (Ženski)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
