@@ -175,19 +175,18 @@ export default function AttendancePage() {
     }
   }
 
-  async function loadPlayersForActivity() {
+  async function loadPlayersForActivity(activityId?: string) {
     try {
       setLoading(true);
       
-      // Get team_id from selected activity
-      const activity = activities.find(a => a.id === selectedActivity);
-      if (!activity) return;
+      const targetActivityId = activityId || selectedActivity;
+      if (!targetActivityId) return;
 
       // Get activity details to find team_id
       const { data: activityData, error: actError } = await supabase
         .from("activities")
         .select("team_id")
-        .eq("id", selectedActivity)
+        .eq("id", targetActivityId)
         .single();
 
       if (actError) throw actError;
@@ -207,7 +206,7 @@ export default function AttendancePage() {
       const { data: attendanceData, error: attendanceError } = await supabase
         .from("attendance_records")
         .select("player_id, status")
-        .eq("activity_id", selectedActivity);
+        .eq("activity_id", targetActivityId);
 
       if (attendanceError) throw attendanceError;
 
@@ -326,12 +325,7 @@ export default function AttendancePage() {
       await loadActivitiesForDate();
       
       // Explicitly load players for the newly created/opened activity
-      // Wait a bit for state to settle before loading players
-      setTimeout(() => {
-        if (activityId === selectedActivity) {
-          loadPlayersForActivity();
-        }
-      }, 100);
+      await loadPlayersForActivity(activityId);
     } catch (error: any) {
       console.error("Napaka pri ustvarjanju aktivnosti:", error);
       // Error toast already shown above
