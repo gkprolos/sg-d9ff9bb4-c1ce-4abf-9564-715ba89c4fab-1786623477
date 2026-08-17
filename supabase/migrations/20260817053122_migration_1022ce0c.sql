@@ -1,29 +1,19 @@
--- Migration: Enable coaches to manage players and team assignments
--- Date: 2026-08-14
--- Description: Allow coaches to INSERT/UPDATE players and manage team_players
-
--- ============================================================================
--- PLAYERS TABLE - RLS POLICIES FOR COACHES
--- ============================================================================
-
--- Drop existing policies if any
+-- Apply RLS policies for coach player management
+-- PLAYERS policies
 DROP POLICY IF EXISTS "players_insert_coaches" ON public.players;
 DROP POLICY IF EXISTS "players_update_coaches" ON public.players;
 
--- Coaches can INSERT new players
 CREATE POLICY "players_insert_coaches"
 ON public.players
 FOR INSERT
 TO authenticated
 WITH CHECK (
-  -- User must have active profile
   EXISTS (
     SELECT 1 FROM profiles
     WHERE id = auth.uid()
       AND is_active = true
   )
   AND
-  -- User must have coach or admin role
   EXISTS (
     SELECT 1 FROM user_roles
     WHERE user_id = auth.uid()
@@ -31,20 +21,17 @@ WITH CHECK (
   )
 );
 
--- Coaches can UPDATE existing players
 CREATE POLICY "players_update_coaches"
 ON public.players
 FOR UPDATE
 TO authenticated
 USING (
-  -- User must have active profile
   EXISTS (
     SELECT 1 FROM profiles
     WHERE id = auth.uid()
       AND is_active = true
   )
   AND
-  -- User must have coach or admin role
   EXISTS (
     SELECT 1 FROM user_roles
     WHERE user_id = auth.uid()
@@ -52,7 +39,6 @@ USING (
   )
 )
 WITH CHECK (
-  -- Same check for the new values
   EXISTS (
     SELECT 1 FROM profiles
     WHERE id = auth.uid()
@@ -66,38 +52,27 @@ WITH CHECK (
   )
 );
 
-COMMENT ON POLICY "players_insert_coaches" ON public.players IS 'Active coaches and admins can add new players';
-COMMENT ON POLICY "players_update_coaches" ON public.players IS 'Active coaches and admins can update player information';
-
--- ============================================================================
--- TEAM_PLAYERS TABLE - RLS POLICIES FOR COACHES
--- ============================================================================
-
--- Drop existing policies if any
+-- TEAM_PLAYERS policies
 DROP POLICY IF EXISTS "team_players_insert_coaches" ON public.team_players;
 DROP POLICY IF EXISTS "team_players_delete_coaches" ON public.team_players;
 
--- Coaches can INSERT (add players to teams)
 CREATE POLICY "team_players_insert_coaches"
 ON public.team_players
 FOR INSERT
 TO authenticated
 WITH CHECK (
-  -- User must have active profile
   EXISTS (
     SELECT 1 FROM profiles
     WHERE id = auth.uid()
       AND is_active = true
   )
   AND
-  -- User must have coach or admin role
   EXISTS (
     SELECT 1 FROM user_roles
     WHERE user_id = auth.uid()
       AND role IN ('coach', 'admin')
   )
   AND
-  -- Team must not be archived
   EXISTS (
     SELECT 1 FROM teams
     WHERE id = team_id
@@ -105,20 +80,17 @@ WITH CHECK (
   )
 );
 
--- Coaches can DELETE (remove players from teams)
 CREATE POLICY "team_players_delete_coaches"
 ON public.team_players
 FOR DELETE
 TO authenticated
 USING (
-  -- User must have active profile
   EXISTS (
     SELECT 1 FROM profiles
     WHERE id = auth.uid()
       AND is_active = true
   )
   AND
-  -- User must have coach or admin role
   EXISTS (
     SELECT 1 FROM user_roles
     WHERE user_id = auth.uid()
@@ -126,5 +98,4 @@ USING (
   )
 );
 
-COMMENT ON POLICY "team_players_insert_coaches" ON public.team_players IS 'Active coaches and admins can add players to teams';
-COMMENT ON POLICY "team_players_delete_coaches" ON public.team_players IS 'Active coaches and admins can remove players from teams';
+SELECT 'RLS policies for coach player management created successfully' as status;
