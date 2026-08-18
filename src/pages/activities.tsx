@@ -84,6 +84,7 @@ export default function ActivitiesPage() {
     loadSeasons();
     loadTeams();
     loadCoaches();
+    loadVenues();
   }, []);
 
   useEffect(() => {
@@ -281,27 +282,40 @@ export default function ActivitiesPage() {
     return ACTIVITY_TYPE_NAMES[typeId] || "N/A";
   }
 
-  function handleEditClick(activity: Activity) {
-    setSelectedActivity(activity);
-    setEditForm({
-      activity_date: activity.activity_date,
-      start_time: activity.start_time,
-      end_time: activity.end_time,
-      venue_id: "",
-    });
-    
-    supabase
-      .from("activities")
-      .select("venue_id")
-      .eq("id", activity.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setEditForm(prev => ({ ...prev, venue_id: data.venue_id || "" }));
-        }
+  async function handleEditClick(activity: Activity) {
+    try {
+      setLoading(true);
+      setSelectedActivity(activity);
+
+      // Get the full activity data including venue_id
+      const { data, error } = await supabase
+        .from("activities")
+        .select("venue_id")
+        .eq("id", activity.id)
+        .single();
+
+      if (error) throw error;
+
+      // Set the form with the loaded venue_id
+      setEditForm({
+        activity_date: activity.activity_date,
+        start_time: activity.start_time,
+        end_time: activity.end_time,
+        venue_id: data?.venue_id || "",
       });
-    
-    setEditDialogOpen(true);
+
+      // Now open the dialog with all data loaded
+      setEditDialogOpen(true);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju podatkov aktivnosti:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče naložiti podatkov aktivnosti",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleUpdateActivity() {
