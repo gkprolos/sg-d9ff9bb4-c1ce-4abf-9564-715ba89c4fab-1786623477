@@ -203,7 +203,7 @@ export default function DashboardPage() {
           start_time,
           end_time,
           activity_type_id,
-          activity_coaches(coach_id, role, hours_worked, amount_paid)
+          activity_coaches(coach_id, role, hours_worked, mileage_km, total_amount)
         `)
         .gte("activity_date", monthStart)
         .lte("activity_date", monthEnd);
@@ -228,7 +228,7 @@ export default function DashboardPage() {
       const { data: monthlyActivities } = await monthlyQuery;
 
       let totalHours = 0;
-      const totalKilometers = 0;
+      let totalKilometers = 0;
       let totalAmount = 0;
 
       (monthlyActivities || []).forEach((activity) => {
@@ -238,9 +238,10 @@ export default function DashboardPage() {
             const isAdminView = isAdmin;
 
             if (isMyActivity || isAdminView) {
-              // Use hours_worked from activity_coaches if available
+              // Use hours_worked and total_amount from activity_coaches
               totalHours += ac.hours_worked || 0;
-              totalAmount += ac.amount_paid || 0;
+              totalKilometers += ac.mileage_km || 0;
+              totalAmount += ac.total_amount || 0;
             }
           });
         }
@@ -253,7 +254,7 @@ export default function DashboardPage() {
         totalActivities: totalActivitiesCount || 0,
         monthlyActivities: monthlyActivities?.length || 0,
         monthlyHours: Math.round(totalHours * 10) / 10,
-        monthlyKilometers: 0, // Will calculate separately from a dedicated kilometers table/field
+        monthlyKilometers: Math.round(totalKilometers * 10) / 10,
         monthlyAmount: Math.round(totalAmount * 100) / 100,
       });
     } catch (error: any) {
