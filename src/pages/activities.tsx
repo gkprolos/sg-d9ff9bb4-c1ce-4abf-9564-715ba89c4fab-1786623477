@@ -134,10 +134,26 @@ export default function ActivitiesPage() {
 
   async function loadCoaches() {
     try {
+      // Get coach user IDs from user_roles
+      const { data: userRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "coach");
+
+      if (rolesError) throw rolesError;
+
+      const coachIds = (userRoles || []).map(ur => ur.user_id);
+
+      if (coachIds.length === 0) {
+        setCoaches([]);
+        return;
+      }
+
+      // Get profiles for those coaches
       const { data, error } = await supabase
         .from("profiles")
         .select("id, full_name")
-        .eq("role", "coach")
+        .in("id", coachIds)
         .order("full_name", { ascending: true });
 
       if (error) throw error;
@@ -147,20 +163,6 @@ export default function ActivitiesPage() {
       console.error("Error loading coaches:", error);
     }
   }
-
-  useEffect(() => {
-    async function checkAdmin() {
-      if (!user) return;
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-      setIsAdmin(!!data);
-    }
-    checkAdmin();
-  }, [user]);
 
   async function loadVenues() {
     try {
@@ -194,7 +196,6 @@ export default function ActivitiesPage() {
           end_time,
           activity_type_id,
           is_home_game,
-          location,
           notes,
           season_id,
           team_id,
