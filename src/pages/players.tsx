@@ -582,198 +582,196 @@ export default function PlayersPage() {
           </Card>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-h-[90vh]">
+            <DialogContent className="max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {selectedPlayer ? "Uredi igralca" : "Dodaj igralca"}
                 </DialogTitle>
               </DialogHeader>
 
-              <ScrollArea className="max-h-[60vh] pr-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="first_name">
-                        Ime <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="first_name"
-                        value={formData.first_name}
-                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="last_name">
-                        Priimek <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="last_name"
-                        value={formData.last_name}
-                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="date_of_birth">Datum rojstva</Label>
+                    <Label htmlFor="first_name">
+                      Ime <span className="text-destructive">*</span>
+                    </Label>
                     <Input
-                      id="date_of_birth"
+                      id="first_name"
+                      value={formData.first_name}
+                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last_name">
+                      Priimek <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="last_name"
+                      value={formData.last_name}
+                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date_of_birth">Datum rojstva</Label>
+                  <Input
+                    id="date_of_birth"
+                    type="date"
+                    value={formData.date_of_birth}
+                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Spol</Label>
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                  >
+                    <SelectTrigger id="gender">
+                      <SelectValue placeholder="Izberi spol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M">M (Moški)</SelectItem>
+                      <SelectItem value="F">F (Ženski)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">Naslov</Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="city">Kraj</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefon</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="joined_date">Datum vključitve</Label>
+                    <Input
+                      id="joined_date"
                       type="date"
-                      value={formData.date_of_birth}
-                      onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                      value={formData.joined_date}
+                      onChange={(e) => setFormData({ ...formData, joined_date: e.target.value })}
                     />
                   </div>
-
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Spol</Label>
-                    <Select
-                      value={formData.gender}
-                      onValueChange={(value) => setFormData({ ...formData, gender: value })}
-                    >
-                      <SelectTrigger id="gender">
-                        <SelectValue placeholder="Izberi spol" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="M">M (Moški)</SelectItem>
-                        <SelectItem value="F">F (Ženski)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Naslov</Label>
+                    <Label htmlFor="left_date">Datum izstopa</Label>
                     <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      id="left_date"
+                      type="date"
+                      value={formData.left_date}
+                      onChange={(e) => setFormData({ ...formData, left_date: e.target.value })}
                     />
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="city">Kraj</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    />
-                  </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is_active">Aktiven igralec</Label>
+                  <Switch
+                    id="is_active"
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, is_active: checked })
+                    }
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefon</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Opombe</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={3}
+                  />
+                </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="joined_date">Datum vključitve</Label>
-                      <Input
-                        id="joined_date"
-                        type="date"
-                        value={formData.joined_date}
-                        onChange={(e) => setFormData({ ...formData, joined_date: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="left_date">Datum izstopa</Label>
-                      <Input
-                        id="left_date"
-                        type="date"
-                        value={formData.left_date}
-                        onChange={(e) => setFormData({ ...formData, left_date: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="is_active">Aktiven igralec</Label>
-                    <Switch
-                      id="is_active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, is_active: checked })
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Opombe</Label>
-                    <Textarea
-                      id="notes"
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      rows={3}
-                    />
-                  </div>
-
-                  <DialogFooter className="mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setDialogOpen(false)}
-                      disabled={loading}
-                    >
-                      Prekliči
-                    </Button>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? "Shranjujem..." : selectedPlayer ? "Posodobi" : "Dodaj"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </ScrollArea>
+                <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                    disabled={loading}
+                  >
+                    Prekliči
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Shranjujem..." : selectedPlayer ? "Posodobi" : "Dodaj"}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
 
           <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-            <DialogContent className="max-w-4xl max-h-[90vh]">
+            <DialogContent className="max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Uvoz igralcev iz Excel</DialogTitle>
               </DialogHeader>
 
-              <ScrollArea className="max-h-[70vh] pr-4">
-                <div className="space-y-4">
-                  {!importData ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label>1. Prenesite vzorčno predlogo</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleDownloadTemplate}
-                          className="w-full"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Prenesi vzorčno predlogo (XLSX)
-                        </Button>
-                        <p className="text-sm text-muted-foreground">
-                          Odprite predlogo v Excelu, izpolnite podatke in shranite.
-                        </p>
-                      </div>
+              <div className="space-y-4">
+                {!importData ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>1. Prenesite vzorčno predlogo</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleDownloadTemplate}
+                        className="w-full"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Prenesi vzorčno predlogo (XLSX)
+                      </Button>
+                      <p className="text-sm text-muted-foreground">
+                        Odprite predlogo v Excelu, izpolnite podatke in shranite.
+                      </p>
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label>2. Naložite datoteko</Label>
-                        <Input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".xlsx,.xls,.csv"
-                          onChange={handleFileSelect}
-                        />
-                        <p className="text-sm text-muted-foreground">
-                          Podprte so XLSX in CSV datoteke. Obvezna polja: Ime, Priimek
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Predogled podatkov ({importData.rows.length} vrstic)</Label>
-                        <div className="border rounded-lg overflow-hidden">
+                    <div className="space-y-2">
+                      <Label>2. Naložite datoteko</Label>
+                      <Input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        onChange={handleFileSelect}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Podprte so XLSX in CSV datoteke. Obvezna polja: Ime, Priimek
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Predogled podatkov ({importData.rows.length} vrstic)</Label>
+                      <div className="border rounded-lg overflow-hidden">
+                        <ScrollArea className="h-[200px]">
                           <Table>
                             <TableHeader>
                               <TableRow>
@@ -794,38 +792,38 @@ export default function PlayersPage() {
                               ))}
                             </TableBody>
                           </Table>
-                        </div>
+                        </ScrollArea>
                       </div>
+                    </div>
 
-                      {importErrors.length > 0 && (
-                        <div className="space-y-2">
-                          <Label className="text-destructive">
-                            Validacijske napake ({importErrors.length})
-                          </Label>
-                          <ScrollArea className="h-32 border rounded-lg p-2">
-                            {importErrors.map((error, index) => (
-                              <div key={index} className="text-sm text-destructive mb-1">
-                                Vrstica {error.row}, {error.field}: {error.message}
-                              </div>
-                            ))}
-                          </ScrollArea>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Pripravljen na uvoz</p>
-                          <p className="text-xs text-muted-foreground">
-                            {importData.rows.length} igralcev bo dodanih
-                          </p>
-                        </div>
+                    {importErrors.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-destructive">
+                          Validacijske napake ({importErrors.length})
+                        </Label>
+                        <ScrollArea className="h-32 border rounded-lg p-2">
+                          {importErrors.map((error, index) => (
+                            <div key={index} className="text-sm text-destructive mb-1">
+                              Vrstica {error.row}, {error.field}: {error.message}
+                            </div>
+                          ))}
+                        </ScrollArea>
                       </div>
-                    </>
-                  )}
-                </div>
-              </ScrollArea>
+                    )}
 
-              <DialogFooter>
+                    <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Pripravljen na uvoz</p>
+                        <p className="text-xs text-muted-foreground">
+                          {importData.rows.length} igralcev bo dodanih
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"

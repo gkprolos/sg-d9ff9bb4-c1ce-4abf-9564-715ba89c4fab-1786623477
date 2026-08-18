@@ -650,7 +650,7 @@ export default function ActivitiesPage() {
           </Card>
 
           <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-            <DialogContent>
+            <DialogContent className="max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Uredi aktivnost</DialogTitle>
               </DialogHeader>
@@ -709,7 +709,7 @@ export default function ActivitiesPage() {
                 </div>
               </div>
 
-              <DialogFooter>
+              <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"

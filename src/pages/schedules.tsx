@@ -417,129 +417,127 @@ export default function SchedulesPage() {
           </Card>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-h-[90vh]">
+            <DialogContent className="max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {selectedSchedule ? "Uredi urnik" : "Dodaj urnik"}
                 </DialogTitle>
               </DialogHeader>
 
-              <ScrollArea className="max-h-[60vh] pr-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="team_id">
+                    Selekcija <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={formData.team_id}
+                    onValueChange={(value) => setFormData({ ...formData, team_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Izberite selekcijo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="venue_id">
+                    Dvorana <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={formData.venue_id}
+                    onValueChange={(value) => setFormData({ ...formData, venue_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Izberite dvorano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {venues.map((venue) => (
+                        <SelectItem key={venue.id} value={venue.id}>
+                          {venue.name} ({venue.city})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="day_of_week">
+                    Dan <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={formData.day_of_week}
+                    onValueChange={(value) => setFormData({ ...formData, day_of_week: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Izberite dan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAYS.map((day) => (
+                        <SelectItem key={day.value} value={day.value}>
+                          {day.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="team_id">
-                      Selekcija <span className="text-destructive">*</span>
-                    </Label>
-                    <Select
-                      value={formData.team_id}
-                      onValueChange={(value) => setFormData({ ...formData, team_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Izberite selekcijo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teams.map((team) => (
-                          <SelectItem key={team.id} value={team.id}>
-                            {team.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="venue_id">
-                      Dvorana <span className="text-destructive">*</span>
-                    </Label>
-                    <Select
-                      value={formData.venue_id}
-                      onValueChange={(value) => setFormData({ ...formData, venue_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Izberite dvorano" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {venues.map((venue) => (
-                          <SelectItem key={venue.id} value={venue.id}>
-                            {venue.name} ({venue.city})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="day_of_week">
-                      Dan <span className="text-destructive">*</span>
-                    </Label>
-                    <Select
-                      value={formData.day_of_week}
-                      onValueChange={(value) => setFormData({ ...formData, day_of_week: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Izberite dan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS.map((day) => (
-                          <SelectItem key={day.value} value={day.value}>
-                            {day.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="start_time">Začetek *</Label>
-                      <Input
-                        id="start_time"
-                        type="time"
-                        step="900"
-                        value={formData.start_time}
-                        onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="end_time">Konec *</Label>
-                      <Input
-                        id="end_time"
-                        type="time"
-                        step="900"
-                        value={formData.end_time}
-                        onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="is_active">Aktiven urnik</Label>
-                    <Switch
-                      id="is_active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, is_active: checked })
-                      }
+                    <Label htmlFor="start_time">Začetek *</Label>
+                    <Input
+                      id="start_time"
+                      type="time"
+                      step="900"
+                      value={formData.start_time}
+                      onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                      required
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="end_time">Konec *</Label>
+                    <Input
+                      id="end_time"
+                      type="time"
+                      step="900"
+                      value={formData.end_time}
+                      onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
 
-                  <DialogFooter className="mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setDialogOpen(false)}
-                      disabled={loading}
-                    >
-                      Prekliči
-                    </Button>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? "Shranjujem..." : selectedSchedule ? "Posodobi" : "Dodaj"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </ScrollArea>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is_active">Aktiven urnik</Label>
+                  <Switch
+                    id="is_active"
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, is_active: checked })
+                    }
+                  />
+                </div>
+
+                <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                    disabled={loading}
+                  >
+                    Prekliči
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Shranjujem..." : selectedSchedule ? "Posodobi" : "Dodaj"}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
 

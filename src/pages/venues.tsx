@@ -334,87 +334,85 @@ export default function VenuesPage() {
           </Card>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-h-[90vh]">
+            <DialogContent className="max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {selectedVenue ? "Uredi dvorano" : "Dodaj dvorano"}
                 </DialogTitle>
               </DialogHeader>
 
-              <ScrollArea className="max-h-[60vh] pr-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">
-                      Naziv <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="name"
-                      placeholder="npr. Športna dvorana Poden"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                  </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">
+                    Naziv <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    placeholder="npr. Športna dvorana Poden"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="city">
-                      Kraj <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="city"
-                      placeholder="npr. Škofja Loka"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      required
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city">
+                    Kraj <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="city"
+                    placeholder="npr. Škofja Loka"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    required
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Naslov</Label>
-                    <Input
-                      id="address"
-                      placeholder="npr. Podlubnik 1a"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Naslov</Label>
+                  <Input
+                    id="address"
+                    placeholder="npr. Podlubnik 1a"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="room_designation">Oznaka prostora</Label>
-                    <Input
-                      id="room_designation"
-                      placeholder="npr. Mala dvorana"
-                      value={formData.room_designation}
-                      onChange={(e) => setFormData({ ...formData, room_designation: e.target.value })}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="room_designation">Oznaka prostora</Label>
+                  <Input
+                    id="room_designation"
+                    placeholder="npr. Mala dvorana"
+                    value={formData.room_designation}
+                    onChange={(e) => setFormData({ ...formData, room_designation: e.target.value })}
+                  />
+                </div>
 
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="is_active">Aktivna dvorana</Label>
-                    <Switch
-                      id="is_active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, is_active: checked })
-                      }
-                    />
-                  </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is_active">Aktivna dvorana</Label>
+                  <Switch
+                    id="is_active"
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, is_active: checked })
+                    }
+                  />
+                </div>
 
-                  <DialogFooter className="mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setDialogOpen(false)}
-                      disabled={loading}
-                    >
-                      Prekliči
-                    </Button>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? "Shranjujem..." : selectedVenue ? "Posodobi" : "Dodaj"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </ScrollArea>
+                <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                    disabled={loading}
+                  >
+                    Prekliči
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Shranjujem..." : selectedVenue ? "Posodobi" : "Dodaj"}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
 

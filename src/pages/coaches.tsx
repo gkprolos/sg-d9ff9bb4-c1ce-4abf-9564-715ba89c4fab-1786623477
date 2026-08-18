@@ -371,132 +371,130 @@ export default function CoachesPage() {
           </Card>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-h-[90vh]">
+            <DialogContent className="max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {selectedCoach ? "Uredi trenerja" : "Dodaj trenerja"}
                 </DialogTitle>
               </DialogHeader>
 
-              <ScrollArea className="max-h-[60vh] pr-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="first_name">
-                        Ime <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="first_name"
-                        placeholder="Janez"
-                        value={formData.first_name}
-                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="last_name">
-                        Priimek <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="last_name"
-                        placeholder="Novak"
-                        value={formData.last_name}
-                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">
-                      E-pošta <span className="text-destructive">*</span>
+                    <Label htmlFor="first_name">
+                      Ime <span className="text-destructive">*</span>
                     </Label>
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="ime.priimek@example.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      id="first_name"
+                      placeholder="Janez"
+                      value={formData.first_name}
+                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                       required
-                      autoComplete="off"
                     />
                   </div>
-
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Telefon</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="+386 ..."
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password">
-                      {selectedCoach ? "Novo geslo (opcijsko)" : "Geslo"} 
-                      {!selectedCoach && <span className="text-destructive"> *</span>}
+                    <Label htmlFor="last_name">
+                      Priimek <span className="text-destructive">*</span>
                     </Label>
                     <Input
-                      id="password"
-                      type="password"
-                      placeholder="Minimalno 6 znakov"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required={!selectedCoach}
-                      minLength={6}
-                      autoComplete="new-password"
+                      id="last_name"
+                      placeholder="Novak"
+                      value={formData.last_name}
+                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                      required
                     />
-                    {selectedCoach && (
-                      <p className="text-xs text-muted-foreground">
-                        Pustite prazno, če ne želite spreminjati gesla. Za spreminjanje gesla trenutno uporabite Supabase Dashboard.
-                      </p>
-                    )}
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="hourly_rate">Vrednost ure (€)</Label>
-                      <Input
-                        id="hourly_rate"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="npr. 15.00"
-                        value={formData.hourly_rate}
-                        onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="km_rate">Vrednost kilometra (€)</Label>
-                      <Input
-                        id="km_rate"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="npr. 0.37"
-                        value={formData.km_rate}
-                        onChange={(e) => setFormData({ ...formData, km_rate: e.target.value })}
-                      />
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">
+                    E-pošta <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="ime.priimek@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefon</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+386 ..."
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">
+                    {selectedCoach ? "Novo geslo (opcijsko)" : "Geslo"} 
+                    {!selectedCoach && <span className="text-destructive"> *</span>}
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Minimalno 6 znakov"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required={!selectedCoach}
+                    minLength={6}
+                    autoComplete="new-password"
+                  />
+                  {selectedCoach && (
+                    <p className="text-xs text-muted-foreground">
+                      Pustite prazno, če ne želite spreminjati gesla. Za spreminjanje gesla trenutno uporabite Supabase Dashboard.
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hourly_rate">Vrednost ure (€)</Label>
+                    <Input
+                      id="hourly_rate"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="npr. 15.00"
+                      value={formData.hourly_rate}
+                      onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
+                    />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="km_rate">Vrednost kilometra (€)</Label>
+                    <Input
+                      id="km_rate"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="npr. 0.37"
+                      value={formData.km_rate}
+                      onChange={(e) => setFormData({ ...formData, km_rate: e.target.value })}
+                    />
+                  </div>
+                </div>
 
-                  <DialogFooter className="mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setDialogOpen(false)}
-                      disabled={loading}
-                    >
-                      Prekliči
-                    </Button>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? "Shranjujem..." : selectedCoach ? "Posodobi" : "Dodaj"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </ScrollArea>
+                <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                    disabled={loading}
+                  >
+                    Prekliči
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Shranjujem..." : selectedCoach ? "Posodobi" : "Dodaj"}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
 
