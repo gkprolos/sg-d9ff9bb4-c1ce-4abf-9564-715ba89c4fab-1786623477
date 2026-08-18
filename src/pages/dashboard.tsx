@@ -160,36 +160,103 @@ export default function DashboardPage() {
 
   async function loadStats() {
     try {
-      setLoading(true);
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), parseInt(selectedMonth.split('-')[1]) - 1, 1)
+        .toISOString().split('T')[0];
+      const monthEnd = new Date(now.getFullYear(), parseInt(selectedMonth.split('-')[1]), 0)
+        .toISOString().split('T')[0];
 
-      // Active players
-      const { count: playersCount } = await supabase
+      // Get active players count
+      let playersQuery = supabase
         .from("players")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("is_active", true);
 
-      // Active teams
-      const { count: teamsCount } = await supabase
-        .from("teams")
-        .select("*", { count: "exact", head: true })
-        .eq("is_archived", false);
+      // For coaches, filter by their team's players
+      if (!isAdmin && user?.id) {
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
 
-      // Active venues
-      const { count: venuesCount } = await supabase
-        .from("venues")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true);
+        const teamIds = (coachTeams || []).map(ct => ct.team_id);
+        
+        if (teamIds.length > 0) {
+          const { data: teamPlayers } = await supabase
+            .from("team_players")
+            .select("player_id")
+            .in("team_id", teamIds);
 
-      // Total activities
-      let activitiesQuery = supabase
-        .from("activities")
-        .select("*", { count: "exact", head: true });
-      
-      if (selectedSeason) {
-        activitiesQuery = activitiesQuery.eq("season_id", selectedSeason);
+          const playerIds = (teamPlayers || []).map(tp => tp.player_id);
+          
+          if (playerIds.length > 0) {
+            playersQuery = playersQuery.in("id", playerIds);
+          } else {
+            playersQuery = playersQuery.eq("id", "00000000-0000-0000-0000-000000000000"); // No players
+          }
+        } else {
+          playersQuery = playersQuery.eq("id", "00000000-0000-0000-0000-000000000000"); // No players
+        }
       }
 
-      const { count: totalActivitiesCount } = await activitiesQuery;
+      const { count: playersCount } = await playersQuery;
+
+      // Get active teams count
+      let teamsQuery = supabase
+        .from("teams")
+        .select("id", { count: "exact", head: true })
+        .eq("is_archived", false);
+
+      // For coaches, filter by their assigned teams
+      if (!isAdmin && user?.id) {
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
+
+        const teamIds = (coachTeams || []).map(ct => ct.team_id);
+        
+        if (teamIds.length > 0) {
+          teamsQuery = teamsQuery.in("id", teamIds);
+        } else {
+          teamsQuery = teamsQuery.eq("id", "00000000-0000-0000-0000-000000000000"); // No teams
+        }
+      }
+
+      const { count: teamsCount } = await teamsQuery;
+
+      // Get active venues count (same for all users)
+      const { count: venuesCount } = await supabase
+        .from("venues")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true);
+
+      // Get total activities count
+      let totalActivitiesQuery = supabase
+        .from("activities")
+        .select("id", { count: "exact", head: true });
+
+      if (selectedSeason) {
+        totalActivitiesQuery = totalActivitiesQuery.eq("season_id", selectedSeason);
+      }
+
+      if (!isAdmin && user?.id) {
+        const { data: coachActivities } = await supabase
+          .from("activity_coaches")
+          .select("activity_id")
+          .eq("coach_id", user.id);
+        
+        const activityIds = (coachActivities || []).map(ca => ca.activity_id);
+        if (activityIds.length > 0) {
+          totalActivitiesQuery = totalActivitiesQuery.in("id", activityIds);
+        } else {
+          totalActivitiesQuery = totalActivitiesQuery.eq("id", "00000000-0000-0000-0000-000000000000");
+        }
+      }
+
+      const { count: totalActivitiesCount } = await totalActivitiesQuery;
 
       // Monthly activities and stats
       const [year, month] = selectedMonth.split("-");
@@ -271,6 +338,64 @@ export default function DashboardPage() {
 
   async function loadPlayerAttendance() {
     try {
+      setLoading(true);
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = parseInt(selectedMonth.split('-')[1]);
+      const monthStart = new Date(year, month - 1, 1).toISOString().split('T')[0];
+      const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
+
+      // Get all players
+      let playersQuery = supabase
+        .from("players")
+        .select(`
+          id,
+          first_name,
+          last_name,
+          team_players(
+            team_id,
+            teams(id, name)
+          )
+        `)
+        .eq("is_active", true);
+
+      // For coaches, filter by their team's players
+      if (!isAdmin && user?.id) {
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
+
+        const teamIds = (coachTeams || []).map(ct => ct.team_id);
+        
+        if (teamIds.length > 0) {
+          const { data: teamPlayers } = await supabase
+            .from("team_players")
+            .select("player_id")
+            .in("team_id", teamIds);
+
+          const playerIds = (teamPlayers || []).map(tp => tp.player_id);
+          
+          if (playerIds.length > 0) {
+            playersQuery = playersQuery.in("id", playerIds);
+          } else {
+            setPlayerAttendance([]);
+            setLoading(false);
+            return;
+          }
+        } else {
+          setPlayerAttendance([]);
+          setLoading(false);
+          return;
+        }
+      }
+
+      const { data: playersData, error: playersError } = await playersQuery;
+
+      if (playersError) throw playersError;
+
       const [year, month] = selectedMonth.split("-");
       const monthStart = `${year}-${month}-01`;
       const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
@@ -374,6 +499,8 @@ export default function DashboardPage() {
       setPlayerAttendance(playerList);
     } catch (error: any) {
       console.error("Error loading player attendance:", error);
+    } finally {
+      setLoading(false);
     }
   }
 

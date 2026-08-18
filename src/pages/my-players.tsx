@@ -89,7 +89,35 @@ export default function MyPlayersPage() {
   async function loadPlayers() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+
+      // First, get coach's teams if not admin
+      let playerIds: string[] = [];
+      if (user?.id && userRole === "coach") {
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
+
+        const teamIds = (coachTeams || []).map(ct => ct.team_id);
+        
+        if (teamIds.length > 0) {
+          const { data: teamPlayers } = await supabase
+            .from("team_players")
+            .select("player_id")
+            .in("team_id", teamIds);
+
+          playerIds = (teamPlayers || []).map(tp => tp.player_id);
+        }
+
+        if (playerIds.length === 0) {
+          setPlayers([]);
+          setLoading(false);
+          return;
+        }
+      }
+
+      let playersQuery = supabase
         .from("players")
         .select(`
           id,
@@ -119,6 +147,13 @@ export default function MyPlayersPage() {
         .eq("is_active", true)
         .order("last_name", { ascending: true })
         .order("first_name", { ascending: true });
+
+      // Filter by coach's players
+      if (userRole === "coach" && playerIds.length > 0) {
+        playersQuery = playersQuery.in("id", playerIds);
+      }
+
+      const { data, error } = await playersQuery;
 
       if (error) {
         console.error("Napaka pri nalaganju igralcev:", error);
@@ -150,6 +185,47 @@ export default function MyPlayersPage() {
       setTeams(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju selekcij:", error);
+    }
+  }
+
+  async function loadTeamsForPlayer() {
+    try {
+      let teamsQuery = supabase
+        .from("teams")
+        .select("id, name")
+        .eq("is_archived", false)
+        .order("name", { ascending: true });
+
+      // For coaches, filter by their assigned teams
+      if (userRole === "coach" && user?.id) {
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
+
+        const teamIds = (coachTeams || []).map(ct => ct.team_id);
+        
+        if (teamIds.length > 0) {
+          teamsQuery = teamsQuery.in("id", teamIds);
+        } else {
+          setAvailableTeams([]);
+          return;
+        }
+      }
+
+      const { data, error } = await teamsQuery;
+
+      if (error) throw error;
+
+      setAvailableTeams(data || []);
+    } catch (error: any) {
+      console.error("Error loading teams:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče naložiti selekcij",
+      });
     }
   }
 
