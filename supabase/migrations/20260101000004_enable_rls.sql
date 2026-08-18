@@ -399,18 +399,23 @@ REVOKE INSERT, UPDATE, DELETE ON activities FROM authenticated;
 -- Allow UPDATE for specific columns so the activities_update_policy can work
 GRANT UPDATE (is_completed, updated_at, notes) ON activities TO authenticated;
 
--- Coaches can update activities for their teams (NO circular dependency)
-CREATE POLICY "activities_update_policy" ON public.activities
+-- Clean non-recursive UPDATE policies
+CREATE POLICY "admin_update_activities" ON public.activities
   FOR UPDATE
+  TO authenticated
+  USING (_app_internals.is_admin(auth.uid()))
+  WITH CHECK (_app_internals.is_admin(auth.uid()));
+
+CREATE POLICY "coach_update_activities" ON public.activities
+  FOR UPDATE
+  TO authenticated
   USING (
-    _app_internals.is_admin(auth.uid()) OR
     team_id IN (
       SELECT team_id FROM public.team_coaches
       WHERE coach_id = auth.uid() AND is_active = true
     )
   )
   WITH CHECK (
-    _app_internals.is_admin(auth.uid()) OR
     team_id IN (
       SELECT team_id FROM public.team_coaches
       WHERE coach_id = auth.uid() AND is_active = true
