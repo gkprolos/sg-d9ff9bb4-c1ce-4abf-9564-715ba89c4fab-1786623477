@@ -664,4 +664,12 @@ CREATE POLICY "activities_update_policy" ON public.activities
       WHERE ac.activity_id = activities.id
       AND ac.coach_id = auth.uid()
     )
+  )
+  WITH CHECK (
+    _app_internals.is_admin(auth.uid()) OR
+    EXISTS (
+      SELECT 1 FROM public.activity_coaches ac
+      WHERE ac.activity_id = activities.id
+      AND ac.coach_id = auth.uid()
+    )
   );
