@@ -123,14 +123,34 @@ export default function DashboardPage() {
         setSelectedSeason(activeSeason.id);
       }
 
-      // Load teams
-      const { data: teamsData } = await supabase
-        .from("teams")
-        .select("id, name")
-        .eq("is_archived", false)
-        .order("name", { ascending: true });
-      
-      setTeams(teamsData || []);
+      // Load teams - different approach for admin vs coach
+      if (isAdmin) {
+        // Admin: load all teams directly
+        const { data: teamsData } = await supabase
+          .from("teams")
+          .select("id, name")
+          .eq("is_archived", false)
+          .order("name", { ascending: true });
+        
+        setTeams(teamsData || []);
+      } else if (user?.id) {
+        // Coach: load only assigned teams via team_coaches
+        const { data: coachTeamsData } = await supabase
+          .from("team_coaches")
+          .select(`
+            team_id,
+            teams(id, name)
+          `)
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
+        
+        const teamsData = (coachTeamsData || [])
+          .map(ct => ct.teams)
+          .filter(Boolean)
+          .sort((a, b) => a.name.localeCompare(b.name));
+        
+        setTeams(teamsData);
+      }
     } catch (error: any) {
       console.error("Error loading initial data:", error);
     }
