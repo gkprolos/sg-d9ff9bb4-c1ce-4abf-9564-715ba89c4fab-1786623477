@@ -29,18 +29,16 @@ import { Users, Plus, Edit, Trash2 } from "lucide-react";
 
 const AGE_CATEGORIES = [
   "Člani",
-  "Članice", 
   "Mladinci",
-  "Mladinke",
   "Kadeti",
+  "Starejši dečki",
+  "Dečki",
+  "Članice",
+  "Mladinke",
   "Kadetinje",
-  "Mlajši kadeti",
-  "Mlajše kadetinje",
-  "Pionirji",
-  "Pionirke",
-  "Mlajši pionirji",
-  "Mlajše pionirke",
-  "Mini",
+  "Starejše deklice",
+  "Deklice",
+  "Začetniki",
 ];
 
 interface Team {
