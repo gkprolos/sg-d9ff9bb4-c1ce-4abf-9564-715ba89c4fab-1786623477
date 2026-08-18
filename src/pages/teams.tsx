@@ -395,28 +395,26 @@ export default function TeamsPage() {
 
       // Sync head_coach_id to team_coaches table
       if (teamId && formData.head_coach_id) {
-        // Check if new head coach already has a team_coaches record
-        const { data: newCoachRecord } = await supabase
+        // Find existing head coach record for this team
+        const { data: existingHeadCoachRecord } = await supabase
           .from("team_coaches")
-          .select("id, can_be_head_coach")
+          .select("id, coach_id")
           .eq("team_id", teamId)
-          .eq("coach_id", formData.head_coach_id)
+          .eq("can_be_head_coach", true)
           .maybeSingle();
 
-        if (newCoachRecord) {
-          // Record exists - just ensure can_be_head_coach is true
-          if (!newCoachRecord.can_be_head_coach) {
-            const { error: updateError } = await supabase
-              .from("team_coaches")
-              .update({ can_be_head_coach: true })
-              .eq("id", newCoachRecord.id);
+        if (existingHeadCoachRecord) {
+          // Update existing head coach record with new coach_id
+          const { error: updateError } = await supabase
+            .from("team_coaches")
+            .update({ coach_id: formData.head_coach_id })
+            .eq("id", existingHeadCoachRecord.id);
 
-            if (updateError) {
-              console.error("Napaka pri posodobitvi can_be_head_coach:", updateError);
-            }
+          if (updateError) {
+            console.error("Napaka pri posodobitvi coach_id:", updateError);
           }
         } else {
-          // New coach doesn't have a record yet - create it
+          // No head coach record exists - create new one
           const { error: insertError } = await supabase
             .from("team_coaches")
             .insert([{
@@ -429,40 +427,6 @@ export default function TeamsPage() {
 
           if (insertError) {
             console.error("Napaka pri sinhronizaciji team_coaches:", insertError);
-          }
-        }
-
-        // Handle old head coach if changed
-        if (selectedTeam && oldHeadCoachId && oldHeadCoachId !== formData.head_coach_id) {
-          const { data: oldCoachRecord } = await supabase
-            .from("team_coaches")
-            .select("id, can_be_assistant")
-            .eq("team_id", teamId)
-            .eq("coach_id", oldHeadCoachId)
-            .maybeSingle();
-
-          if (oldCoachRecord) {
-            // If old coach can also be assistant, keep record but remove head coach flag
-            if (oldCoachRecord.can_be_assistant) {
-              const { error: updateError } = await supabase
-                .from("team_coaches")
-                .update({ can_be_head_coach: false })
-                .eq("id", oldCoachRecord.id);
-
-              if (updateError) {
-                console.error("Napaka pri odstranjevanju can_be_head_coach:", updateError);
-              }
-            } else {
-              // Remove record if coach can't be assistant
-              const { error: deleteError } = await supabase
-                .from("team_coaches")
-                .delete()
-                .eq("id", oldCoachRecord.id);
-
-              if (deleteError) {
-                console.error("Napaka pri odstranjevanju starega glavnega trenerja:", deleteError);
-              }
-            }
           }
         }
       }
