@@ -399,6 +399,24 @@ REVOKE INSERT, UPDATE, DELETE ON activities FROM authenticated;
 -- Allow UPDATE for specific columns so the activities_update_policy can work
 GRANT UPDATE (is_completed, updated_at, notes) ON activities TO authenticated;
 
+-- Coaches can update activities for their teams (NO circular dependency)
+CREATE POLICY "activities_update_policy" ON public.activities
+  FOR UPDATE
+  USING (
+    _app_internals.is_admin(auth.uid()) OR
+    team_id IN (
+      SELECT team_id FROM public.team_coaches
+      WHERE coach_id = auth.uid() AND is_active = true
+    )
+  )
+  WITH CHECK (
+    _app_internals.is_admin(auth.uid()) OR
+    team_id IN (
+      SELECT team_id FROM public.team_coaches
+      WHERE coach_id = auth.uid() AND is_active = true
+    )
+  );
+
 -- ============================================================================
 -- TABELA: activity_coaches
 -- ============================================================================
@@ -653,23 +671,3 @@ CREATE POLICY "Admin manage gdpr_requests"
   ON data_subject_requests FOR ALL
   TO authenticated
   USING (_app_internals.is_admin(auth.uid()));
-
--- Activities: coaches can update activities they are assigned to, admins can update all
-CREATE POLICY "activities_update_policy" ON public.activities
-  FOR UPDATE
-  USING (
-    _app_internals.is_admin(auth.uid()) OR
-    EXISTS (
-      SELECT 1 FROM public.activity_coaches ac
-      WHERE ac.activity_id = activities.id
-      AND ac.coach_id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    _app_internals.is_admin(auth.uid()) OR
-    EXISTS (
-      SELECT 1 FROM public.activity_coaches ac
-      WHERE ac.activity_id = activities.id
-      AND ac.coach_id = auth.uid()
-    )
-  );
