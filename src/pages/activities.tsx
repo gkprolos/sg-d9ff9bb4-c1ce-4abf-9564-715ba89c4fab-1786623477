@@ -229,22 +229,8 @@ export default function ActivitiesPage() {
         query = query.lte("activity_date", dateTo);
       }
 
-      // For coaches, filter by their activities
-      if (!isAdmin && user?.id) {
-        const { data: coachActivities } = await supabase
-          .from("activity_coaches")
-          .select("activity_id")
-          .eq("coach_id", user.id);
-
-        const activityIds = (coachActivities || []).map(ca => ca.activity_id);
-        if (activityIds.length > 0) {
-          query = query.in("id", activityIds);
-        } else {
-          setActivities([]);
-          setLoading(false);
-          return;
-        }
-      }
+      // RLS policy already filters activities for coaches based on their team assignments
+      // No need for additional frontend filtering - let RLS handle it
 
       const { data, error } = await query;
 
