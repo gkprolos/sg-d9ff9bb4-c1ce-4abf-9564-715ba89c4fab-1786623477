@@ -200,7 +200,6 @@ export default function ActivitiesPage() {
           season_id,
           team_id,
           teams(name),
-          seasons(name),
           venues(name),
           activity_coaches(
             id,
@@ -251,8 +250,28 @@ export default function ActivitiesPage() {
 
       if (error) throw error;
 
+      // Get season names for activities
+      let activitiesWithSeasons = data || [];
+      if (activitiesWithSeasons.length > 0) {
+        const seasonIds = [...new Set(activitiesWithSeasons.map(a => a.season_id).filter(Boolean))];
+        
+        if (seasonIds.length > 0) {
+          const { data: seasonsData } = await supabase
+            .from("seasons")
+            .select("id, name")
+            .in("id", seasonIds);
+
+          const seasonMap = new Map((seasonsData || []).map(s => [s.id, s.name]));
+          
+          activitiesWithSeasons = activitiesWithSeasons.map(activity => ({
+            ...activity,
+            season_name: seasonMap.get(activity.season_id) || "N/A",
+          }));
+        }
+      }
+
       // Filter by coach if selected
-      let filteredData = data || [];
+      let filteredData = activitiesWithSeasons;
       if (selectedCoach) {
         filteredData = filteredData.filter(activity => 
           activity.activity_coaches?.some((ac: any) => ac.profiles?.id === selectedCoach)
@@ -549,14 +568,12 @@ export default function ActivitiesPage() {
                         
                         return (
                           <TableRow key={activity.id}>
-                            <TableCell>
-                              {new Date(activity.activity_date).toLocaleDateString('sl-SI')}
-                            </TableCell>
                             <TableCell className="font-medium">
-                              {activity.teams?.name || "-"}
+                              {new Date(activity.activity_date).toLocaleDateString("sl-SI")}
                             </TableCell>
-                            <TableCell>
-                              {activity.start_time} - {activity.end_time}
+                            <TableCell>{activity.teams?.name || "N/A"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {activity.season_name || "N/A"}
                             </TableCell>
                             <TableCell>
                               {activity.venues?.name || "-"}
