@@ -256,20 +256,20 @@ export default function DashboardPage() {
                 
                 if (activity.activity_type_id === 1) {
                   // Training type 1
-                  const rate = isHead ? coachRates.head_type1_hourly : coachRates.assistant_type1_hourly;
+                  const rate = isHead ? coachRates.head_type1_per_hour : coachRates.assistant_type1_per_hour;
                   totalAmount += activityHours * (rate || 0);
                 } else if (activity.activity_type_id === 2) {
                   // Training type 2
-                  const rate = isHead ? coachRates.head_type2_hourly : coachRates.assistant_type2_hourly;
+                  const rate = isHead ? coachRates.head_type2_per_hour : coachRates.assistant_type2_per_hour;
                   totalAmount += activityHours * (rate || 0);
                 } else if (activity.activity_type_id === 3) {
                   // Match type 3
-                  const rate = isHead ? coachRates.head_match_fee : coachRates.assistant_match_fee;
+                  const rate = isHead ? coachRates.head_type3_fixed : coachRates.assistant_type3_fixed;
                   totalAmount += rate || 0;
                 }
 
                 // Add kilometer compensation
-                totalAmount += (ac.kilometers || 0) * (coachRates.kilometer_rate || 0);
+                totalAmount += (ac.kilometers || 0) * (coachRates.rate_per_km || 0);
               }
             } else if (isAdminView) {
               totalKilometers += ac.kilometers || 0;
