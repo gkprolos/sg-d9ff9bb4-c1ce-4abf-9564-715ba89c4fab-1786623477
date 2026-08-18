@@ -373,6 +373,7 @@ export default function TeamsPage() {
       };
 
       let teamId = selectedTeam?.id;
+      const oldHeadCoachId = selectedTeam?.head_coach_id;
 
       if (selectedTeam) {
         const { error } = await supabase
@@ -397,13 +398,13 @@ export default function TeamsPage() {
         // Check if team_coaches record already exists
         const { data: existingRecord } = await supabase
           .from("team_coaches")
-          .select("id")
+          .select("id, can_be_head_coach")
           .eq("team_id", teamId)
           .eq("coach_id", formData.head_coach_id)
           .maybeSingle();
 
         if (!existingRecord) {
-          // Create team_coaches record
+          // Create team_coaches record for new head coach
           const { error: tcError } = await supabase
             .from("team_coaches")
             .insert([{
@@ -416,7 +417,39 @@ export default function TeamsPage() {
 
           if (tcError) {
             console.error("Napaka pri sinhronizaciji team_coaches:", tcError);
-            // Don't throw - team was created successfully
+          }
+        } else if (!existingRecord.can_be_head_coach) {
+          // Update existing record to allow head coach role
+          const { error: updateError } = await supabase
+            .from("team_coaches")
+            .update({ can_be_head_coach: true })
+            .eq("id", existingRecord.id);
+
+          if (updateError) {
+            console.error("Napaka pri posodobitvi can_be_head_coach:", updateError);
+          }
+        }
+      }
+
+      // Remove old head coach from team_coaches if changed
+      if (selectedTeam && oldHeadCoachId && oldHeadCoachId !== formData.head_coach_id) {
+        // Check if old head coach has other teams
+        const { data: otherTeams } = await supabase
+          .from("team_coaches")
+          .select("id")
+          .eq("coach_id", oldHeadCoachId)
+          .neq("team_id", teamId);
+
+        // Only remove if this was their only team
+        if (!otherTeams || otherTeams.length === 0) {
+          const { error: removeError } = await supabase
+            .from("team_coaches")
+            .delete()
+            .eq("team_id", teamId)
+            .eq("coach_id", oldHeadCoachId);
+
+          if (removeError) {
+            console.error("Napaka pri odstranjevanju starega glavnega trenerja:", removeError);
           }
         }
       }
