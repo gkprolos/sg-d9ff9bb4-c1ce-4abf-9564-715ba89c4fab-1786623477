@@ -731,17 +731,15 @@ export default function DashboardPage() {
                 {isAdmin && (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="season">Sezona</Label>
-                      <Select value={selectedSeason} onValueChange={setSelectedSeason}>
-                        <SelectTrigger id="season">
+                      <Label htmlFor="season_filter">Sezona</Label>
+                      <Select value={selectedSeason || ""} onValueChange={(val) => setSelectedSeason(val || null)}>
+                        <SelectTrigger id="season_filter">
                           <SelectValue placeholder="Vse sezone" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Vse sezone</SelectItem>
                           {seasons.map((season) => (
                             <SelectItem key={season.id} value={season.id}>
-                              {season.name}
-                              {season.is_active && <Badge className="ml-2" variant="outline">Aktivna</Badge>}
+                              {season.name} {season.is_active && "(Aktivna)"}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -749,13 +747,12 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="team">Selekcija</Label>
-                      <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                        <SelectTrigger id="team">
+                      <Label htmlFor="team_filter">Selekcija</Label>
+                      <Select value={selectedTeam || ""} onValueChange={(val) => setSelectedTeam(val || null)}>
+                        <SelectTrigger id="team_filter">
                           <SelectValue placeholder="Vse selekcije" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Vse selekcije</SelectItem>
                           {teams.map((team) => (
                             <SelectItem key={team.id} value={team.id}>
                               {team.name}
