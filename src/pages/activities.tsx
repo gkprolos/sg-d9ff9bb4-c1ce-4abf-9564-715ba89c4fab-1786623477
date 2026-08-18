@@ -53,13 +53,21 @@ const ACTIVITY_TYPE_NAMES: Record<number, string> = {
 
 export default function ActivitiesPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [seasons, setSeasons] = useState<any[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [coaches, setCoaches] = useState<any[]>([]);
+  const [selectedSeason, setSelectedSeason] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState("");
+  const [selectedCoach, setSelectedCoach] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [venues, setVenues] = useState<any[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<Activity | null>(null);
@@ -70,10 +78,75 @@ export default function ActivitiesPage() {
     venue_id: "",
   });
 
+  const isAdmin = userRole === "admin";
+
+  useEffect(() => {
+    loadSeasons();
+    loadTeams();
+    loadCoaches();
+  }, []);
+
   useEffect(() => {
     loadActivities();
-    loadVenues();
-  }, []);
+  }, [selectedSeason, selectedTeam, selectedCoach, dateFrom, dateTo]);
+
+  async function loadSeasons() {
+    try {
+      const { data, error } = await supabase
+        .from("seasons")
+        .select("id, name, is_active")
+        .order("name", { ascending: false });
+
+      if (error) throw error;
+
+      setSeasons(data || []);
+
+      // Set active season as default
+      const activeSeason = data?.find(s => s.is_active);
+      if (activeSeason) {
+        setSelectedSeason(activeSeason.id);
+      }
+    } catch (error: any) {
+      console.error("Error loading seasons:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče naložiti sezon",
+      });
+    }
+  }
+
+  async function loadTeams() {
+    try {
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id, name")
+        .eq("is_archived", false)
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+
+      setTeams(data || []);
+    } catch (error: any) {
+      console.error("Error loading teams:", error);
+    }
+  }
+
+  async function loadCoaches() {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("role", "coach")
+        .order("full_name", { ascending: true });
+
+      if (error) throw error;
+
+      setCoaches(data || []);
+    } catch (error: any) {
+      console.error("Error loading coaches:", error);
+    }
+  }
 
   useEffect(() => {
     async function checkAdmin() {
@@ -111,7 +184,7 @@ export default function ActivitiesPage() {
   async function loadActivities() {
     try {
       setLoading(true);
-      
+
       let query = supabase
         .from("activities")
         .select(`
@@ -121,58 +194,78 @@ export default function ActivitiesPage() {
           end_time,
           activity_type_id,
           is_home_game,
-          is_completed,
-          teams!inner(id, name, short_name),
+          location,
+          notes,
+          season_id,
+          team_id,
+          teams(name),
+          seasons(name),
           venues(name),
           activity_coaches(
+            id,
             role,
-            coach_id,
-            profiles!activity_coaches_coach_id_fkey(
-              id,
-              full_name
-            )
+            mileage_km,
+            hours_worked,
+            total_amount,
+            profiles(full_name)
           )
         `)
-        .order("activity_date", { ascending: false })
-        .order("start_time", { ascending: true });
+        .order("activity_date", { ascending: false });
 
-      // For coaches, filter by their assigned activities
+      // Apply filters
+      if (selectedSeason) {
+        query = query.eq("season_id", selectedSeason);
+      }
+
+      if (selectedTeam) {
+        query = query.eq("team_id", selectedTeam);
+      }
+
+      if (dateFrom) {
+        query = query.gte("activity_date", dateFrom);
+      }
+
+      if (dateTo) {
+        query = query.lte("activity_date", dateTo);
+      }
+
+      // For coaches, filter by their activities
       if (!isAdmin && user?.id) {
-        // First get activity IDs where this coach is assigned
-        const { data: coachActivities, error: coachError } = await supabase
+        const { data: coachActivities } = await supabase
           .from("activity_coaches")
           .select("activity_id")
           .eq("coach_id", user.id);
 
-        if (coachError) throw coachError;
-
         const activityIds = (coachActivities || []).map(ca => ca.activity_id);
-        
-        if (activityIds.length === 0) {
-          // Coach has no activities
+        if (activityIds.length > 0) {
+          query = query.in("id", activityIds);
+        } else {
           setActivities([]);
           setLoading(false);
           return;
         }
-
-        query = query.in("id", activityIds);
       }
 
       const { data, error } = await query;
 
-      if (error) {
-        console.error("Napaka pri nalaganju aktivnosti:", error);
-        toast({
-          variant: "destructive",
-          title: "Napaka",
-          description: error.message || "Ni mogoče naložiti aktivnosti",
-        });
-        throw error;
+      if (error) throw error;
+
+      // Filter by coach if selected
+      let filteredData = data || [];
+      if (selectedCoach) {
+        filteredData = filteredData.filter(activity => 
+          activity.activity_coaches?.some((ac: any) => ac.profiles?.id === selectedCoach)
+        );
       }
 
-      setActivities(data || []);
+      setActivities(filteredData);
     } catch (error: any) {
-      console.error("Napaka pri nalaganju aktivnosti:", error);
+      console.error("Error loading activities:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče naložiti aktivnosti",
+      });
     } finally {
       setLoading(false);
     }
@@ -314,6 +407,109 @@ export default function ActivitiesPage() {
             </Button>
           </div>
 
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Aktivnosti</h2>
+            <p className="text-muted-foreground">
+              Pregled vseh aktivnosti in treningov
+            </p>
+          </div>
+
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Filtri</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div className="space-y-2">
+                  <Label htmlFor="date_from">Datum od</Label>
+                  <Input
+                    id="date_from"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date_to">Datum do</Label>
+                  <Input
+                    id="date_to"
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="season_filter">Sezona</Label>
+                  <Select value={selectedSeason || ""} onValueChange={(val) => setSelectedSeason(val || "")}>
+                    <SelectTrigger id="season_filter">
+                      <SelectValue placeholder="Vse sezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {seasons.map((season) => (
+                        <SelectItem key={season.id} value={season.id}>
+                          {season.name} {season.is_active && "(Aktivna)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="team_filter">Selekcija</Label>
+                  <Select value={selectedTeam || ""} onValueChange={(val) => setSelectedTeam(val || "")}>
+                    <SelectTrigger id="team_filter">
+                      <SelectValue placeholder="Vse selekcije" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="coach_filter">Trener</Label>
+                  <Select value={selectedCoach || ""} onValueChange={(val) => setSelectedCoach(val || "")}>
+                    <SelectTrigger id="coach_filter">
+                      <SelectValue placeholder="Vsi trenerji" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {coaches.map((coach) => (
+                        <SelectItem key={coach.id} value={coach.id}>
+                          {coach.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {(dateFrom || dateTo || selectedTeam || selectedCoach) && (
+                <div className="mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDateFrom("");
+                      setDateTo("");
+                      setSelectedTeam("");
+                      setSelectedCoach("");
+                    }}
+                  >
+                    Počisti filtre
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Activities List */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
