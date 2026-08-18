@@ -107,6 +107,70 @@ export default function MySchedulesPage() {
     }
   }
 
+  async function loadActivities() {
+    if (!selectedDate || !user?.id) {
+      setActivities([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get coach's teams
+      const { data: coachTeams, error: teamsError } = await supabase
+        .from("team_coaches")
+        .select("team_id")
+        .eq("coach_id", user.id)
+        .eq("is_active", true);
+
+      if (teamsError) throw teamsError;
+
+      const teamIds = (coachTeams || []).map(ct => ct.team_id);
+
+      if (teamIds.length === 0) {
+        setActivities([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get activities for selected date and coach's teams
+      const { data, error } = await supabase
+        .from("activities")
+        .select(`
+          id,
+          activity_date,
+          start_time,
+          end_time,
+          activity_type_id,
+          is_home_game,
+          is_completed,
+          team_id,
+          teams(name),
+          venues(name),
+          activity_coaches(
+            role,
+            profiles(full_name)
+          )
+        `)
+        .in("team_id", teamIds)
+        .eq("activity_date", selectedDate)
+        .order("start_time", { ascending: true });
+
+      if (error) throw error;
+
+      setActivities(data || []);
+    } catch (error: any) {
+      console.error("Error loading activities:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Ni mogoče naložiti aktivnosti",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function getDayName(dayNumber: number): string {
     return DAYS_OF_WEEK.find((d) => d.value === dayNumber)?.label || "N/A";
   }
