@@ -537,6 +537,7 @@ export default function AttendancePage() {
                         <Input
                           id="start_time"
                           type="time"
+                          step="900"
                           value={newActivityForm.start_time}
                           onChange={(e) => setNewActivityForm({ ...newActivityForm, start_time: e.target.value })}
                         />
@@ -546,6 +547,7 @@ export default function AttendancePage() {
                         <Input
                           id="end_time"
                           type="time"
+                          step="900"
                           value={newActivityForm.end_time}
                           onChange={(e) => setNewActivityForm({ ...newActivityForm, end_time: e.target.value })}
                         />
