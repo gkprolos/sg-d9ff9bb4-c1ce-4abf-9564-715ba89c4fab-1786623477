@@ -86,17 +86,24 @@ export default function DashboardPage() {
   const [playerAttendance, setPlayerAttendance] = useState<PlayerAttendance[]>([]);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPlayerDetail, setSelectedPlayerDetail] = useState<PlayerDetail | null>(null);
+  const [coachRates, setCoachRates] = useState<any>(null);
 
   const isAdmin = userRole === "admin";
 
   useEffect(() => {
     loadInitialData();
+    if (!isAdmin && user?.id) {
+      loadCoachRates();
+    }
   }, [user, userRole]);
 
   useEffect(() => {
     if (selectedMonth) {
       loadStats();
       loadPlayerAttendance();
+      if (!isAdmin && user?.id) {
+        loadCoachRates();
+      }
     }
   }, [selectedMonth, selectedSeason, selectedTeam, userRole]);
 
@@ -126,6 +133,28 @@ export default function DashboardPage() {
       setTeams(teamsData || []);
     } catch (error: any) {
       console.error("Error loading initial data:", error);
+    }
+  }
+
+  async function loadCoachRates() {
+    try {
+      if (!user?.id || !selectedSeason) return;
+
+      const { data, error } = await supabase
+        .from("coach_rates")
+        .select("*")
+        .eq("coach_id", user.id)
+        .eq("season_id", selectedSeason)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error loading coach rates:", error);
+        return;
+      }
+
+      setCoachRates(data);
+    } catch (error: any) {
+      console.error("Error loading coach rates:", error);
     }
   }
 
@@ -173,7 +202,8 @@ export default function DashboardPage() {
           id,
           start_time,
           end_time,
-          activity_coaches(coach_id, kilometers)
+          activity_type_id,
+          activity_coaches(coach_id, role, kilometers)
         `)
         .gte("activity_date", monthStart)
         .lte("activity_date", monthEnd);
@@ -199,20 +229,49 @@ export default function DashboardPage() {
 
       let totalHours = 0;
       let totalKilometers = 0;
+      let totalAmount = 0;
 
       (monthlyActivities || []).forEach((activity) => {
+        let activityHours = 0;
+        
         if (activity.start_time && activity.end_time) {
           const start = new Date(`2000-01-01T${activity.start_time}`);
           const end = new Date(`2000-01-01T${activity.end_time}`);
           const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+          activityHours = hours;
           totalHours += hours;
         }
 
         if (activity.activity_coaches) {
           activity.activity_coaches.forEach((ac: any) => {
-            if (!isAdmin && ac.coach_id === user?.id) {
+            const isMyActivity = !isAdmin && ac.coach_id === user?.id;
+            const isAdminView = isAdmin;
+
+            if (isMyActivity) {
+              // Calculate amount for coach
               totalKilometers += ac.kilometers || 0;
-            } else if (isAdmin) {
+
+              if (coachRates) {
+                const isHead = ac.role === 'head';
+                
+                if (activity.activity_type_id === 1) {
+                  // Training type 1
+                  const rate = isHead ? coachRates.head_type1_hourly : coachRates.assistant_type1_hourly;
+                  totalAmount += activityHours * (rate || 0);
+                } else if (activity.activity_type_id === 2) {
+                  // Training type 2
+                  const rate = isHead ? coachRates.head_type2_hourly : coachRates.assistant_type2_hourly;
+                  totalAmount += activityHours * (rate || 0);
+                } else if (activity.activity_type_id === 3) {
+                  // Match type 3
+                  const rate = isHead ? coachRates.head_match_fee : coachRates.assistant_match_fee;
+                  totalAmount += rate || 0;
+                }
+
+                // Add kilometer compensation
+                totalAmount += (ac.kilometers || 0) * (coachRates.kilometer_rate || 0);
+              }
+            } else if (isAdminView) {
               totalKilometers += ac.kilometers || 0;
             }
           });
@@ -227,7 +286,7 @@ export default function DashboardPage() {
         monthlyActivities: monthlyActivities?.length || 0,
         monthlyHours: Math.round(totalHours * 10) / 10,
         monthlyKilometers: totalKilometers,
-        monthlyAmount: 0, // Will calculate separately with rates
+        monthlyAmount: Math.round(totalAmount * 100) / 100,
       });
     } catch (error: any) {
       console.error("Error loading stats:", error);
