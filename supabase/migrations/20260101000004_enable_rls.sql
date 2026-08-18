@@ -655,7 +655,7 @@ CREATE POLICY "Admin manage gdpr_requests"
 CREATE POLICY "activities_update_policy" ON public.activities
   FOR UPDATE
   USING (
-    check_user_role('admin') OR
+    _app_internals.is_admin(auth.uid()) OR
     EXISTS (
       SELECT 1 FROM public.activity_coaches ac
       WHERE ac.activity_id = activities.id
