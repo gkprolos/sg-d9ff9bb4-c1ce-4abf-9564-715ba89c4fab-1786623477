@@ -650,3 +650,15 @@ CREATE POLICY "Admin manage gdpr_requests"
   ON data_subject_requests FOR ALL
   TO authenticated
   USING (_app_internals.is_admin(auth.uid()));
+
+-- Activities: coaches can update activities they are assigned to, admins can update all
+CREATE POLICY "activities_update_policy" ON public.activities
+  FOR UPDATE
+  USING (
+    check_user_role('admin') OR
+    EXISTS (
+      SELECT 1 FROM public.activity_coaches ac
+      WHERE ac.activity_id = activities.id
+      AND ac.coach_id = auth.uid()
+    )
+  );
