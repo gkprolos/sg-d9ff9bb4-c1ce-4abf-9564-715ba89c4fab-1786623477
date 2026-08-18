@@ -87,7 +87,6 @@ export default function DashboardPage() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPlayerDetail, setSelectedPlayerDetail] = useState<PlayerDetail | null>(null);
   const [coachRates, setCoachRates] = useState<any>(null);
-  const [activities, setActivities] = useState<any[]>([]);
 
   const isAdmin = userRole === "admin";
 
@@ -498,96 +497,6 @@ export default function DashboardPage() {
       console.error("Error loading player attendance:", error);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function loadActivities() {
-    try {
-      const [yearStr, monthStr] = selectedMonth.split("-");
-      const monthStart = `${yearStr}-${monthStr}-01`;
-      const daysInMonth = new Date(parseInt(yearStr), parseInt(monthStr), 0).getDate();
-      const monthEnd = `${yearStr}-${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
-
-      let activitiesQuery = supabase
-        .from("activities")
-        .select(`
-          id,
-          activity_date,
-          start_time,
-          end_time,
-          activity_type_id,
-          location,
-          team_id,
-          teams(name),
-          venues(name),
-          activity_coaches(
-            role,
-            profiles(full_name)
-          ),
-          attendance_records(status)
-        `)
-        .gte("activity_date", monthStart)
-        .lte("activity_date", monthEnd)
-        .order("activity_date", { ascending: false });
-
-      if (selectedSeason) {
-        activitiesQuery = activitiesQuery.eq("season_id", selectedSeason);
-      }
-
-      if (selectedTeam) {
-        activitiesQuery = activitiesQuery.eq("team_id", selectedTeam);
-      }
-
-      if (!isAdmin && user?.id) {
-        const { data: coachActivities } = await supabase
-          .from("activity_coaches")
-          .select("activity_id")
-          .eq("coach_id", user.id);
-        
-        const activityIds = (coachActivities || []).map(ca => ca.activity_id);
-        if (activityIds.length > 0) {
-          activitiesQuery = activitiesQuery.in("id", activityIds);
-        }
-      }
-
-      const { data, error } = await activitiesQuery;
-
-      if (error) throw error;
-
-      // Calculate stats for each activity
-      const activitiesWithStats = (data || []).map((activity: any) => {
-        const headCoach = activity.activity_coaches?.find((ac: any) => ac.role === "head");
-        const assistants = activity.activity_coaches?.filter((ac: any) => ac.role === "assistant") || [];
-        
-        const totalAttendance = activity.attendance_records?.length || 0;
-        const present = activity.attendance_records?.filter((ar: any) => ar.status === 1).length || 0;
-        const absent = activity.attendance_records?.filter((ar: any) => ar.status === 0).length || 0;
-        const excused = activity.attendance_records?.filter((ar: any) => ar.status === 2).length || 0;
-        const attendanceRate = totalAttendance > 0 ? Math.round((present / totalAttendance) * 100) : 0;
-
-        let duration = 0;
-        if (activity.start_time && activity.end_time) {
-          const start = new Date(`2000-01-01T${activity.start_time}`);
-          const end = new Date(`2000-01-01T${activity.end_time}`);
-          duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-        }
-
-        return {
-          ...activity,
-          head_coach_name: headCoach?.profiles?.full_name || "N/A",
-          assistant_names: assistants.map((a: any) => a.profiles?.full_name).filter(Boolean),
-          total_players: totalAttendance,
-          present,
-          absent,
-          excused,
-          attendance_rate: attendanceRate,
-          duration: Math.round(duration * 10) / 10,
-        };
-      });
-
-      setActivities(activitiesWithStats);
-    } catch (error: any) {
-      console.error("Error loading activities:", error);
     }
   }
 
