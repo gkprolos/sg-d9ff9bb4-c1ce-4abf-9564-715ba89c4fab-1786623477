@@ -395,16 +395,15 @@ export default function TeamsPage() {
 
       // Sync head_coach_id to team_coaches table
       if (teamId && formData.head_coach_id) {
-        // Check if team_coaches record already exists
+        // Check if team_coaches record exists for this team
         const { data: existingRecord } = await supabase
           .from("team_coaches")
-          .select("id, can_be_head_coach")
+          .select("id, coach_id, can_be_head_coach")
           .eq("team_id", teamId)
-          .eq("coach_id", formData.head_coach_id)
           .maybeSingle();
 
         if (!existingRecord) {
-          // Create team_coaches record for new head coach
+          // Create new team_coaches record
           const { error: tcError } = await supabase
             .from("team_coaches")
             .insert([{
@@ -418,8 +417,21 @@ export default function TeamsPage() {
           if (tcError) {
             console.error("Napaka pri sinhronizaciji team_coaches:", tcError);
           }
+        } else if (existingRecord.coach_id !== formData.head_coach_id) {
+          // Update coach_id if head coach changed
+          const { error: updateError } = await supabase
+            .from("team_coaches")
+            .update({ 
+              coach_id: formData.head_coach_id,
+              can_be_head_coach: true,
+            })
+            .eq("id", existingRecord.id);
+
+          if (updateError) {
+            console.error("Napaka pri posodobitvi coach_id:", updateError);
+          }
         } else if (!existingRecord.can_be_head_coach) {
-          // Update existing record to allow head coach role
+          // Just update can_be_head_coach flag if coach didn't change
           const { error: updateError } = await supabase
             .from("team_coaches")
             .update({ can_be_head_coach: true })
@@ -427,29 +439,6 @@ export default function TeamsPage() {
 
           if (updateError) {
             console.error("Napaka pri posodobitvi can_be_head_coach:", updateError);
-          }
-        }
-      }
-
-      // Remove old head coach from team_coaches if changed
-      if (selectedTeam && oldHeadCoachId && oldHeadCoachId !== formData.head_coach_id) {
-        // Check if old head coach has other teams
-        const { data: otherTeams } = await supabase
-          .from("team_coaches")
-          .select("id")
-          .eq("coach_id", oldHeadCoachId)
-          .neq("team_id", teamId);
-
-        // Only remove if this was their only team
-        if (!otherTeams || otherTeams.length === 0) {
-          const { error: removeError } = await supabase
-            .from("team_coaches")
-            .delete()
-            .eq("team_id", teamId)
-            .eq("coach_id", oldHeadCoachId);
-
-          if (removeError) {
-            console.error("Napaka pri odstranjevanju starega glavnega trenerja:", removeError);
           }
         }
       }
