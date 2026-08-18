@@ -203,7 +203,7 @@ export default function DashboardPage() {
           start_time,
           end_time,
           activity_type_id,
-          activity_coaches(coach_id, role, kilometers)
+          activity_coaches(coach_id, role, hours_worked, amount_paid)
         `)
         .gte("activity_date", monthStart)
         .lte("activity_date", monthEnd);
@@ -228,51 +228,19 @@ export default function DashboardPage() {
       const { data: monthlyActivities } = await monthlyQuery;
 
       let totalHours = 0;
-      let totalKilometers = 0;
+      const totalKilometers = 0;
       let totalAmount = 0;
 
       (monthlyActivities || []).forEach((activity) => {
-        let activityHours = 0;
-        
-        if (activity.start_time && activity.end_time) {
-          const start = new Date(`2000-01-01T${activity.start_time}`);
-          const end = new Date(`2000-01-01T${activity.end_time}`);
-          const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-          activityHours = hours;
-          totalHours += hours;
-        }
-
         if (activity.activity_coaches) {
           activity.activity_coaches.forEach((ac: any) => {
             const isMyActivity = !isAdmin && ac.coach_id === user?.id;
             const isAdminView = isAdmin;
 
-            if (isMyActivity) {
-              // Calculate amount for coach
-              totalKilometers += ac.kilometers || 0;
-
-              if (coachRates) {
-                const isHead = ac.role === 'head';
-                
-                if (activity.activity_type_id === 1) {
-                  // Training type 1
-                  const rate = isHead ? coachRates.head_type1_per_hour : coachRates.assistant_type1_per_hour;
-                  totalAmount += activityHours * (rate || 0);
-                } else if (activity.activity_type_id === 2) {
-                  // Training type 2
-                  const rate = isHead ? coachRates.head_type2_per_hour : coachRates.assistant_type2_per_hour;
-                  totalAmount += activityHours * (rate || 0);
-                } else if (activity.activity_type_id === 3) {
-                  // Match type 3
-                  const rate = isHead ? coachRates.head_type3_fixed : coachRates.assistant_type3_fixed;
-                  totalAmount += rate || 0;
-                }
-
-                // Add kilometer compensation
-                totalAmount += (ac.kilometers || 0) * (coachRates.rate_per_km || 0);
-              }
-            } else if (isAdminView) {
-              totalKilometers += ac.kilometers || 0;
+            if (isMyActivity || isAdminView) {
+              // Use hours_worked from activity_coaches if available
+              totalHours += ac.hours_worked || 0;
+              totalAmount += ac.amount_paid || 0;
             }
           });
         }
@@ -285,7 +253,7 @@ export default function DashboardPage() {
         totalActivities: totalActivitiesCount || 0,
         monthlyActivities: monthlyActivities?.length || 0,
         monthlyHours: Math.round(totalHours * 10) / 10,
-        monthlyKilometers: totalKilometers,
+        monthlyKilometers: 0, // Will calculate separately from a dedicated kilometers table/field
         monthlyAmount: Math.round(totalAmount * 100) / 100,
       });
     } catch (error: any) {
