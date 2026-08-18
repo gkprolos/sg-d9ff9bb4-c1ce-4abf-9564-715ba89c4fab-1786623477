@@ -372,6 +372,8 @@ export default function TeamsPage() {
         head_coach_id: formData.head_coach_id || null,
       };
 
+      let teamId = selectedTeam?.id;
+
       if (selectedTeam) {
         const { error } = await supabase
           .from("teams")
@@ -379,21 +381,52 @@ export default function TeamsPage() {
           .eq("id", selectedTeam.id);
 
         if (error) throw error;
-        toast({
-          title: "Uspešno",
-          description: "Selekcija uspešno posodobljena",
-        });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("teams")
-          .insert([payload]);
+          .insert([payload])
+          .select("id")
+          .single();
 
         if (error) throw error;
-        toast({
-          title: "Uspešno",
-          description: "Selekcija uspešno ustvarjena",
-        });
+        teamId = data.id;
       }
+
+      // Sync head_coach_id to team_coaches table
+      if (teamId && formData.head_coach_id) {
+        // Check if team_coaches record already exists
+        const { data: existingRecord } = await supabase
+          .from("team_coaches")
+          .select("id")
+          .eq("team_id", teamId)
+          .eq("coach_id", formData.head_coach_id)
+          .maybeSingle();
+
+        if (!existingRecord) {
+          // Create team_coaches record
+          const { error: tcError } = await supabase
+            .from("team_coaches")
+            .insert([{
+              team_id: teamId,
+              coach_id: formData.head_coach_id,
+              can_be_head_coach: true,
+              can_be_assistant: true,
+              is_active: true,
+            }]);
+
+          if (tcError) {
+            console.error("Napaka pri sinhronizaciji team_coaches:", tcError);
+            // Don't throw - team was created successfully
+          }
+        }
+      }
+
+      toast({
+        title: "Uspešno",
+        description: selectedTeam 
+          ? "Selekcija uspešno posodobljena" 
+          : "Selekcija uspešno ustvarjena",
+      });
 
       setDialogOpen(false);
       loadTeams();
