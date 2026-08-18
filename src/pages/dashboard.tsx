@@ -24,6 +24,8 @@ import {
 
 interface DashboardStats {
   activePlayers: number;
+  malePlayers: number;
+  femalePlayers: number;
   activeTeams: number;
   activeVenues: number;
   totalActivities: number;
@@ -65,6 +67,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     activePlayers: 0,
+    malePlayers: 0,
+    femalePlayers: 0,
     activeTeams: 0,
     activeVenues: 0,
     totalActivities: 0,
@@ -222,6 +226,80 @@ export default function DashboardPage() {
 
       const { count: playersCount } = await playersQuery;
 
+      // Get male players count
+      let malePlayersQuery = supabase
+        .from("players")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true)
+        .eq("gender", "M");
+
+      // For coaches, filter by their team's players
+      if (!isAdmin && user?.id) {
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
+
+        const teamIds = (coachTeams || []).map(ct => ct.team_id);
+        
+        if (teamIds.length > 0) {
+          const { data: teamPlayers } = await supabase
+            .from("team_players")
+            .select("player_id")
+            .in("team_id", teamIds);
+
+          const playerIds = (teamPlayers || []).map(tp => tp.player_id);
+          
+          if (playerIds.length > 0) {
+            malePlayersQuery = malePlayersQuery.in("id", playerIds);
+          } else {
+            malePlayersQuery = malePlayersQuery.eq("id", "00000000-0000-0000-0000-000000000000");
+          }
+        } else {
+          malePlayersQuery = malePlayersQuery.eq("id", "00000000-0000-0000-0000-000000000000");
+        }
+      }
+
+      const { count: malePlayersCount } = await malePlayersQuery;
+
+      // Get female players count
+      let femalePlayersQuery = supabase
+        .from("players")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true)
+        .eq("gender", "F");
+
+      // For coaches, filter by their team's players
+      if (!isAdmin && user?.id) {
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
+
+        const teamIds = (coachTeams || []).map(ct => ct.team_id);
+        
+        if (teamIds.length > 0) {
+          const { data: teamPlayers } = await supabase
+            .from("team_players")
+            .select("player_id")
+            .in("team_id", teamIds);
+
+          const playerIds = (teamPlayers || []).map(tp => tp.player_id);
+          
+          if (playerIds.length > 0) {
+            femalePlayersQuery = femalePlayersQuery.in("id", playerIds);
+          } else {
+            femalePlayersQuery = femalePlayersQuery.eq("id", "00000000-0000-0000-0000-000000000000");
+          }
+        } else {
+          femalePlayersQuery = femalePlayersQuery.eq("id", "00000000-0000-0000-0000-000000000000");
+        }
+      }
+
+      const { count: femalePlayersCount } = await femalePlayersQuery;
+
       // Get active teams count
       let teamsQuery = supabase
         .from("teams")
@@ -334,6 +412,8 @@ export default function DashboardPage() {
 
       setStats({
         activePlayers: playersCount || 0,
+        malePlayers: malePlayersCount || 0,
+        femalePlayers: femalePlayersCount || 0,
         activeTeams: teamsCount || 0,
         activeVenues: venuesCount || 0,
         totalActivities: totalActivitiesCount || 0,
@@ -644,6 +724,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.activePlayers}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  M: {stats.malePlayers} • F: {stats.femalePlayers}
+                </p>
               </CardContent>
             </Card>
 
