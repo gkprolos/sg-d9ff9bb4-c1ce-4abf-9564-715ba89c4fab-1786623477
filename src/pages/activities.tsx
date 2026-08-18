@@ -672,6 +672,7 @@ export default function ActivitiesPage() {
                     <Input
                       id="edit_start_time"
                       type="time"
+                      step="900"
                       value={editForm.start_time}
                       onChange={(e) => setEditForm({ ...editForm, start_time: e.target.value })}
                     />
@@ -681,6 +682,7 @@ export default function ActivitiesPage() {
                     <Input
                       id="edit_end_time"
                       type="time"
+                      step="900"
                       value={editForm.end_time}
                       onChange={(e) => setEditForm({ ...editForm, end_time: e.target.value })}
                     />
