@@ -392,6 +392,41 @@ export default function AttendancePage() {
   const absentCount = players.filter(p => p.attendance_status === 0).length;
   const excusedCount = players.filter(p => p.attendance_status === 2).length;
 
+  async function handleCompleteAttendance() {
+    if (!selectedActivity) return;
+
+    try {
+      setLoading(true);
+
+      // Mark activity as completed
+      const { error } = await supabase
+        .from("activities")
+        .update({ is_completed: true })
+        .eq("id", selectedActivity);
+
+      if (error) throw error;
+
+      toast({
+        title: "Prisotnost shranjena!",
+        description: `Vnos uspešno zaključen: ${presentCount} prisotnih, ${absentCount} odsotnih, ${excusedCount} opravičenih.`,
+      });
+
+      // Redirect back to activities
+      setTimeout(() => {
+        router.push("/activities");
+      }, 1500);
+    } catch (error: any) {
+      console.error("Napaka pri zaključevanju vnosa:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri zaključevanju vnosa",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <ProtectedRoute>
       <AppLayout>
@@ -613,6 +648,52 @@ export default function AttendancePage() {
                     ))}
                   </TableBody>
                 </Table>
+
+                <div className="flex gap-2 mt-6 justify-between items-center">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        players.forEach(player => {
+                          if (player.attendance_status !== 1) {
+                            handleAttendanceChange(player.id, 1);
+                          }
+                        });
+                        toast({
+                          title: "Vsi igralci označeni kot prisotni",
+                        });
+                      }}
+                      disabled={loading}
+                    >
+                      Vse označi kot prisotne
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        players.forEach(player => {
+                          handleAttendanceChange(player.id, 0);
+                        });
+                        setPlayers(prev => prev.map(p => ({ ...p, attendance_status: null })));
+                        toast({
+                          title: "Prisotnost počiščena",
+                        });
+                      }}
+                      disabled={loading}
+                    >
+                      Počisti vse
+                    </Button>
+                  </div>
+
+                  <Button
+                    onClick={handleCompleteAttendance}
+                    disabled={loading}
+                    size="lg"
+                    className="gap-2"
+                  >
+                    <Save className="h-5 w-5" />
+                    Shrani in zaključi
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
