@@ -491,24 +491,22 @@ export default function SchedulesPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="start_time">
-                        Začetek <span className="text-destructive">*</span>
-                      </Label>
+                      <Label htmlFor="start_time">Začetek *</Label>
                       <Input
                         id="start_time"
                         type="time"
+                        step="900"
                         value={formData.start_time}
                         onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="end_time">
-                        Konec <span className="text-destructive">*</span>
-                      </Label>
+                      <Label htmlFor="end_time">Konec *</Label>
                       <Input
                         id="end_time"
                         type="time"
+                        step="900"
                         value={formData.end_time}
                         onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                         required
