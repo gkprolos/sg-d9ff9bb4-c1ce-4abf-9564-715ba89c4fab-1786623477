@@ -579,171 +579,169 @@ export default function TeamsPage() {
           </Card>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-h-[90vh]">
+            <DialogContent className="max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {selectedTeam ? "Uredi selekcijo" : "Dodaj selekcijo"}
                 </DialogTitle>
               </DialogHeader>
 
-              <ScrollArea className="max-h-[60vh] pr-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">
-                      Naziv <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="name"
-                      placeholder="npr. Kadetinje 1"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                  </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">
+                    Naziv <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    placeholder="npr. Kadetinje 1"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="short_name">Oznaka / kratek naziv</Label>
-                    <Input
-                      id="short_name"
-                      placeholder="npr. KAD1"
-                      value={formData.short_name}
-                      onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="short_name">Oznaka / kratek naziv</Label>
+                  <Input
+                    id="short_name"
+                    placeholder="npr. KAD1"
+                    value={formData.short_name}
+                    onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="age_category">Starostna kategorija</Label>
-                    <Select
-                      value={formData.age_category}
-                      onValueChange={(value) => setFormData({ ...formData, age_category: value })}
-                    >
-                      <SelectTrigger id="age_category">
-                        <SelectValue placeholder="Izberi starostno kategorijo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AGE_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="age_category">Starostna kategorija</Label>
+                  <Select
+                    value={formData.age_category}
+                    onValueChange={(value) => setFormData({ ...formData, age_category: value })}
+                  >
+                    <SelectTrigger id="age_category">
+                      <SelectValue placeholder="Izberi starostno kategorijo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AGE_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Spol</Label>
-                    <Select
-                      value={formData.gender}
-                      onValueChange={(value) => setFormData({ ...formData, gender: value })}
-                    >
-                      <SelectTrigger id="gender">
-                        <SelectValue placeholder="Izberi spol" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="M">M (Moški)</SelectItem>
-                        <SelectItem value="F">F (Ženski)</SelectItem>
-                        <SelectItem value="Mixed">Mixed (Mešano)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Spol</Label>
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                  >
+                    <SelectTrigger id="gender">
+                      <SelectValue placeholder="Izberi spol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M">M (Moški)</SelectItem>
+                      <SelectItem value="F">F (Ženski)</SelectItem>
+                      <SelectItem value="Mixed">Mixed (Mešano)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="head_coach_id">Glavni trener</Label>
-                    <Select
-                      value={formData.head_coach_id}
-                      onValueChange={(value) => setFormData({ ...formData, head_coach_id: value })}
-                    >
-                      <SelectTrigger id="head_coach_id">
-                        <SelectValue placeholder="Izberi glavnega trenerja" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {coaches.map((coach) => (
-                          <SelectItem key={coach.id} value={coach.id}>
-                            {coach.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="head_coach_id">Glavni trener</Label>
+                  <Select
+                    value={formData.head_coach_id}
+                    onValueChange={(value) => setFormData({ ...formData, head_coach_id: value })}
+                  >
+                    <SelectTrigger id="head_coach_id">
+                      <SelectValue placeholder="Izberi glavnega trenerja" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {coaches.map((coach) => (
+                        <SelectItem key={coach.id} value={coach.id}>
+                          {coach.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="is_active">Aktivna selekcija</Label>
-                    <Switch
-                      id="is_active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, is_active: checked })
-                      }
-                    />
-                  </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is_active">Aktivna selekcija</Label>
+                  <Switch
+                    id="is_active"
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, is_active: checked })
+                    }
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Opombe</Label>
-                    <Textarea
-                      id="notes"
-                      placeholder="Dodatne opombe..."
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      rows={3}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Opombe</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Dodatne opombe..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={3}
+                  />
+                </div>
 
-                  <DialogFooter className="mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setDialogOpen(false)}
-                      disabled={loading}
-                    >
-                      Prekliči
-                    </Button>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? "Shranjujem..." : selectedTeam ? "Posodobi" : "Dodaj"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </ScrollArea>
+                <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                    disabled={loading}
+                  >
+                    Prekliči
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Shranjujem..." : selectedTeam ? "Posodobi" : "Dodaj"}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
 
           <Dialog open={managePlayersDialogOpen} onOpenChange={setManagePlayersDialogOpen}>
-            <DialogContent className="max-w-4xl max-h-[90vh]">
+            <DialogContent className="max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   Upravljanje igralcev - {selectedTeam?.name}
                 </DialogTitle>
               </DialogHeader>
 
-              <ScrollArea className="max-h-[70vh] pr-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="gender_filter">Filter po spolu</Label>
-                    <Select value={genderFilter} onValueChange={setGenderFilter}>
-                      <SelectTrigger id="gender_filter">
-                        <SelectValue placeholder="Vsi igralci" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Vsi igralci</SelectItem>
-                        <SelectItem value="M">Samo moški (M)</SelectItem>
-                        <SelectItem value="F">Samo ženske (F)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="gender_filter">Filter po spolu</Label>
+                  <Select value={genderFilter} onValueChange={setGenderFilter}>
+                    <SelectTrigger id="gender_filter">
+                      <SelectValue placeholder="Vsi igralci" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Vsi igralci</SelectItem>
+                      <SelectItem value="M">Samo moški (M)</SelectItem>
+                      <SelectItem value="F">Samo ženske (F)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="player_search">Iskanje igralca</Label>
-                    <Input
-                      id="player_search"
-                      placeholder="Ime ali priimek..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyDown={handleSearchKeyDown}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="player_search">Iskanje igralca</Label>
+                  <Input
+                    id="player_search"
+                    placeholder="Ime ali priimek..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>Igralci</Label>
-                    <ScrollArea className="h-[400px] border rounded-lg">
+                <div className="space-y-2">
+                  <Label>Igralci ({filteredPlayers.length})</Label>
+                  <div className="border rounded-lg">
+                    <ScrollArea className="h-[300px] sm:h-[400px]">
                       <Table>
                         <TableHeader>
                           <TableRow className="text-xs">
@@ -801,9 +799,9 @@ export default function TeamsPage() {
                     </ScrollArea>
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
 
-              <DialogFooter>
+              <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
