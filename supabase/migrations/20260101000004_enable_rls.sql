@@ -367,45 +367,32 @@ CREATE POLICY "Admin manage schedules"
 -- ============================================================================
 ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
 
--- Admin vidi vse aktivnosti
-CREATE POLICY "Admin select all activities"
-  ON activities FOR SELECT
+-- BASIC RULE 1: Admin sees and manages EVERYTHING
+CREATE POLICY "admin_all_activities" ON public.activities
+  FOR ALL
   TO authenticated
-  USING (_app_internals.is_admin(auth.uid()));
+  USING (_app_internals.is_admin(auth.uid()))
+  WITH CHECK (_app_internals.is_admin(auth.uid()));
 
--- Trener vidi aktivnosti svojih selekcij
-CREATE POLICY "Coaches select team activities"
-  ON activities FOR SELECT
+-- BASIC RULE 2: Coach sees only their team activities
+CREATE POLICY "coach_select_activities" ON public.activities
+  FOR SELECT
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM public.team_coaches
-      WHERE team_id = activities.team_id
-        AND coach_id = auth.uid()
-        AND is_active = true
+    team_id IN (
+      SELECT team_id FROM public.team_coaches
+      WHERE coach_id = auth.uid() AND is_active = true
     )
   );
-
--- Admin lahko upravlja vse aktivnosti
-CREATE POLICY "Admin manage activities"
-  ON activities FOR ALL
-  TO authenticated
-  USING (_app_internals.is_admin(auth.uid()));
 
 -- Trener NE sme neposredno urejati aktivnosti - samo preko RPC funkcij
 -- UPDATE/INSERT omejitve za trenerje
 REVOKE INSERT, UPDATE, DELETE ON activities FROM authenticated;
 
--- Allow UPDATE for specific columns so the activities_update_policy can work
+-- Allow UPDATE for specific columns
 GRANT UPDATE (is_completed, updated_at, notes) ON activities TO authenticated;
 
--- Clean non-recursive UPDATE policies
-CREATE POLICY "admin_update_activities" ON public.activities
-  FOR UPDATE
-  TO authenticated
-  USING (_app_internals.is_admin(auth.uid()))
-  WITH CHECK (_app_internals.is_admin(auth.uid()));
-
+-- BASIC RULE 3: Coach can UPDATE is_completed on their team activities
 CREATE POLICY "coach_update_activities" ON public.activities
   FOR UPDATE
   TO authenticated
