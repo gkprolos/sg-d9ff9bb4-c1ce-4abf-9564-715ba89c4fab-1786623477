@@ -51,11 +51,12 @@ interface Player {
 }
 
 export default function MyPlayersPage() {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
+  const [availableTeams, setAvailableTeams] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -389,6 +390,7 @@ export default function MyPlayersPage() {
   function handleAddToTeamClick(player: Player) {
     setSelectedPlayer(player);
     setSelectedTeamForAdd("");
+    loadTeamsForPlayer();
     setTeamDialogOpen(true);
   }
 
@@ -980,7 +982,7 @@ export default function MyPlayersPage() {
                       <SelectValue placeholder="Izberi selekcijo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {teams.map((team) => (
+                      {availableTeams.map((team) => (
                         <SelectItem key={team.id} value={team.id}>
                           {team.name}
                         </SelectItem>

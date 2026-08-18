@@ -161,9 +161,9 @@ export default function DashboardPage() {
   async function loadStats() {
     try {
       const now = new Date();
-      const monthStart = new Date(now.getFullYear(), parseInt(selectedMonth.split('-')[1]) - 1, 1)
+      const statsMonthStart = new Date(now.getFullYear(), parseInt(selectedMonth.split('-')[1]) - 1, 1)
         .toISOString().split('T')[0];
-      const monthEnd = new Date(now.getFullYear(), parseInt(selectedMonth.split('-')[1]), 0)
+      const statsMonthEnd = new Date(now.getFullYear(), parseInt(selectedMonth.split('-')[1]), 0)
         .toISOString().split('T')[0];
 
       // Get active players count
@@ -193,10 +193,10 @@ export default function DashboardPage() {
           if (playerIds.length > 0) {
             playersQuery = playersQuery.in("id", playerIds);
           } else {
-            playersQuery = playersQuery.eq("id", "00000000-0000-0000-0000-000000000000"); // No players
+            playersQuery = playersQuery.eq("id", "00000000-0000-0000-0000-000000000000");
           }
         } else {
-          playersQuery = playersQuery.eq("id", "00000000-0000-0000-0000-000000000000"); // No players
+          playersQuery = playersQuery.eq("id", "00000000-0000-0000-0000-000000000000");
         }
       }
 
@@ -221,7 +221,7 @@ export default function DashboardPage() {
         if (teamIds.length > 0) {
           teamsQuery = teamsQuery.in("id", teamIds);
         } else {
-          teamsQuery = teamsQuery.eq("id", "00000000-0000-0000-0000-000000000000"); // No teams
+          teamsQuery = teamsQuery.eq("id", "00000000-0000-0000-0000-000000000000");
         }
       }
 
@@ -259,9 +259,9 @@ export default function DashboardPage() {
       const { count: totalActivitiesCount } = await totalActivitiesQuery;
 
       // Monthly activities and stats
-      const [year, month] = selectedMonth.split("-");
-      const monthStart = `${year}-${month}-01`;
-      const monthEnd = new Date(parseInt(year), parseInt(month), 0).toISOString().split("T")[0];
+      const [monthYear, monthNum] = selectedMonth.split("-");
+      const monthlyStart = `${monthYear}-${monthNum}-01`;
+      const monthlyEnd = new Date(parseInt(monthYear), parseInt(monthNum), 0).toISOString().split("T")[0];
 
       let monthlyQuery = supabase
         .from("activities")
@@ -272,15 +272,14 @@ export default function DashboardPage() {
           activity_type_id,
           activity_coaches(coach_id, role, hours_worked, mileage_km, total_amount)
         `)
-        .gte("activity_date", monthStart)
-        .lte("activity_date", monthEnd);
+        .gte("activity_date", monthlyStart)
+        .lte("activity_date", monthlyEnd);
 
       if (selectedSeason) {
         monthlyQuery = monthlyQuery.eq("season_id", selectedSeason);
       }
 
       if (!isAdmin && user?.id) {
-        // Filter by coach's activities
         const { data: coachActivities } = await supabase
           .from("activity_coaches")
           .select("activity_id")
@@ -305,7 +304,6 @@ export default function DashboardPage() {
             const isAdminView = isAdmin;
 
             if (isMyActivity || isAdminView) {
-              // Use hours_worked and total_amount from activity_coaches
               totalHours += ac.hours_worked || 0;
               totalKilometers += ac.mileage_km || 0;
               totalAmount += ac.total_amount || 0;
@@ -341,10 +339,10 @@ export default function DashboardPage() {
       setLoading(true);
 
       const now = new Date();
-      const year = now.getFullYear();
-      const month = parseInt(selectedMonth.split('-')[1]);
-      const monthStart = new Date(year, month - 1, 1).toISOString().split('T')[0];
-      const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
+      const attYear = now.getFullYear();
+      const attMonth = parseInt(selectedMonth.split('-')[1]);
+      const attMonthStart = new Date(attYear, attMonth - 1, 1).toISOString().split('T')[0];
+      const attMonthEnd = new Date(attYear, attMonth, 0).toISOString().split('T')[0];
 
       // Get all players
       let playersQuery = supabase
@@ -396,10 +394,10 @@ export default function DashboardPage() {
 
       if (playersError) throw playersError;
 
-      const [year, month] = selectedMonth.split("-");
-      const monthStart = `${year}-${month}-01`;
-      const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
-      const monthEnd = `${year}-${month}-${String(daysInMonth).padStart(2, "0")}`;
+      const [yearStr, monthStr] = selectedMonth.split("-");
+      const tableMonthStart = `${yearStr}-${monthStr}-01`;
+      const daysInMonth = new Date(parseInt(yearStr), parseInt(monthStr), 0).getDate();
+      const tableMonthEnd = `${yearStr}-${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
 
       // Get activities in selected month
       let activitiesQuery = supabase
@@ -410,8 +408,8 @@ export default function DashboardPage() {
           team_id,
           teams(name)
         `)
-        .gte("activity_date", monthStart)
-        .lte("activity_date", monthEnd);
+        .gte("activity_date", tableMonthStart)
+        .lte("activity_date", tableMonthEnd);
 
       if (selectedSeason) {
         activitiesQuery = activitiesQuery.eq("season_id", selectedSeason);
@@ -422,7 +420,6 @@ export default function DashboardPage() {
       }
 
       if (!isAdmin && user?.id) {
-        // Filter by coach's activities
         const { data: coachActivities } = await supabase
           .from("activity_coaches")
           .select("activity_id")
@@ -493,7 +490,6 @@ export default function DashboardPage() {
           : 0,
       }));
 
-      // Sort by attendance rate (worst first)
       playerList.sort((a, b) => a.attendance_rate - b.attendance_rate);
 
       setPlayerAttendance(playerList);
@@ -506,7 +502,6 @@ export default function DashboardPage() {
 
   async function handlePlayerClick(playerId: string) {
     try {
-      // Load detailed monthly stats for this player
       const { data: playerData } = await supabase
         .from("players")
         .select("first_name, last_name")
@@ -515,27 +510,26 @@ export default function DashboardPage() {
 
       if (!playerData) return;
 
-      // Get attendance across all months (past 12 months)
       const now = new Date();
       const monthlyStats = [];
 
       for (let i = 0; i < 12; i++) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const monthEnd = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+        const detailYear = date.getFullYear();
+        const detailMonth = date.getMonth() + 1;
+        const detailMonthStart = `${detailYear}-${String(detailMonth).padStart(2, "0")}-01`;
+        const daysInDetailMonth = new Date(detailYear, detailMonth, 0).getDate();
+        const detailMonthEnd = `${detailYear}-${String(detailMonth).padStart(2, "0")}-${String(daysInDetailMonth).padStart(2, "0")}`;
 
         const { data: activities } = await supabase
           .from("activities")
           .select("id")
-          .gte("activity_date", monthStart)
-          .lte("activity_date", monthEnd);
+          .gte("activity_date", detailMonthStart)
+          .lte("activity_date", detailMonthEnd);
 
         if (!activities || activities.length === 0) {
           monthlyStats.push({
-            month: `${year}-${String(month).padStart(2, "0")}`,
+            month: `${detailYear}-${String(detailMonth).padStart(2, "0")}`,
             total: 0,
             present: 0,
             absent: 0,
@@ -560,7 +554,7 @@ export default function DashboardPage() {
         const rate = total > 0 ? Math.round((present / total) * 100) : 0;
 
         monthlyStats.push({
-          month: `${year}-${String(month).padStart(2, "0")}`,
+          month: `${detailYear}-${String(detailMonth).padStart(2, "0")}`,
           total,
           present,
           absent,
