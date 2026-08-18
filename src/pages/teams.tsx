@@ -27,6 +27,22 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Plus, Edit, Trash2 } from "lucide-react";
 
+const AGE_CATEGORIES = [
+  "Člani",
+  "Članice", 
+  "Mladinci",
+  "Mladinke",
+  "Kadeti",
+  "Kadetinje",
+  "Mlajši kadeti",
+  "Mlajše kadetinje",
+  "Pionirji",
+  "Pionirke",
+  "Mlajši pionirji",
+  "Mlajše pionirke",
+  "Mini",
+];
+
 interface Team {
   id: string;
   name: string;
@@ -566,12 +582,21 @@ export default function TeamsPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="age_category">Starostna kategorija</Label>
-                    <Input
-                      id="age_category"
-                      placeholder="npr. U15, U17"
+                    <Select
                       value={formData.age_category}
-                      onChange={(e) => setFormData({ ...formData, age_category: e.target.value })}
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, age_category: value })}
+                    >
+                      <SelectTrigger id="age_category">
+                        <SelectValue placeholder="Izberi starostno kategorijo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AGE_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
