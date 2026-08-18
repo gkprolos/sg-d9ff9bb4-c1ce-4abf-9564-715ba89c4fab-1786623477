@@ -396,6 +396,9 @@ CREATE POLICY "Admin manage activities"
 -- UPDATE/INSERT omejitve za trenerje
 REVOKE INSERT, UPDATE, DELETE ON activities FROM authenticated;
 
+-- Allow UPDATE for specific columns so the activities_update_policy can work
+GRANT UPDATE (is_completed, updated_at, notes) ON activities TO authenticated;
+
 -- ============================================================================
 -- TABELA: activity_coaches
 -- ============================================================================
