@@ -107,10 +107,10 @@ export default function MyPlayersPage() {
           guardian2_phone,
           guardian2_email,
           is_active,
-          team_players!inner(
+          team_players(
             id,
             team_id,
-            teams!inner(
+            teams(
               id,
               name
             )

@@ -1,101 +1,22 @@
--- Apply RLS policies for coach player management
--- PLAYERS policies
-DROP POLICY IF EXISTS "players_insert_coaches" ON public.players;
-DROP POLICY IF EXISTS "players_update_coaches" ON public.players;
+-- Migration: Add guardian contact fields to players table
+-- Date: 2026-08-17
+-- Description: Add guardian1 and guardian2 contact information fields directly to players table
 
-CREATE POLICY "players_insert_coaches"
-ON public.players
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-      AND is_active = true
-  )
-  AND
-  EXISTS (
-    SELECT 1 FROM user_roles
-    WHERE user_id = auth.uid()
-      AND role IN ('coach', 'admin')
-  )
-);
+-- Add guardian1 fields
+ALTER TABLE public.players
+ADD COLUMN IF NOT EXISTS guardian1_name TEXT,
+ADD COLUMN IF NOT EXISTS guardian1_phone TEXT,
+ADD COLUMN IF NOT EXISTS guardian1_email TEXT;
 
-CREATE POLICY "players_update_coaches"
-ON public.players
-FOR UPDATE
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-      AND is_active = true
-  )
-  AND
-  EXISTS (
-    SELECT 1 FROM user_roles
-    WHERE user_id = auth.uid()
-      AND role IN ('coach', 'admin')
-  )
-)
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-      AND is_active = true
-  )
-  AND
-  EXISTS (
-    SELECT 1 FROM user_roles
-    WHERE user_id = auth.uid()
-      AND role IN ('coach', 'admin')
-  )
-);
+-- Add guardian2 fields
+ALTER TABLE public.players
+ADD COLUMN IF NOT EXISTS guardian2_name TEXT,
+ADD COLUMN IF NOT EXISTS guardian2_phone TEXT,
+ADD COLUMN IF NOT EXISTS guardian2_email TEXT;
 
--- TEAM_PLAYERS policies
-DROP POLICY IF EXISTS "team_players_insert_coaches" ON public.team_players;
-DROP POLICY IF EXISTS "team_players_delete_coaches" ON public.team_players;
-
-CREATE POLICY "team_players_insert_coaches"
-ON public.team_players
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-      AND is_active = true
-  )
-  AND
-  EXISTS (
-    SELECT 1 FROM user_roles
-    WHERE user_id = auth.uid()
-      AND role IN ('coach', 'admin')
-  )
-  AND
-  EXISTS (
-    SELECT 1 FROM teams
-    WHERE id = team_id
-      AND is_archived = false
-  )
-);
-
-CREATE POLICY "team_players_delete_coaches"
-ON public.team_players
-FOR DELETE
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-      AND is_active = true
-  )
-  AND
-  EXISTS (
-    SELECT 1 FROM user_roles
-    WHERE user_id = auth.uid()
-      AND role IN ('coach', 'admin')
-  )
-);
-
-SELECT 'RLS policies for coach player management created successfully' as status;
+COMMENT ON COLUMN public.players.guardian1_name IS 'Full name of first guardian/parent';
+COMMENT ON COLUMN public.players.guardian1_phone IS 'Phone number of first guardian/parent';
+COMMENT ON COLUMN public.players.guardian1_email IS 'Email address of first guardian/parent';
+COMMENT ON COLUMN public.players.guardian2_name IS 'Full name of second guardian/parent';
+COMMENT ON COLUMN public.players.guardian2_phone IS 'Phone number of second guardian/parent';
+COMMENT ON COLUMN public.players.guardian2_email IS 'Email address of second guardian/parent';

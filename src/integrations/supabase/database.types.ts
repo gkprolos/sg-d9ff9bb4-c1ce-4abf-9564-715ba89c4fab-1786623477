@@ -673,6 +673,12 @@ export type Database = {
           date_of_birth: string
           first_name: string
           gender: string | null
+          guardian1_email: string | null
+          guardian1_name: string | null
+          guardian1_phone: string | null
+          guardian2_email: string | null
+          guardian2_name: string | null
+          guardian2_phone: string | null
           id: string
           is_active: boolean
           joined_date: string | null
@@ -690,6 +696,12 @@ export type Database = {
           date_of_birth: string
           first_name: string
           gender?: string | null
+          guardian1_email?: string | null
+          guardian1_name?: string | null
+          guardian1_phone?: string | null
+          guardian2_email?: string | null
+          guardian2_name?: string | null
+          guardian2_phone?: string | null
           id?: string
           is_active?: boolean
           joined_date?: string | null
@@ -707,6 +719,12 @@ export type Database = {
           date_of_birth?: string
           first_name?: string
           gender?: string | null
+          guardian1_email?: string | null
+          guardian1_name?: string | null
+          guardian1_phone?: string | null
+          guardian2_email?: string | null
+          guardian2_name?: string | null
+          guardian2_phone?: string | null
           id?: string
           is_active?: boolean
           joined_date?: string | null
