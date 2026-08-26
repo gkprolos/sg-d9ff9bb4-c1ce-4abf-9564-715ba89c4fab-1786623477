@@ -131,6 +131,7 @@ export default function DashboardPage() {
   const [coachKilometers, setCoachKilometers] = useState<CoachKilometers[]>([]);
   const [monthlyBilling, setMonthlyBilling] = useState<MonthlyBilling[]>([]);
   const [billingExpanded, setBillingExpanded] = useState(false);
+  const [coaches, setCoaches] = useState<any[]>([]);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPlayerDetail, setSelectedPlayerDetail] = useState<PlayerDetail | null>(null);
   const [coachRates, setCoachRates] = useState<any>(null);
@@ -711,7 +712,6 @@ export default function DashboardPage() {
         const { data, error } = await supabase
           .from("profiles")
           .select("id, full_name")
-          .eq("role", "coach")
           .order("full_name", { ascending: true });
 
         if (error) throw error;
@@ -864,7 +864,7 @@ export default function DashboardPage() {
           team_id,
           activity_coaches(
             coach_id,
-            kilometers
+            mileage_km
           ),
           teams(name)
         `)
@@ -891,7 +891,7 @@ export default function DashboardPage() {
         
         for (const ac of activityCoaches) {
           if (coachIds.length > 0 && !coachIds.includes(ac.coach_id)) continue;
-          if (!ac.kilometers || ac.kilometers === 0) continue; // Skip zero kilometers
+          if (!ac.mileage_km || ac.mileage_km === 0) continue; // Skip zero kilometers
 
           const key = `${ac.coach_id}-${activity.team_id}`;
           
@@ -906,7 +906,7 @@ export default function DashboardPage() {
           }
 
           const entry = kilometersMap.get(key)!;
-          entry.total_kilometers += ac.kilometers || 0;
+          entry.total_kilometers += ac.mileage_km || 0;
           entry.activity_count += 1;
         }
       }
