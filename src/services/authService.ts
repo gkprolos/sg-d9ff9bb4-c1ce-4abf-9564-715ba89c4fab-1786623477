@@ -139,16 +139,3 @@ export async function deleteUser(userId: string) {
   // as deleting auth.users requires service_role permissions
   throw new Error("User deletion must be performed by administrator via Supabase dashboard");
 }
-
-export async function isAdmin(): Promise<boolean> {
-  try {
-    const user = await getCurrentUser();
-    if (!user) return false;
-    
-    const role = await getUserRole(user.id);
-    return role === "admin";
-  } catch (error) {
-    console.error("Error checking admin status:", error);
-    return false;
-  }
-}

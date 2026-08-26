@@ -1,9 +1,7 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { isAdmin as checkIsAdmin } from "@/services/authService";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,7 +31,6 @@ const monthNames = [
 
 export default function BillingPage() {
   const { user } = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -45,16 +42,14 @@ export default function BillingPage() {
   const [coaches, setCoaches] = useState<any[]>([]);
   const [monthlyBilling, setMonthlyBilling] = useState<MonthlyBilling[]>([]);
 
-  // Check admin status
   useEffect(() => {
     async function checkAdmin() {
       if (user) {
-        try {
-          const adminStatus = await checkIsAdmin();
-          setIsAdmin(adminStatus);
-        } catch (error) {
-          console.error("Error checking admin status:", error);
-          setIsAdmin(false);
+        const { data, error } = await supabase
+          .rpc("is_admin" as any, { user_id: user.id });
+        
+        if (!error && typeof data === "boolean") {
+          setIsAdmin(data);
         }
       }
     }
@@ -262,31 +257,11 @@ export default function BillingPage() {
         }
 
         console.log(`Found ${(coachRatesData || []).length} coach rate records`);
-        
-        // Debug: Show loaded rates
-        if (coachRatesData && coachRatesData.length > 0) {
-          console.log("Coach rates loaded:");
-          coachRatesData.forEach(cr => {
-            console.log(`  Coach ${cr.coach_id}, Season ${cr.season_id}:`, {
-              type1_head: cr.head_type1_per_hour,
-              type1_asst: cr.assistant_type1_per_hour,
-              type2_head: cr.head_type2_per_hour,
-              type2_asst: cr.assistant_type2_per_hour,
-              type3_head: cr.head_type3_fixed,
-              type3_asst: cr.assistant_type3_fixed,
-              mileage: cr.rate_per_km,
-            });
-          });
-        } else {
-          console.warn("⚠️ NO COACH RATES FOUND! Check if coach_rates table has data for these seasons.");
-        }
 
         // Create map: coach_id + season_id -> rates
         const coachRatesMap = new Map(
           (coachRatesData || []).map(cr => [`${cr.coach_id}-${cr.season_id}`, cr])
         );
-        
-        console.log(`Coach rates map has ${coachRatesMap.size} entries`);
 
         // Group by coach
         const coachBillingMap = new Map<string, {
@@ -344,11 +319,7 @@ export default function BillingPage() {
             const isHead = ac.role === "head";
 
             if (!coachRates) {
-              console.warn(`⚠️ No coach rates found for coach ${ac.coach_id} in season ${activity.season_id}`);
-              console.warn(`   Looking for key: ${ac.coach_id}-${activity.season_id}`);
-              console.warn(`   Available keys: ${Array.from(coachRatesMap.keys()).join(", ")}`);
-            } else {
-              console.log(`   ✓ Found rates for coach ${ac.coach_id}, season ${activity.season_id}`);
+              console.warn(`No coach rates found for coach ${ac.coach_id} in season ${activity.season_id}`);
             }
 
             if (isTraining) {
