@@ -340,12 +340,11 @@ export default function BillingPage() {
             const coachProfile = coachProfileMap.get(ac.coach_id);
 
             if (!coachProfile) {
-              console.warn(`⚠️ No profile found for coach ${ac.coach_id}`);
-              continue;
+              console.warn(`⚠️ No profile found for coach ${ac.coach_id} - using default rates (0)`);
             }
 
-            const hourlyRate = coachProfile.hourly_rate || 0;
-            const kmRate = coachProfile.km_rate || 0;
+            const hourlyRate = coachProfile?.hourly_rate || 0;
+            const kmRate = coachProfile?.km_rate || 0;
 
             console.log(`    Using rates: hourly=${hourlyRate}, km=${kmRate}`);
 
@@ -386,11 +385,15 @@ export default function BillingPage() {
           const totalHours = billing.training_hours + billing.match_hours;
           const totalAmount = billing.hourly_amount + billing.kilometer_amount;
 
-          console.log(`Coach ${coachProfile?.full_name}: training_hours=${billing.training_hours.toFixed(1)}, hourly_amount=${billing.hourly_amount.toFixed(2)}, km_amount=${billing.kilometer_amount.toFixed(2)}, total=${totalAmount.toFixed(2)}`);
+          const coachName = coachProfile?.full_name 
+            ? coachProfile.full_name
+            : `⚠️ Neznan trener (${coachId.substring(0, 8)}...)`;
+
+          console.log(`Coach ${coachName}: training_hours=${billing.training_hours.toFixed(1)}, hourly_amount=${billing.hourly_amount.toFixed(2)}, km_amount=${billing.kilometer_amount.toFixed(2)}, total=${totalAmount.toFixed(2)}`);
 
           billingArray.push({
             coach_id: coachId,
-            coach_name: coachProfile?.full_name || "Neznan trener",
+            coach_name: coachName,
             month: monthStr,
             training_count: billing.training_count,
             training_hours: Math.round(billing.training_hours * 10) / 10,
