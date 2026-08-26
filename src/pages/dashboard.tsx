@@ -108,9 +108,6 @@ export default function DashboardPage() {
     if (user) {
       loadTeams();
       loadStats();
-      loadMonthlyActivities();
-      loadCoachMonthly();
-      loadTeamAnalytics();
       loadPlayerAttendance();
     }
   }, [user, isAdmin, selectedMonth, selectedTeam]);
