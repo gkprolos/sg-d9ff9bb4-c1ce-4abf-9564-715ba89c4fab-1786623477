@@ -1504,10 +1504,8 @@ export default function DashboardPage() {
                       </TableHeader>
                       <TableBody>
                         {coachKilometers.map((coach, idx) => (
-                          <TableRow key={`${coach.coach_id}-${coach.team_name}-${idx}`}>
+                          <TableRow key={`mobile-${coach.coach_id}-${idx}`}>
                             <TableCell>{coach.coach_name}</TableCell>
-                            <TableCell>{coach.team_name}</TableCell>
-                            <TableCell className="text-right">{coach.activity_count}</TableCell>
                             <TableCell className="text-right">
                               {coach.total_kilometers.toFixed(1)} km
                             </TableCell>
@@ -1724,8 +1722,8 @@ export default function DashboardPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {coachKilometers.map((coach) => (
-                            <TableRow key={coach.coach_id}>
+                          {coachKilometers.map((coach, idx) => (
+                            <TableRow key={`${coach.coach_id}-${idx}`}>
                               <TableCell>{coach.coach_name}</TableCell>
                               <TableCell className="text-right">
                                 {coach.total_kilometers.toFixed(1)} km
