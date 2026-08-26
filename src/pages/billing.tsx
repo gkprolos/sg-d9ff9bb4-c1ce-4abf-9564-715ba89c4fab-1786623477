@@ -1,7 +1,7 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { authService } from "@/services/authService";
+import { isAdmin as checkIsAdmin } from "@/services/authService";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,11 +45,12 @@ export default function BillingPage() {
   const [coaches, setCoaches] = useState<any[]>([]);
   const [monthlyBilling, setMonthlyBilling] = useState<MonthlyBilling[]>([]);
 
+  // Check admin status
   useEffect(() => {
     async function checkAdmin() {
       if (user) {
         try {
-          const adminStatus = await authService.isAdmin();
+          const adminStatus = await checkIsAdmin();
           setIsAdmin(adminStatus);
         } catch (error) {
           console.error("Error checking admin status:", error);
