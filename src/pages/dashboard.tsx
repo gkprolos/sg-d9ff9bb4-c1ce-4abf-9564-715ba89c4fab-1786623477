@@ -105,14 +105,15 @@ export default function DashboardPage() {
   }, [user, userRole]);
 
   useEffect(() => {
-    if (selectedMonth) {
+    if (user) {
+      loadTeams();
       loadStats();
+      loadMonthlyActivities();
+      loadCoachMonthly();
+      loadTeamAnalytics();
       loadPlayerAttendance();
-      if (!isAdmin && user?.id) {
-        loadCoachRates();
-      }
     }
-  }, [selectedMonth, selectedSeason, selectedTeam, userRole]);
+  }, [user, isAdmin, selectedMonth, selectedTeam]);
 
   async function loadInitialData() {
     try {
@@ -611,6 +612,41 @@ export default function DashboardPage() {
     }
   }
 
+  async function loadTeams() {
+    try {
+      let query = supabase
+        .from("teams")
+        .select("id, name, short_name")
+        .eq("is_archived", false)
+        .order("name", { ascending: true });
+
+      // For coaches, only show their teams
+      if (!isAdmin && user?.id) {
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
+
+        const teamIds = (coachTeams || []).map(ct => ct.team_id);
+        
+        if (teamIds.length > 0) {
+          query = query.in("id", teamIds);
+        } else {
+          setTeams([]);
+          return;
+        }
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setTeams(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju selekcij:", error);
+    }
+  }
+
   async function handlePlayerClick(playerId: string) {
     try {
       const { data: playerData } = await supabase
@@ -831,69 +867,49 @@ export default function DashboardPage() {
           </div>
 
           {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Filtri</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="month">Mesec</Label>
-                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                    <SelectTrigger id="month">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {generateMonthOptions().map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          {isAdmin && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="month_filter">Mesec</Label>
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                      <SelectTrigger id="month_filter">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {generateMonthOptions().map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="team_filter">Selekcija</Label>
+                    <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                      <SelectTrigger id="team_filter">
+                        <SelectValue placeholder="Izberi selekcijo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Vse selekcije</SelectItem>
+                        {teams.map((team) => (
+                          <SelectItem key={team.id} value={team.id}>
+                            {team.short_name || team.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-
-                {isAdmin && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="season_filter">Sezona</Label>
-                      <Select value={selectedSeason || ""} onValueChange={(val) => setSelectedSeason(val || null)}>
-                        <SelectTrigger id="season_filter">
-                          <SelectValue placeholder="Vse sezone" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {seasons.map((season) => (
-                            <SelectItem key={season.id} value={season.id}>
-                              {season.name} {season.is_active && "(Aktivna)"}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="team_filter">Selekcija</Label>
-                      <Select value={selectedTeam || ""} onValueChange={(val) => setSelectedTeam(val || null)}>
-                        <SelectTrigger id="team_filter">
-                          <SelectValue placeholder="Vse selekcije" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {teams.map((team) => (
-                            <SelectItem key={team.id} value={team.id}>
-                              {team.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Player Attendance by Team */}
-          {isAdmin && selectedTeam !== "all" && (
+          {isAdmin && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -910,66 +926,88 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               
-              {/* Desktop view - always visible */}
-              <CardContent className="hidden md:block">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Igralec</TableHead>
-                        <TableHead className="text-right">Prisotnosti</TableHead>
-                        <TableHead className="text-right">Odsotnosti</TableHead>
-                        <TableHead className="text-right">Javljene</TableHead>
-                        <TableHead className="text-right">Odstotek</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {playerAttendance.map((player) => (
-                        <TableRow key={player.player_id}>
-                          <TableCell>{player.player_name}</TableCell>
-                          <TableCell className="text-right">{player.present}</TableCell>
-                          <TableCell className="text-right">{player.absent}</TableCell>
-                          <TableCell className="text-right">{player.excused}</TableCell>
-                          <TableCell className="text-right">
-                            {player.attendance_rate.toFixed(1)}%
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-
-              {/* Mobile view - toggle visibility */}
-              {showMobilePlayerAttendance && (
-                <CardContent className="block md:hidden">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Igralec</TableHead>
-                          <TableHead className="text-right">Prisotnosti</TableHead>
-                          <TableHead className="text-right">Odsotnosti</TableHead>
-                          <TableHead className="text-right">Javljene</TableHead>
-                          <TableHead className="text-right">Odstotek</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {playerAttendance.map((player) => (
-                          <TableRow key={player.player_id}>
-                            <TableCell>{player.player_name}</TableCell>
-                            <TableCell className="text-right">{player.present}</TableCell>
-                            <TableCell className="text-right">{player.absent}</TableCell>
-                            <TableCell className="text-right">{player.excused}</TableCell>
-                            <TableCell className="text-right">
-                              {player.attendance_rate.toFixed(1)}%
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+              {selectedTeam === "all" ? (
+                <CardContent>
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Izberite posamezno selekcijo za prikaz obiska igralcev
+                  </p>
                 </CardContent>
+              ) : (
+                <>
+                  {/* Desktop view - always visible */}
+                  <CardContent className="hidden md:block">
+                    {playerAttendance.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        Ni podatkov o obisku za izbrano selekcijo in mesec
+                      </p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Igralec</TableHead>
+                              <TableHead className="text-right">Prisotnosti</TableHead>
+                              <TableHead className="text-right">Odsotnosti</TableHead>
+                              <TableHead className="text-right">Javljene</TableHead>
+                              <TableHead className="text-right">Odstotek</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {playerAttendance.map((player) => (
+                              <TableRow key={player.player_id}>
+                                <TableCell>{player.player_name}</TableCell>
+                                <TableCell className="text-right">{player.present}</TableCell>
+                                <TableCell className="text-right">{player.absent}</TableCell>
+                                <TableCell className="text-right">{player.excused}</TableCell>
+                                <TableCell className="text-right">
+                                  {player.attendance_rate.toFixed(1)}%
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+
+                  {/* Mobile view - toggle visibility */}
+                  {showMobilePlayerAttendance && (
+                    <CardContent className="block md:hidden">
+                      {playerAttendance.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          Ni podatkov o obisku za izbrano selekcijo in mesec
+                        </p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Igralec</TableHead>
+                                <TableHead className="text-right">Prisotnosti</TableHead>
+                                <TableHead className="text-right">Odsotnosti</TableHead>
+                                <TableHead className="text-right">Javljene</TableHead>
+                                <TableHead className="text-right">Odstotek</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {playerAttendance.map((player) => (
+                                <TableRow key={player.player_id}>
+                                  <TableCell>{player.player_name}</TableCell>
+                                  <TableCell className="text-right">{player.present}</TableCell>
+                                  <TableCell className="text-right">{player.absent}</TableCell>
+                                  <TableCell className="text-right">{player.excused}</TableCell>
+                                  <TableCell className="text-right">
+                                    {player.attendance_rate.toFixed(1)}%
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  )}
+                </>
               )}
             </Card>
           )}
