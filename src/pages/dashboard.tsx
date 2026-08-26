@@ -83,8 +83,9 @@ export default function DashboardPage() {
   const [seasons, setSeasons] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedSeason, setSelectedSeason] = useState("");
-  const [selectedTeam, setSelectedTeam] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState(() => {
+  const [selectedTeam, setSelectedTeam] = useState<string>("all");
+  const [showMobilePlayerAttendance, setShowMobilePlayerAttendance] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
@@ -883,113 +884,85 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Player Attendance Table */}
-          {playerAttendance.length > 0 && (
+          {/* Player Attendance by Team */}
+          {isAdmin && selectedTeam !== "all" && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingDown className="h-5 w-5" />
-                    Pregled obiska po igralcih
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Razvrstitev po najslabšem obisku
-                  </p>
-                </div>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Pregled obiska po igralcih</span>
+                  {/* Mobile toggle button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMobilePlayerAttendance(!showMobilePlayerAttendance)}
+                    className="md:hidden"
+                  >
+                    {showMobilePlayerAttendance ? "Skrij pregled" : "Prikaži pregled"}
+                  </Button>
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              
+              {/* Desktop view - always visible */}
+              <CardContent className="hidden md:block">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="sticky left-0 bg-background z-10">Igralec</TableHead>
-                        <TableHead>Selekcija</TableHead>
-                        {Array.from({ length: daysInSelectedMonth() }, (_, i) => (
-                          <TableHead key={i + 1} className="text-center min-w-[40px]">
-                            {i + 1}
-                          </TableHead>
-                        ))}
-                        <TableHead className="text-center">Skupaj</TableHead>
-                        <TableHead className="text-center">Prisoten</TableHead>
-                        <TableHead className="text-center">Odsoten</TableHead>
-                        <TableHead className="text-center">Opravičeno</TableHead>
-                        <TableHead className="text-center">Obisk %</TableHead>
+                        <TableHead>Igralec</TableHead>
+                        <TableHead className="text-right">Prisotnosti</TableHead>
+                        <TableHead className="text-right">Odsotnosti</TableHead>
+                        <TableHead className="text-right">Javljene</TableHead>
+                        <TableHead className="text-right">Odstotek</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {playerAttendance.map((player) => (
-                        <TableRow 
-                          key={player.player_id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handlePlayerClick(player.player_id)}
-                        >
-                          <TableCell className="sticky left-0 bg-background font-medium">
-                            {player.player_name}
-                          </TableCell>
-                          <TableCell>{player.team_name}</TableCell>
-                          {Array.from({ length: daysInSelectedMonth() }, (_, i) => {
-                            const status = player.daily_attendance[i + 1];
-                            return (
-                              <TableCell key={i + 1} className="text-center">
-                                {status === 1 && (
-                                  <Badge className="bg-green-600 w-6 h-6 rounded-full p-0 flex items-center justify-center">
-                                    1
-                                  </Badge>
-                                )}
-                                {status === 0 && (
-                                  <Badge variant="destructive" className="w-6 h-6 rounded-full p-0 flex items-center justify-center">
-                                    0
-                                  </Badge>
-                                )}
-                                {status === 2 && (
-                                  <Badge className="bg-orange-600 w-6 h-6 rounded-full p-0 flex items-center justify-center">
-                                    2
-                                  </Badge>
-                                )}
-                              </TableCell>
-                            );
-                          })}
-                          <TableCell className="text-center font-medium">
-                            {player.total_activities}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge className="bg-green-600">{player.present}</Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="destructive">{player.absent}</Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge className="bg-orange-600">{player.excused}</Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge 
-                              variant={player.attendance_rate < 70 ? "destructive" : "default"}
-                              className={player.attendance_rate >= 70 ? "bg-green-600" : ""}
-                            >
-                              {player.attendance_rate}%
-                            </Badge>
+                        <TableRow key={player.player_id}>
+                          <TableCell>{player.player_name}</TableCell>
+                          <TableCell className="text-right">{player.present}</TableCell>
+                          <TableCell className="text-right">{player.absent}</TableCell>
+                          <TableCell className="text-right">{player.excused}</TableCell>
+                          <TableCell className="text-right">
+                            {player.attendance_percentage.toFixed(1)}%
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
-
-                <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-green-600">1</Badge>
-                    <span>Prisoten</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="destructive">0</Badge>
-                    <span>Odsoten</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-orange-600">2</Badge>
-                    <span>Javljena odsotnost</span>
-                  </div>
-                </div>
               </CardContent>
+
+              {/* Mobile view - toggle visibility */}
+              {showMobilePlayerAttendance && (
+                <CardContent className="block md:hidden">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Igralec</TableHead>
+                          <TableHead className="text-right">Prisotnosti</TableHead>
+                          <TableHead className="text-right">Odsotnosti</TableHead>
+                          <TableHead className="text-right">Javljene</TableHead>
+                          <TableHead className="text-right">Odstotek</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {playerAttendance.map((player) => (
+                          <TableRow key={player.player_id}>
+                            <TableCell>{player.player_name}</TableCell>
+                            <TableCell className="text-right">{player.present}</TableCell>
+                            <TableCell className="text-right">{player.absent}</TableCell>
+                            <TableCell className="text-right">{player.excused}</TableCell>
+                            <TableCell className="text-right">
+                              {player.attendance_percentage.toFixed(1)}%
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              )}
             </Card>
           )}
 
