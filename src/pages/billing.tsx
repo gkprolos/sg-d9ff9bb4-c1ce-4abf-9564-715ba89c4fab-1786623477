@@ -257,11 +257,31 @@ export default function BillingPage() {
         }
 
         console.log(`Found ${(coachRatesData || []).length} coach rate records`);
+        
+        // Debug: Show loaded rates
+        if (coachRatesData && coachRatesData.length > 0) {
+          console.log("Coach rates loaded:");
+          coachRatesData.forEach(cr => {
+            console.log(`  Coach ${cr.coach_id}, Season ${cr.season_id}:`, {
+              type1_head: cr.head_type1_per_hour,
+              type1_asst: cr.assistant_type1_per_hour,
+              type2_head: cr.head_type2_per_hour,
+              type2_asst: cr.assistant_type2_per_hour,
+              type3_head: cr.head_type3_fixed,
+              type3_asst: cr.assistant_type3_fixed,
+              mileage: cr.rate_per_km,
+            });
+          });
+        } else {
+          console.warn("⚠️ NO COACH RATES FOUND! Check if coach_rates table has data for these seasons.");
+        }
 
         // Create map: coach_id + season_id -> rates
         const coachRatesMap = new Map(
           (coachRatesData || []).map(cr => [`${cr.coach_id}-${cr.season_id}`, cr])
         );
+        
+        console.log(`Coach rates map has ${coachRatesMap.size} entries`);
 
         // Group by coach
         const coachBillingMap = new Map<string, {
@@ -319,7 +339,11 @@ export default function BillingPage() {
             const isHead = ac.role === "head";
 
             if (!coachRates) {
-              console.warn(`No coach rates found for coach ${ac.coach_id} in season ${activity.season_id}`);
+              console.warn(`⚠️ No coach rates found for coach ${ac.coach_id} in season ${activity.season_id}`);
+              console.warn(`   Looking for key: ${ac.coach_id}-${activity.season_id}`);
+              console.warn(`   Available keys: ${Array.from(coachRatesMap.keys()).join(", ")}`);
+            } else {
+              console.log(`   ✓ Found rates for coach ${ac.coach_id}, season ${activity.season_id}`);
             }
 
             if (isTraining) {
