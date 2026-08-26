@@ -1067,35 +1067,38 @@ export default function DashboardPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {isAdmin ? "Aktivne selekcije" : "Moje selekcije"}
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Moje selekcije</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.activeTeams}</div>
+                <div className="text-2xl font-bold">{myTeamsCount}</div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Dvorane</CardTitle>
-                <Building className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.activeVenues}</div>
-              </CardContent>
-            </Card>
+            {/* Show Venues and Total Activities only for admin */}
+            {isAdmin && (
+              <>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Dvorane</CardTitle>
+                    <Building className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{venuesCount}</div>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Skupaj aktivnosti</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalActivities}</div>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Skupaj aktivnosti</CardTitle>
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{totalActivitiesCount}</div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
 
           {/* Monthly Stats */}
@@ -1116,7 +1119,12 @@ export default function DashboardPage() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.monthlyHours}h</div>
+                <div className="text-2xl font-bold">
+                  {(() => {
+                    const totalHours = coachHours.reduce((sum, ch) => sum + ch.total_hours, 0);
+                    return `${totalHours.toFixed(1)}h`;
+                  })()}
+                </div>
               </CardContent>
             </Card>
 
@@ -1151,9 +1159,12 @@ export default function DashboardPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Kliknite za ogled podrobnega mesečnega obračuna
-                </p>
+                <div className="text-2xl font-bold">
+                  {(() => {
+                    const totalAmount = monthlyBilling.reduce((sum, mb) => sum + mb.total_amount, 0);
+                    return `${totalAmount.toFixed(2)} €`;
+                  })()}
+                </div>
               </CardContent>
             </Card>
           </Link>
@@ -1369,34 +1380,25 @@ export default function DashboardPage() {
                     </Table>
                   </div>
 
-                  {/* Summary by team */}
+                  {/* Summary: Single total row instead of by team */}
                   <div className="mt-6 pt-4 border-t">
-                    <h4 className="text-sm font-semibold mb-3">Skupno po selekcijah</h4>
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Selekcija</TableHead>
+                          <TableHead>Skupno</TableHead>
                           <TableHead className="text-right">Skupno ur</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {(() => {
-                          const teamTotals = new Map<string, number>();
-                          coachHours.forEach(ch => {
-                            const current = teamTotals.get(ch.team_name) || 0;
-                            teamTotals.set(ch.team_name, current + ch.total_hours);
-                          });
-                          return Array.from(teamTotals.entries())
-                            .sort((a, b) => a[0].localeCompare(b[0]))
-                            .map(([teamName, totalHours]) => (
-                              <TableRow key={teamName}>
-                                <TableCell className="font-medium">{teamName}</TableCell>
-                                <TableCell className="text-right font-semibold">
-                                  {totalHours.toFixed(1)} h
-                                </TableCell>
-                              </TableRow>
-                            ));
-                        })()}
+                        <TableRow>
+                          <TableCell className="font-semibold">Vse selekcije</TableCell>
+                          <TableCell className="text-right font-bold">
+                            {(() => {
+                              const totalHours = coachHours.reduce((sum, ch) => sum + ch.total_hours, 0);
+                              return `${totalHours.toFixed(1)} h`;
+                            })()}
+                          </TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
