@@ -963,75 +963,9 @@ export default function DashboardPage() {
                     )}
                   </CardContent>
                 )}
-              )}
-            </Card>
-          )}
-
-          {/* Player Detail Dialog */}
-          <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  Podrobnosti obiska - {selectedPlayerDetail?.player_name}
-                </DialogTitle>
-              </DialogHeader>
-
-              {selectedPlayerDetail && (
-                <div className="space-y-6 py-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Selekcija: <strong>{selectedPlayerDetail.team_name}</strong>
-                    </p>
-                  </div>
-
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Mesec</TableHead>
-                        <TableHead className="text-center">Skupaj</TableHead>
-                        <TableHead className="text-center">Prisoten</TableHead>
-                        <TableHead className="text-center">Odsoten</TableHead>
-                        <TableHead className="text-center">Opravičeno</TableHead>
-                        <TableHead className="text-center">Obisk %</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedPlayerDetail.monthly_stats.map((stat) => {
-                        const [year, month] = stat.month.split("-");
-                        const monthName = monthNames[parseInt(month) - 1];
-                        
-                        return (
-                          <TableRow key={stat.month}>
-                            <TableCell className="font-medium">
-                              {monthName} {year}
-                            </TableCell>
-                            <TableCell className="text-center">{stat.total}</TableCell>
-                            <TableCell className="text-center">
-                              <Badge className="bg-green-600">{stat.present}</Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="destructive">{stat.absent}</Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge className="bg-orange-600">{stat.excused}</Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge 
-                                variant={stat.rate < 70 ? "destructive" : "default"}
-                                className={stat.rate >= 70 ? "bg-green-600" : ""}
-                              >
-                                {stat.rate}%
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
+              </>
+            )}
+          </Card>
         </div>
       </AppLayout>
     </ProtectedRoute>
