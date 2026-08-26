@@ -187,6 +187,39 @@ export default function BillingPage() {
           return diffMonths;
         })();
 
+      // Load coach profiles with rates
+      let coachProfilesQuery = supabase
+        .from("profiles")
+        .select("id, full_name, hourly_rate, km_rate");
+
+      if (coachIds.length > 0) {
+        coachProfilesQuery = coachProfilesQuery.in("id", coachIds);
+      }
+
+      const { data: coachProfiles, error: profilesError } = await coachProfilesQuery;
+      
+      if (profilesError) {
+        console.error("Error loading coach profiles:", profilesError);
+        throw profilesError;
+      }
+
+      console.log(`Loaded ${(coachProfiles || []).length} coach profiles with rates`);
+      
+      // Debug: Show loaded profiles
+      if (coachProfiles && coachProfiles.length > 0) {
+        console.log("Coach profiles loaded:");
+        coachProfiles.forEach(cp => {
+          console.log(`  ${cp.full_name} (${cp.id}): hourly_rate=${cp.hourly_rate}, km_rate=${cp.km_rate}`);
+        });
+      } else {
+        console.warn("⚠️ NO COACH PROFILES FOUND!");
+      }
+
+      // Create coach map: coach_id -> profile
+      const coachProfileMap = new Map(
+        (coachProfiles || []).map(cp => [cp.id, cp])
+      );
+
       // Load months
       for (let i = startMonthOffset; i < startMonthOffset + monthsToLoad; i++) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -204,7 +237,6 @@ export default function BillingPage() {
           .select(`
             id,
             team_id,
-            season_id,
             activity_type_id,
             start_time,
             end_time,
@@ -235,33 +267,6 @@ export default function BillingPage() {
         }
 
         console.log(`Found ${activities.length} activities for ${monthStr}`);
-
-        // Get unique season IDs from activities
-        const seasonIds = Array.from(new Set(activities.map(a => a.season_id)));
-        console.log(`Season IDs: ${seasonIds.join(", ")}`);
-
-        // Load coach_rates for all coaches and seasons
-        let coachRatesQuery = supabase
-          .from("coach_rates")
-          .select("*")
-          .in("season_id", seasonIds);
-
-        if (coachIds.length > 0) {
-          coachRatesQuery = coachRatesQuery.in("coach_id", coachIds);
-        }
-
-        const { data: coachRatesData, error: ratesError } = await coachRatesQuery;
-        
-        if (ratesError) {
-          console.error("Error loading coach rates:", ratesError);
-        }
-
-        console.log(`Found ${(coachRatesData || []).length} coach rate records`);
-
-        // Create map: coach_id + season_id -> rates
-        const coachRatesMap = new Map(
-          (coachRatesData || []).map(cr => [`${cr.coach_id}-${cr.season_id}`, cr])
-        );
 
         // Group by coach
         const coachBillingMap = new Map<string, {
@@ -314,75 +319,61 @@ export default function BillingPage() {
 
             console.log(`  Coach ${ac.coach_id}: role=${ac.role}, hours=${hours.toFixed(2)}`);
 
-            // Get coach rates for this season
-            const coachRates = coachRatesMap.get(`${ac.coach_id}-${activity.season_id}`);
-            const isHead = ac.role === "head";
+            // Get coach profile with rates
+            const coachProfile = coachProfileMap.get(ac.coach_id);
 
-            if (!coachRates) {
-              console.warn(`No coach rates found for coach ${ac.coach_id} in season ${activity.season_id}`);
+            if (!coachProfile) {
+              console.warn(`⚠️ No profile found for coach ${ac.coach_id}`);
+              continue;
             }
+
+            const hourlyRate = coachProfile.hourly_rate || 0;
+            const kmRate = coachProfile.km_rate || 0;
+
+            console.log(`    Using rates: hourly=${hourlyRate}, km=${kmRate}`);
 
             if (isTraining) {
               entry.training_count += 1;
               entry.training_hours += hours;
               
-              // Calculate hourly amount based on role and activity type
-              if (coachRates) {
-                const hourlyRate = activity.activity_type_id === 1
-                  ? (isHead ? coachRates.head_type1_per_hour : coachRates.assistant_type1_per_hour)
-                  : (isHead ? coachRates.head_type2_per_hour : coachRates.assistant_type2_per_hour);
-                
-                const amount = hours * (hourlyRate || 0);
-                entry.hourly_amount += amount;
-                console.log(`    Training rate: ${hourlyRate}, amount: ${amount.toFixed(2)}`);
-              }
+              // Calculate hourly amount
+              const amount = hours * hourlyRate;
+              entry.hourly_amount += amount;
+              console.log(`    Training: ${hours.toFixed(2)}h × ${hourlyRate} = ${amount.toFixed(2)} €`);
             } else if (isMatch) {
               entry.match_count += 1;
               entry.match_hours += hours * 4; // Matches count as 4x hours for display
               
-              // Calculate match amount (fixed rate per match)
-              if (coachRates) {
-                const matchRate = isHead ? coachRates.head_type3_fixed : coachRates.assistant_type3_fixed;
-                entry.hourly_amount += matchRate || 0;
-                console.log(`    Match rate: ${matchRate}`);
-              }
+              // For matches, use hourly rate × actual hours (not ×4)
+              const amount = hours * hourlyRate;
+              entry.hourly_amount += amount;
+              console.log(`    Match: ${hours.toFixed(2)}h × ${hourlyRate} = ${amount.toFixed(2)} €`);
             }
 
             // Calculate kilometer amount
             const kilometers = ac.mileage_km || 0;
             entry.total_kilometers += kilometers;
-            if (coachRates && kilometers > 0) {
-              const kmAmount = kilometers * (coachRates.rate_per_km || 0);
+            if (kilometers > 0) {
+              const kmAmount = kilometers * kmRate;
               entry.kilometer_amount += kmAmount;
-              console.log(`    Kilometers: ${kilometers}, rate: ${coachRates.rate_per_km}, amount: ${kmAmount.toFixed(2)}`);
+              console.log(`    Kilometers: ${kilometers}km × ${kmRate} = ${kmAmount.toFixed(2)} €`);
             }
           }
         }
 
         console.log(`Processed ${coachBillingMap.size} coaches for ${monthStr}`);
 
-        // Get coach names and create billing records
-        const uniqueCoachIds = Array.from(coachBillingMap.keys());
-        if (uniqueCoachIds.length === 0) continue;
-
-        const { data: coachProfiles } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .in("id", uniqueCoachIds);
-
-        const coachNameMap = new Map(
-          (coachProfiles || []).map(p => [p.id, p.full_name])
-        );
-
+        // Create billing records
         for (const [coachId, billing] of coachBillingMap) {
+          const coachProfile = coachProfileMap.get(coachId);
           const totalHours = billing.training_hours + billing.match_hours;
           const totalAmount = billing.hourly_amount + billing.kilometer_amount;
 
-          console.log(`Coach ${coachNameMap.get(coachId)}: training_hours=${billing.training_hours.toFixed(1)}, hourly_amount=${billing.hourly_amount.toFixed(2)}, km_amount=${billing.kilometer_amount.toFixed(2)}, total=${totalAmount.toFixed(2)}`);
+          console.log(`Coach ${coachProfile?.full_name}: training_hours=${billing.training_hours.toFixed(1)}, hourly_amount=${billing.hourly_amount.toFixed(2)}, km_amount=${billing.kilometer_amount.toFixed(2)}, total=${totalAmount.toFixed(2)}`);
 
           billingArray.push({
             coach_id: coachId,
-            coach_name: coachNameMap.get(coachId) || "Neznan trener",
+            coach_name: coachProfile?.full_name || "Neznan trener",
             month: monthStr,
             training_count: billing.training_count,
             training_hours: Math.round(billing.training_hours * 10) / 10,
