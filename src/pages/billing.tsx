@@ -1,6 +1,7 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { authService } from "@/services/authService";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -45,12 +46,9 @@ export default function BillingPage() {
   useEffect(() => {
     async function checkAdmin() {
       if (user) {
-        const { data, error } = await supabase
-          .rpc("is_admin" as any, { user_id: user.id });
-        
-        if (!error && typeof data === "boolean") {
-          setIsAdmin(data);
-        }
+        const adminStatus = await authService.isAdmin(user.id);
+        setIsAdmin(adminStatus);
+        console.log(`Admin status for ${user.id}: ${adminStatus}`);
       }
     }
     checkAdmin();
