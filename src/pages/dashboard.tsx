@@ -1538,6 +1538,154 @@ export default function DashboardPage() {
             )}
           </Card>
 
+          {/* Monthly Hours by Coach and Team - only for admin */}
+          {isAdmin && (
+            <Card>
+              <CardHeader className="flex items-center justify-between cursor-pointer" onClick={() => setShowMobileCoachHours(!showMobileCoachHours)}>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  <CardTitle>Ure v mesecu</CardTitle>
+                </div>
+                <ChevronDown className={`h-5 w-5 transition-transform md:hidden ${showMobileCoachHours ? 'rotate-180' : ''}`} />
+              </CardHeader>
+              <CardContent className="hidden md:block">
+                {coachHours.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Ni podatkov o urah za izbrano obdobje
+                  </p>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Trener</TableHead>
+                            <TableHead>Selekcija</TableHead>
+                            <TableHead className="text-right">Število aktivnosti</TableHead>
+                            <TableHead className="text-right">Skupno ur</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {coachHours.map((coach, idx) => (
+                            <TableRow key={`${coach.coach_id}-${coach.team_name}-${idx}`}>
+                              <TableCell>{coach.coach_name}</TableCell>
+                              <TableCell>{coach.team_name}</TableCell>
+                              <TableCell className="text-right">{coach.activity_count}</TableCell>
+                              <TableCell className="text-right">
+                                {coach.total_hours.toFixed(1)} h
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Summary by team */}
+                    <div className="mt-6 pt-4 border-t">
+                      <h4 className="text-sm font-semibold mb-3">Skupno po selekcijah</h4>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Selekcija</TableHead>
+                            <TableHead className="text-right">Skupno ur</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(() => {
+                            const teamTotals = new Map<string, number>();
+                            coachHours.forEach(ch => {
+                              const current = teamTotals.get(ch.team_name) || 0;
+                              teamTotals.set(ch.team_name, current + ch.total_hours);
+                            });
+                            return Array.from(teamTotals.entries())
+                              .sort((a, b) => a[0].localeCompare(b[0]))
+                              .map(([teamName, totalHours]) => (
+                                <TableRow key={teamName}>
+                                  <TableCell className="font-medium">{teamName}</TableCell>
+                                  <TableCell className="text-right font-semibold">
+                                    {totalHours.toFixed(1)} h
+                                  </TableCell>
+                                </TableRow>
+                              ));
+                          })()}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+
+              {showMobileCoachHours && (
+                <CardContent className="block md:hidden">
+                  {coachHours.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      Ni podatkov o urah za izbrano obdobje
+                    </p>
+                  ) : (
+                    <>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Trener</TableHead>
+                              <TableHead>Selekcija</TableHead>
+                              <TableHead className="text-right">Aktivnosti</TableHead>
+                              <TableHead className="text-right">Skupno ur</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {coachHours.map((coach, idx) => (
+                              <TableRow key={`${coach.coach_id}-${coach.team_name}-${idx}`}>
+                                <TableCell>{coach.coach_name}</TableCell>
+                                <TableCell>{coach.team_name}</TableCell>
+                                <TableCell className="text-right">{coach.activity_count}</TableCell>
+                                <TableCell className="text-right">
+                                  {coach.total_hours.toFixed(1)} h
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {/* Summary by team - mobile */}
+                      <div className="mt-6 pt-4 border-t">
+                        <h4 className="text-sm font-semibold mb-3">Skupno po selekcijah</h4>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Selekcija</TableHead>
+                              <TableHead className="text-right">Skupno ur</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(() => {
+                              const teamTotals = new Map<string, number>();
+                              coachHours.forEach(ch => {
+                                const current = teamTotals.get(ch.team_name) || 0;
+                                teamTotals.set(ch.team_name, current + ch.total_hours);
+                              });
+                              return Array.from(teamTotals.entries())
+                                .sort((a, b) => a[0].localeCompare(b[0]))
+                                .map(([teamName, totalHours]) => (
+                                  <TableRow key={teamName}>
+                                    <TableCell className="font-medium">{teamName}</TableCell>
+                                    <TableCell className="text-right font-semibold">
+                                      {totalHours.toFixed(1)} h
+                                    </TableCell>
+                                  </TableRow>
+                                ));
+                            })()}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              )}
+            </Card>
+          )}
+
           {/* Monthly Kilometers by Coach - only for admin */}
           {isAdmin && (
             <Card>
@@ -1549,6 +1697,64 @@ export default function DashboardPage() {
                 <ChevronDown className={`h-5 w-5 transition-transform md:hidden ${showMobileCoachKilometers ? 'rotate-180' : ''}`} />
               </CardHeader>
               <CardContent className="hidden md:block">
+                {coachKilometers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Ni podatkov o kilometrih za izbrano obdobje
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Trener</TableHead>
+                          <TableHead className="text-right">Skupaj kilometrov</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {coachKilometers.map((coach) => (
+                          <TableRow key={coach.coach_id}>
+                            <TableCell>{coach.coach_name}</TableCell>
+                            <TableCell className="text-right">
+                              {coach.total_kilometers.toFixed(1)} km
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+
+              {showMobileCoachKilometers && (
+                <CardContent className="block md:hidden">
+                  {coachKilometers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      Ni podatkov o kilometrih za izbrano obdobje
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Trener</TableHead>
+                            <TableHead className="text-right">Skupaj km</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {coachKilometers.map((coach) => (
+                            <TableRow key={coach.coach_id}>
+                              <TableCell>{coach.coach_name}</TableCell>
+                              <TableCell className="text-right">
+                                {coach.total_kilometers.toFixed(1)} km
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              )}
             </Card>
           )}
         </div>
