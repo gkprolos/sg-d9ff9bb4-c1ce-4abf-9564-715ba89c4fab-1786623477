@@ -213,6 +213,12 @@ export default function DashboardPage() {
 
   async function loadStats() {
     try {
+      console.log("=== loadStats START ===");
+      console.log("isAdmin:", isAdmin);
+      console.log("selectedMonth:", selectedMonth);
+      console.log("selectedSeason:", selectedSeason);
+      console.log("user?.id:", user?.id);
+
       const now = new Date();
       const statsMonthStart = new Date(now.getFullYear(), parseInt(selectedMonth.split('-')[1]) - 1, 1)
         .toISOString().split('T')[0];
@@ -253,7 +259,8 @@ export default function DashboardPage() {
         }
       }
 
-      const { count: playersCount } = await playersQuery;
+      const { count: playersCount, error: playersError } = await playersQuery;
+      console.log("playersCount:", playersCount, "error:", playersError);
 
       // Get male players count
       let malePlayersQuery = supabase
@@ -352,13 +359,15 @@ export default function DashboardPage() {
         }
       }
 
-      const { count: teamsCount } = await teamsQuery;
+      const { count: teamsCount, error: teamsError } = await teamsQuery;
+      console.log("teamsCount:", teamsCount, "error:", teamsError);
 
       // Get active venues count (same for all users)
-      const { count: venuesCount } = await supabase
+      const { count: venuesCount, error: venuesError } = await supabase
         .from("venues")
         .select("id", { count: "exact", head: true })
         .eq("is_active", true);
+      console.log("venuesCount:", venuesCount, "error:", venuesError);
 
       // Get total activities count
       let totalActivitiesQuery = supabase
@@ -383,7 +392,8 @@ export default function DashboardPage() {
         }
       }
 
-      const { count: totalActivitiesCount } = await totalActivitiesQuery;
+      const { count: totalActivitiesCount, error: totalActivitiesError } = await totalActivitiesQuery;
+      console.log("totalActivitiesCount:", totalActivitiesCount, "error:", totalActivitiesError);
 
       // Monthly activities and stats
       const [monthYear, monthNum] = selectedMonth.split("-");
@@ -439,7 +449,12 @@ export default function DashboardPage() {
         }
       });
 
-      setStats({
+      console.log("Monthly calculations:");
+      console.log("  totalHours:", totalHours);
+      console.log("  totalKilometers:", totalKilometers);
+      console.log("  totalAmount:", totalAmount);
+
+      const finalStats = {
         activePlayers: playersCount || 0,
         malePlayers: malePlayersCount || 0,
         femalePlayers: femalePlayersCount || 0,
@@ -450,7 +465,13 @@ export default function DashboardPage() {
         monthlyHours: Math.round(totalHours * 10) / 10,
         monthlyKilometers: Math.round(totalKilometers * 10) / 10,
         monthlyAmount: Math.round(totalAmount * 100) / 100,
-      });
+      };
+
+      console.log("=== FINAL STATS ===");
+      console.log(finalStats);
+      console.log("=== loadStats END ===");
+
+      setStats(finalStats);
     } catch (error: any) {
       console.error("Error loading stats:", error);
       toast({
