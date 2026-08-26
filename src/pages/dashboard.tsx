@@ -133,12 +133,19 @@ export default function DashboardPage() {
     if (user) {
       loadTeams();
       loadCoaches();
+      // Don't load stats until we have a valid season selected
+      if (!selectedSeason || selectedSeason.length === 0) {
+        console.log("Skipping loadStats - no valid season selected");
+        return;
+      }
+      console.log("Loading stats with season:", selectedSeason);
       loadStats();
-      loadPlayerAttendance();
+      loadMonthlyHours();
       loadCoachHours();
       loadCoachKilometers();
+      loadActivityBreakdown();
     }
-  }, [user, isAdmin, selectedMonth, selectedTeam, selectedCoach]);
+  }, [user, isAdmin, selectedMonth, selectedSeason]);
 
   async function loadInitialData() {
     try {
@@ -262,87 +269,32 @@ export default function DashboardPage() {
       const { count: playersCount, error: playersError } = await playersQuery;
       console.log("playersCount:", playersCount, "error:", playersError);
 
-      // Get male players count
-      let malePlayersQuery = supabase
+      // Get male/female players count
+      const { count: malePlayersCount } = await supabase
         .from("players")
         .select("id", { count: "exact", head: true })
         .eq("is_active", true)
         .eq("gender", "M");
 
-      // For coaches, filter by their team's players
-      if (!isAdmin && user?.id) {
-        const { data: coachTeams } = await supabase
-          .from("team_coaches")
-          .select("team_id")
-          .eq("coach_id", user.id)
-          .eq("is_active", true);
-
-        const teamIds = (coachTeams || []).map(ct => ct.team_id);
-        
-        if (teamIds.length > 0) {
-          const { data: teamPlayers } = await supabase
-            .from("team_players")
-            .select("player_id")
-            .in("team_id", teamIds);
-
-          const playerIds = (teamPlayers || []).map(tp => tp.player_id);
-          
-          if (playerIds.length > 0) {
-            malePlayersQuery = malePlayersQuery.in("id", playerIds);
-          } else {
-            malePlayersQuery = malePlayersQuery.eq("id", "00000000-0000-0000-0000-000000000000");
-          }
-        } else {
-          malePlayersQuery = malePlayersQuery.eq("id", "00000000-0000-0000-0000-000000000000");
-        }
-      }
-
-      const { count: malePlayersCount } = await malePlayersQuery;
-
-      // Get female players count
-      let femalePlayersQuery = supabase
+      const { count: femalePlayersCount } = await supabase
         .from("players")
         .select("id", { count: "exact", head: true })
         .eq("is_active", true)
         .eq("gender", "F");
 
-      // For coaches, filter by their team's players
-      if (!isAdmin && user?.id) {
-        const { data: coachTeams } = await supabase
-          .from("team_coaches")
-          .select("team_id")
-          .eq("coach_id", user.id)
-          .eq("is_active", true);
-
-        const teamIds = (coachTeams || []).map(ct => ct.team_id);
-        
-        if (teamIds.length > 0) {
-          const { data: teamPlayers } = await supabase
-            .from("team_players")
-            .select("player_id")
-            .in("team_id", teamIds);
-
-          const playerIds = (teamPlayers || []).map(tp => tp.player_id);
-          
-          if (playerIds.length > 0) {
-            femalePlayersQuery = femalePlayersQuery.in("id", playerIds);
-          } else {
-            femalePlayersQuery = femalePlayersQuery.eq("id", "00000000-0000-0000-0000-000000000000");
-          }
-        } else {
-          femalePlayersQuery = femalePlayersQuery.eq("id", "00000000-0000-0000-0000-000000000000");
-        }
-      }
-
-      const { count: femalePlayersCount } = await femalePlayersQuery;
+      console.log("playersCount:", playersCount, "error:", playersError);
 
       // Get active teams count
       let teamsQuery = supabase
         .from("teams")
         .select("id", { count: "exact", head: true })
-        .eq("is_archived", false);
+        .eq("is_active", true);
 
-      // For coaches, filter by their assigned teams
+      if (selectedSeason && selectedSeason.length > 0) {
+        teamsQuery = teamsQuery.eq("season_id", selectedSeason);
+      }
+
+      // For coaches, only count their teams
       if (!isAdmin && user?.id) {
         const { data: coachTeams } = await supabase
           .from("team_coaches")
@@ -374,8 +326,11 @@ export default function DashboardPage() {
         .from("activities")
         .select("id", { count: "exact", head: true });
 
-      if (selectedSeason) {
+      if (selectedSeason && selectedSeason.length > 0) {
         totalActivitiesQuery = totalActivitiesQuery.eq("season_id", selectedSeason);
+      } else {
+        console.warn("No valid season selected for activities query");
+        totalActivitiesQuery = totalActivitiesQuery.eq("id", "00000000-0000-0000-0000-000000000000");
       }
 
       if (!isAdmin && user?.id) {
@@ -395,25 +350,27 @@ export default function DashboardPage() {
       const { count: totalActivitiesCount, error: totalActivitiesError } = await totalActivitiesQuery;
       console.log("totalActivitiesCount:", totalActivitiesCount, "error:", totalActivitiesError);
 
-      // Monthly activities and stats
-      const [monthYear, monthNum] = selectedMonth.split("-");
-      const monthlyStart = `${monthYear}-${monthNum}-01`;
-      const monthlyEnd = new Date(parseInt(monthYear), parseInt(monthNum), 0).toISOString().split("T")[0];
-
-      let monthlyQuery = supabase
+      // Get monthly activities with detailed data
+      let monthlyActivitiesQuery = supabase
         .from("activities")
         .select(`
-          id,
-          start_time,
-          end_time,
-          activity_type_id,
-          activity_coaches(coach_id, role, hours_worked, mileage_km, total_amount)
+          *,
+          teams!inner (name),
+          activity_coaches (
+            coach_id,
+            hours_worked,
+            mileage_km,
+            total_amount
+          )
         `)
-        .gte("activity_date", monthlyStart)
-        .lte("activity_date", monthlyEnd);
+        .gte("activity_date", statsMonthStart)
+        .lte("activity_date", statsMonthEnd);
 
-      if (selectedSeason) {
-        monthlyQuery = monthlyQuery.eq("season_id", selectedSeason);
+      if (selectedSeason && selectedSeason.length > 0) {
+        monthlyActivitiesQuery = monthlyActivitiesQuery.eq("season_id", selectedSeason);
+      } else {
+        console.warn("No valid season selected for monthly activities query");
+        monthlyActivitiesQuery = monthlyActivitiesQuery.eq("id", "00000000-0000-0000-0000-000000000000");
       }
 
       if (!isAdmin && user?.id) {
@@ -424,12 +381,19 @@ export default function DashboardPage() {
         
         const activityIds = (coachActivities || []).map(ca => ca.activity_id);
         if (activityIds.length > 0) {
-          monthlyQuery = monthlyQuery.in("id", activityIds);
+          monthlyActivitiesQuery = monthlyActivitiesQuery.in("id", activityIds);
+        } else {
+          monthlyActivitiesQuery = monthlyActivitiesQuery.eq("id", "00000000-0000-0000-0000-000000000000");
         }
       }
 
-      const { data: monthlyActivities } = await monthlyQuery;
+      const { data: monthlyActivities, error: monthlyActivitiesError } = await monthlyActivitiesQuery;
 
+      if (monthlyActivitiesError) {
+        console.error("Error loading monthly activities:", monthlyActivitiesError);
+      }
+
+      // Calculate monthly totals
       let totalHours = 0;
       let totalKilometers = 0;
       let totalAmount = 0;
