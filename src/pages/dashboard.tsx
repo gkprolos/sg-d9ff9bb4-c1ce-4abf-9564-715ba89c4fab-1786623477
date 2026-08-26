@@ -41,10 +41,11 @@ interface PlayerAttendance {
   player_id: string;
   player_name: string;
   team_name: string;
-  total_activities: number;
+  head_coach_name: string;
   present: number;
   absent: number;
   excused: number;
+  total_records: number;
   attendance_rate: number;
   daily_attendance: { [day: number]: number | null };
 }
@@ -447,100 +448,31 @@ export default function DashboardPage() {
       const startDate = `${year}-${month}-01`;
       const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split("T")[0];
 
-      const now = new Date();
-      const attYear = now.getFullYear();
-      const attMonth = parseInt(selectedMonth.split('-')[1]);
-      const attMonthStart = new Date(attYear, attMonth - 1, 1).toISOString().split('T')[0];
-      const attMonthEnd = new Date(attYear, attMonth, 0).toISOString().split('T')[0];
-
-      // Get all players
-      let playersQuery = supabase
-        .from("players")
-        .select(`
-          id,
-          first_name,
-          last_name,
-          team_players(
-            team_id,
-            teams(id, name)
-          )
-        `)
-        .eq("is_active", true);
-
-      // For coaches, filter by their team's players
+      // For coaches, verify they have access to this team
       if (!isAdmin && user?.id) {
-        const { data: coachTeams } = await supabase
+        const { data: coachTeam } = await supabase
           .from("team_coaches")
           .select("team_id")
           .eq("coach_id", user.id)
-          .eq("is_active", true);
+          .eq("team_id", selectedTeam)
+          .eq("is_active", true)
+          .maybeSingle();
 
-        const teamIds = (coachTeams || []).map(ct => ct.team_id);
-        
-        if (teamIds.length > 0) {
-          const { data: teamPlayers } = await supabase
-            .from("team_players")
-            .select("player_id")
-            .in("team_id", teamIds);
-
-          const playerIds = (teamPlayers || []).map(tp => tp.player_id);
-          
-          if (playerIds.length > 0) {
-            playersQuery = playersQuery.in("id", playerIds);
-          } else {
-            setPlayerAttendance([]);
-            setLoading(false);
-            return;
-          }
-        } else {
+        if (!coachTeam) {
           setPlayerAttendance([]);
-          setLoading(false);
           return;
         }
       }
 
-      const { data: playersData, error: playersError } = await playersQuery;
-
-      if (playersError) throw playersError;
-
-      const [yearStr, monthStr] = selectedMonth.split("-");
-      const tableMonthStart = `${yearStr}-${monthStr}-01`;
-      const daysInMonth = new Date(parseInt(yearStr), parseInt(monthStr), 0).getDate();
-      const tableMonthEnd = `${yearStr}-${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
-
-      // Get activities in selected month
-      let activitiesQuery = supabase
+      // Get all activities for selected team in selected month
+      const { data: activities, error: activitiesError } = await supabase
         .from("activities")
-        .select(`
-          id,
-          activity_date,
-          team_id,
-          teams(name)
-        `)
-        .gte("activity_date", tableMonthStart)
-        .lte("activity_date", tableMonthEnd);
+        .select("id, activity_date, team_id")
+        .eq("team_id", selectedTeam)
+        .gte("activity_date", startDate)
+        .lte("activity_date", endDate);
 
-      if (selectedSeason) {
-        activitiesQuery = activitiesQuery.eq("season_id", selectedSeason);
-      }
-
-      if (selectedTeam) {
-        activitiesQuery = activitiesQuery.eq("team_id", selectedTeam);
-      }
-
-      if (!isAdmin && user?.id) {
-        const { data: coachActivities } = await supabase
-          .from("activity_coaches")
-          .select("activity_id")
-          .eq("coach_id", user.id);
-        
-        const activityIds = (coachActivities || []).map(ca => ca.activity_id);
-        if (activityIds.length > 0) {
-          activitiesQuery = activitiesQuery.in("id", activityIds);
-        }
-      }
-
-      const { data: activities } = await activitiesQuery;
+      if (activitiesError) throw activitiesError;
 
       if (!activities || activities.length === 0) {
         setPlayerAttendance([]);
@@ -549,63 +481,75 @@ export default function DashboardPage() {
 
       const activityIds = activities.map(a => a.id);
 
-      // Get attendance records
+      // Get team info with head coach
+      const { data: teamData } = await supabase
+        .from("teams")
+        .select(`
+          id,
+          name,
+          head_coach_id,
+          profiles!teams_head_coach_id_fkey(full_name)
+        `)
+        .eq("id", selectedTeam)
+        .single();
+
+      const teamName = teamData?.name || "";
+      const headCoachName = teamData?.profiles?.full_name || "Ni določen";
+
+      // Get all players in this team
+      const { data: teamPlayers } = await supabase
+        .from("team_players")
+        .select(`
+          player_id,
+          players(id, first_name, last_name)
+        `)
+        .eq("team_id", selectedTeam);
+
+      if (!teamPlayers || teamPlayers.length === 0) {
+        setPlayerAttendance([]);
+        return;
+      }
+
+      // Get attendance records for these activities
       const { data: attendanceRecords } = await supabase
         .from("attendance_records")
-        .select(`
-          activity_id,
-          player_id,
-          status,
-          players(first_name, last_name)
-        `)
+        .select("player_id, status")
         .in("activity_id", activityIds);
 
-      // Group by player
-      const playerMap = new Map<string, any>();
+      // Calculate stats per player
+      const playerStats = teamPlayers.map((tp: any) => {
+        const playerId = tp.player_id;
+        const playerRecords = (attendanceRecords || []).filter(
+          (ar: any) => ar.player_id === playerId
+        );
 
-      (attendanceRecords || []).forEach((record: any) => {
-        if (!playerMap.has(record.player_id)) {
-          playerMap.set(record.player_id, {
-            player_id: record.player_id,
-            player_name: `${record.players.first_name} ${record.players.last_name}`,
-            team_name: "",
-            total_activities: 0,
-            present: 0,
-            absent: 0,
-            excused: 0,
-            daily_attendance: {},
-          });
-        }
+        const present = playerRecords.filter((r: any) => r.status === 1).length;
+        const absent = playerRecords.filter((r: any) => r.status === 0).length;
+        const excused = playerRecords.filter((r: any) => r.status === 2).length;
+        const total = playerRecords.length;
 
-        const player = playerMap.get(record.player_id);
-        const activity = activities.find(a => a.id === record.activity_id);
-        
-        if (activity) {
-          player.team_name = activity.teams?.name || "";
-          const day = new Date(activity.activity_date).getDate();
-          player.daily_attendance[day] = record.status;
-          player.total_activities++;
+        const attendanceRate = total > 0 ? (present / total) * 100 : 0;
 
-          if (record.status === 1) player.present++;
-          else if (record.status === 0) player.absent++;
-          else if (record.status === 2) player.excused++;
-        }
+        return {
+          player_id: playerId,
+          player_name: `${tp.players.first_name} ${tp.players.last_name}`,
+          team_name: teamName,
+          head_coach_name: headCoachName,
+          present,
+          absent,
+          excused,
+          total_records: total,
+          attendance_rate: attendanceRate,
+        };
       });
 
-      const playerList = Array.from(playerMap.values()).map(p => ({
-        ...p,
-        attendance_rate: p.total_activities > 0 
-          ? Math.round((p.present / p.total_activities) * 100) 
-          : 0,
-      }));
+      // Sort by player name
+      playerStats.sort((a, b) => a.player_name.localeCompare(b.player_name));
 
-      playerList.sort((a, b) => a.attendance_rate - b.attendance_rate);
-
-      setPlayerAttendance(playerList);
+      setPlayerAttendance(playerStats);
     } catch (error: any) {
-      console.error("Error loading player attendance:", error);
-    } finally {
-      setLoading(false);
+      console.error("Napaka pri nalaganju obiska igralcev:", error);
+      setPlayerAttendance([]);
     }
   }
 
@@ -613,7 +557,13 @@ export default function DashboardPage() {
     try {
       let query = supabase
         .from("teams")
-        .select("id, name, short_name")
+        .select(`
+          id, 
+          name, 
+          short_name,
+          head_coach_id,
+          profiles!teams_head_coach_id_fkey(full_name)
+        `)
         .eq("is_archived", false)
         .order("name", { ascending: true });
 
@@ -864,75 +814,117 @@ export default function DashboardPage() {
           </div>
 
           {/* Filters */}
-          {isAdmin && (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="month_filter">Mesec</Label>
-                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                      <SelectTrigger id="month_filter">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {generateMonthOptions().map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="team_filter">Selekcija</Label>
-                    <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                      <SelectTrigger id="team_filter">
-                        <SelectValue placeholder="Izberi selekcijo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Vse selekcije</SelectItem>
-                        {teams.map((team) => (
-                          <SelectItem key={team.id} value={team.id}>
-                            {team.short_name || team.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="month_filter">Mesec</Label>
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger id="month_filter">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {generateMonthOptions().map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="team_filter">Selekcija</Label>
+                  <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                    <SelectTrigger id="team_filter">
+                      <SelectValue placeholder="Izberi selekcijo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Vse selekcije</SelectItem>
+                      {teams.map((team) => {
+                        const coachName = team.profiles?.full_name || "Brez trenerja";
+                        const displayName = `${team.short_name || team.name} (Trener: ${coachName})`;
+                        return (
+                          <SelectItem key={team.id} value={team.id}>
+                            {displayName}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Player Attendance by Team */}
-          {isAdmin && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Pregled obiska po igralcih</span>
-                  {/* Mobile toggle button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowMobilePlayerAttendance(!showMobilePlayerAttendance)}
-                    className="md:hidden"
-                  >
-                    {showMobilePlayerAttendance ? "Skrij pregled" : "Prikaži pregled"}
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              
-              {selectedTeam === "all" ? (
-                <CardContent>
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    Izberite posamezno selekcijo za prikaz obiska igralcev
-                  </p>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Pregled obiska po igralcih</span>
+                {/* Mobile toggle button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMobilePlayerAttendance(!showMobilePlayerAttendance)}
+                  className="md:hidden"
+                >
+                  {showMobilePlayerAttendance ? "Skrij pregled" : "Prikaži pregled"}
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            
+            {selectedTeam === "all" ? (
+              <CardContent>
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Izberite posamezno selekcijo za prikaz obiska igralcev
+                </p>
+              </CardContent>
+            ) : (
+              <>
+                {/* Desktop view - always visible */}
+                <CardContent className="hidden md:block">
+                  {playerAttendance.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      Ni podatkov o obisku za izbrano selekcijo in mesec
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Igralec</TableHead>
+                            <TableHead className="text-right">Prisotnosti</TableHead>
+                            <TableHead className="text-right">Odsotnosti</TableHead>
+                            <TableHead className="text-right">Javljene</TableHead>
+                            <TableHead className="text-right">Odstotek</TableHead>
+                            <TableHead>Selekcija</TableHead>
+                            <TableHead>Glavni trener</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {playerAttendance.map((player) => (
+                            <TableRow key={player.player_id}>
+                              <TableCell>{player.player_name}</TableCell>
+                              <TableCell className="text-right">{player.present}</TableCell>
+                              <TableCell className="text-right">{player.absent}</TableCell>
+                              <TableCell className="text-right">{player.excused}</TableCell>
+                              <TableCell className="text-right">
+                                {player.attendance_rate.toFixed(1)}%
+                              </TableCell>
+                              <TableCell>{player.team_name}</TableCell>
+                              <TableCell>{player.head_coach_name}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </CardContent>
-              ) : (
-                <>
-                  {/* Desktop view - always visible */}
-                  <CardContent className="hidden md:block">
+
+                {/* Mobile view - toggle visibility */}
+                {showMobilePlayerAttendance && (
+                  <CardContent className="block md:hidden">
                     {playerAttendance.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-8">
                         Ni podatkov o obisku za izbrano selekcijo in mesec
@@ -947,6 +939,8 @@ export default function DashboardPage() {
                               <TableHead className="text-right">Odsotnosti</TableHead>
                               <TableHead className="text-right">Javljene</TableHead>
                               <TableHead className="text-right">Odstotek</TableHead>
+                              <TableHead>Selekcija</TableHead>
+                              <TableHead>Glavni trener</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -959,6 +953,8 @@ export default function DashboardPage() {
                                 <TableCell className="text-right">
                                   {player.attendance_rate.toFixed(1)}%
                                 </TableCell>
+                                <TableCell>{player.team_name}</TableCell>
+                                <TableCell>{player.head_coach_name}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -966,45 +962,7 @@ export default function DashboardPage() {
                       </div>
                     )}
                   </CardContent>
-
-                  {/* Mobile view - toggle visibility */}
-                  {showMobilePlayerAttendance && (
-                    <CardContent className="block md:hidden">
-                      {playerAttendance.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">
-                          Ni podatkov o obisku za izbrano selekcijo in mesec
-                        </p>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Igralec</TableHead>
-                                <TableHead className="text-right">Prisotnosti</TableHead>
-                                <TableHead className="text-right">Odsotnosti</TableHead>
-                                <TableHead className="text-right">Javljene</TableHead>
-                                <TableHead className="text-right">Odstotek</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {playerAttendance.map((player) => (
-                                <TableRow key={player.player_id}>
-                                  <TableCell>{player.player_name}</TableCell>
-                                  <TableCell className="text-right">{player.present}</TableCell>
-                                  <TableCell className="text-right">{player.absent}</TableCell>
-                                  <TableCell className="text-right">{player.excused}</TableCell>
-                                  <TableCell className="text-right">
-                                    {player.attendance_rate.toFixed(1)}%
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                    </CardContent>
-                  )}
-                </>
+                )}
               )}
             </Card>
           )}
