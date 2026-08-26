@@ -140,10 +140,11 @@ export default function DashboardPage() {
       }
       console.log("Loading stats with season:", selectedSeason);
       loadStats();
+      loadPlayerAttendance();
       loadCoachHours();
       loadCoachKilometers();
     }
-  }, [user, isAdmin, selectedMonth, selectedSeason]);
+  }, [user, isAdmin, selectedMonth, selectedSeason, selectedTeam]);
 
   async function loadInitialData() {
     try {
