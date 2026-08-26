@@ -47,7 +47,6 @@ interface PlayerAttendance {
   excused: number;
   total_records: number;
   attendance_rate: number;
-  daily_attendance: { [day: number]: number | null };
 }
 
 interface PlayerDetail {
