@@ -45,13 +45,12 @@ export default function BillingPage() {
   useEffect(() => {
     async function checkAdmin() {
       if (user) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("is_admin")
-          .eq("id", user.id)
-          .single();
+        const { data, error } = await supabase
+          .rpc("is_admin", { user_id: user.id });
         
-        setIsAdmin(data?.is_admin || false);
+        if (!error) {
+          setIsAdmin(data || false);
+        }
       }
     }
     checkAdmin();
