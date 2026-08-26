@@ -1,7 +1,9 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { authService } from "@/services/authService";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,6 +33,7 @@ const monthNames = [
 
 export default function BillingPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -45,11 +48,12 @@ export default function BillingPage() {
   useEffect(() => {
     async function checkAdmin() {
       if (user) {
-        const { data, error } = await supabase
-          .rpc("is_admin" as any, { user_id: user.id });
-        
-        if (!error && typeof data === "boolean") {
-          setIsAdmin(data);
+        try {
+          const adminStatus = await authService.isAdmin();
+          setIsAdmin(adminStatus);
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          setIsAdmin(false);
         }
       }
     }
