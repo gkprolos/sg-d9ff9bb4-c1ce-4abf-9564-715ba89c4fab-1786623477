@@ -76,6 +76,7 @@ export default function ActivitiesPage() {
     start_time: "",
     end_time: "",
     venue_id: "",
+    mileage_km: 0,
   });
 
   const isAdmin = userRole === "admin";
@@ -287,21 +288,28 @@ export default function ActivitiesPage() {
       setLoading(true);
       setSelectedActivity(activity);
 
-      // Get the full activity data including venue_id
+      // Get the full activity data including venue_id and coach mileage
       const { data, error } = await supabase
         .from("activities")
-        .select("venue_id")
+        .select(`
+          venue_id,
+          activity_coaches(coach_id, mileage_km)
+        `)
         .eq("id", activity.id)
         .single();
 
       if (error) throw error;
 
-      // Set the form with the loaded venue_id
+      // Get mileage for the first coach (or 0 if none)
+      const firstCoachMileage = data?.activity_coaches?.[0]?.mileage_km || 0;
+
+      // Set the form with the loaded venue_id and mileage
       setEditForm({
         activity_date: activity.activity_date,
         start_time: activity.start_time,
         end_time: activity.end_time,
         venue_id: data?.venue_id || "",
+        mileage_km: firstCoachMileage,
       });
 
       // Now open the dialog with all data loaded
@@ -333,7 +341,8 @@ export default function ActivitiesPage() {
     try {
       setLoading(true);
 
-      const { error } = await supabase
+      // Update activity basic info
+      const { error: activityError } = await supabase
         .from("activities")
         .update({
           activity_date: editForm.activity_date,
@@ -343,7 +352,17 @@ export default function ActivitiesPage() {
         })
         .eq("id", selectedActivity.id);
 
-      if (error) throw error;
+      if (activityError) throw activityError;
+
+      // Update mileage for all coaches if mileage_km is provided and > 0
+      if (editForm.mileage_km && editForm.mileage_km > 0) {
+        const { error: mileageError } = await supabase
+          .from("activity_coaches")
+          .update({ mileage_km: editForm.mileage_km })
+          .eq("activity_id", selectedActivity.id);
+
+        if (mileageError) throw mileageError;
+      }
 
       toast({
         title: "Uspešno",
@@ -687,6 +706,19 @@ export default function ActivitiesPage() {
                       onChange={(e) => setEditForm({ ...editForm, end_time: e.target.value })}
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit_mileage">Kilometri</Label>
+                  <Input
+                    id="edit_mileage"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    placeholder="0"
+                    value={editForm.mileage_km || ""}
+                    onChange={(e) => setEditForm({ ...editForm, mileage_km: parseFloat(e.target.value) || 0 })}
+                  />
                 </div>
 
                 <div className="space-y-2">

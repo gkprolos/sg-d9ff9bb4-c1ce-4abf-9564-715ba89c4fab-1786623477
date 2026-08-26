@@ -297,7 +297,7 @@ export default function BillingPage() {
             const kilometers = ac.mileage_km || 0;
             entry.total_kilometers += kilometers;
             if (coachRates && kilometers > 0) {
-              entry.kilometer_amount += kilometers * (coachRates.mileage_per_km || 0);
+              entry.kilometer_amount += kilometers * (coachRates.rate_per_km || 0);
             }
           }
         }
