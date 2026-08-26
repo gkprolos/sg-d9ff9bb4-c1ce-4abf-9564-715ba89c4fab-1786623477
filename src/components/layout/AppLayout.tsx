@@ -170,6 +170,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/billing">
+                  <DollarSign className="h-4 w-4" />
+                  <span>Mesečni obračun</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
             {isAdmin ? (
               <>
                 <SidebarMenuItem>
@@ -342,6 +351,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           <Link href="/attendance">
                             <ClipboardCheck className="h-4 w-4" />
                             <span>{isAdmin ? "Prisotnost" : "Vnos prisotnosti"}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link href="/billing">
+                            <DollarSign className="h-4 w-4" />
+                            <span>Mesečni obračun</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -519,6 +537,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     >
                       <ClipboardCheck className="h-4 w-4" />
                       {isAdmin ? "Prisotnost" : "Vnos prisotnosti"}
+                    </Link>
+
+                    <Link
+                      href="/billing"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                        router.pathname === "/billing"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      )}
+                    >
+                      <DollarSign className="h-4 w-4" />
+                      Mesečni obračun
                     </Link>
 
                     {isAdmin ? (

@@ -187,6 +187,20 @@ export default function BillingPage() {
           return diffMonths;
         })();
 
+      // Load coach_rates for all coaches in advance
+      let coachRatesQuery = supabase
+        .from("coach_rates")
+        .select("*");
+
+      if (coachIds.length > 0) {
+        coachRatesQuery = coachRatesQuery.in("coach_id", coachIds);
+      }
+
+      const { data: coachRatesData } = await coachRatesQuery;
+      const coachRatesMap = new Map(
+        (coachRatesData || []).map(cr => [cr.coach_id, cr])
+      );
+
       // Load months
       for (let i = startMonthOffset; i < startMonthOffset + monthsToLoad; i++) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -205,9 +219,9 @@ export default function BillingPage() {
             activity_type_id,
             activity_coaches(
               coach_id,
+              role,
               hours_worked,
-              mileage_km,
-              total_amount
+              mileage_km
             )
           `)
           .gte("activity_date", startDate)
@@ -254,22 +268,37 @@ export default function BillingPage() {
 
             const entry = coachBillingMap.get(ac.coach_id)!;
             const hours = ac.hours_worked || 0;
+            const coachRates = coachRatesMap.get(ac.coach_id);
+            const isHead = ac.role === "head";
 
             if (isTraining) {
               entry.training_count += 1;
               entry.training_hours += hours;
+              
+              // Calculate hourly amount based on role and activity type
+              if (coachRates) {
+                const hourlyRate = activity.activity_type_id === 1
+                  ? (isHead ? coachRates.head_training_rate : coachRates.assistant_training_rate)
+                  : (isHead ? coachRates.head_training_2_rate : coachRates.assistant_training_2_rate);
+                entry.hourly_amount += hours * (hourlyRate || 0);
+              }
             } else if (isMatch) {
               entry.match_count += 1;
-              entry.match_hours += hours * 4; // Matches count as 4x hours
+              entry.match_hours += hours * 4; // Matches count as 4x hours for display
+              
+              // Calculate match amount (fixed rate per match)
+              if (coachRates) {
+                const matchRate = isHead ? coachRates.head_match_rate : coachRates.assistant_match_rate;
+                entry.hourly_amount += matchRate || 0;
+              }
             }
 
-            entry.total_kilometers += ac.mileage_km || 0;
-            
-            // Calculate amounts from total_amount in activity_coaches
-            const totalAmount = ac.total_amount || 0;
-            const kilometerAmount = (ac.mileage_km || 0) * 0.37; // Estimate km rate
-            entry.kilometer_amount += kilometerAmount;
-            entry.hourly_amount += totalAmount - kilometerAmount;
+            // Calculate kilometer amount
+            const kilometers = ac.mileage_km || 0;
+            entry.total_kilometers += kilometers;
+            if (coachRates && kilometers > 0) {
+              entry.kilometer_amount += kilometers * (coachRates.mileage_rate || 0);
+            }
           }
         }
 
