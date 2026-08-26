@@ -49,6 +49,11 @@ export async function getUserRole(userId: string): Promise<"admin" | "coach" | n
   return data?.role as "admin" | "coach" | null;
 }
 
+export async function isAdmin(userId: string): Promise<boolean> {
+  const role = await getUserRole(userId);
+  return role === "admin";
+}
+
 export async function resetPassword(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/reset-password`,
