@@ -114,6 +114,9 @@ export default function DashboardPage() {
   const [coachHours, setCoachHours] = useState<any[]>([]);
   const [monthlyHours, setMonthlyHours] = useState<any[]>([]);
   const [monthlyBilling, setMonthlyBilling] = useState<any[]>([]);
+  const [playerAttendance, setPlayerAttendance] = useState<any[]>([]);
+  const [coachKilometers, setCoachKilometers] = useState<any[]>([]);
+  const [coachTeams, setCoachTeams] = useState<any[]>([]);
   const [coaches, setCoaches] = useState<any[]>([]);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPlayerDetail, setSelectedPlayerDetail] = useState<PlayerDetail | null>(null);
