@@ -106,14 +106,14 @@ export default function DashboardPage() {
   const [showMobilePlayerAttendance, setShowMobilePlayerAttendance] = useState(false);
   const [showMobileCoachHours, setShowMobileCoachHours] = useState(false);
   const [showMobileCoachKilometers, setShowMobileCoachKilometers] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+  const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
-
-  const [playerAttendance, setPlayerAttendance] = useState<PlayerAttendance[]>([]);
-  const [coachHours, setCoachHours] = useState<CoachHours[]>([]);
-  const [coachKilometers, setCoachKilometers] = useState<CoachKilometers[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [coachHours, setCoachHours] = useState<any[]>([]);
+  const [monthlyHours, setMonthlyHours] = useState<any[]>([]);
+  const [monthlyBilling, setMonthlyBilling] = useState<any[]>([]);
   const [coaches, setCoaches] = useState<any[]>([]);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPlayerDetail, setSelectedPlayerDetail] = useState<PlayerDetail | null>(null);
@@ -1071,7 +1071,7 @@ export default function DashboardPage() {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{myTeamsCount}</div>
+                <div className="text-2xl font-bold">{coachTeams.length}</div>
               </CardContent>
             </Card>
 
@@ -1084,7 +1084,17 @@ export default function DashboardPage() {
                     <Building className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{venuesCount}</div>
+                    <div className="text-2xl font-bold">
+                      {(() => {
+                        // Count unique venues from activities
+                        const uniqueVenues = new Set(
+                          activities
+                            .filter(a => a.venue_id)
+                            .map(a => a.venue_id)
+                        );
+                        return uniqueVenues.size;
+                      })()}
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -1094,7 +1104,7 @@ export default function DashboardPage() {
                     <Activity className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{totalActivitiesCount}</div>
+                    <div className="text-2xl font-bold">{activities.length}</div>
                   </CardContent>
                 </Card>
               </>
