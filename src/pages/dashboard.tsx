@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -21,7 +22,8 @@ import {
   Clock,
   DollarSign,
   Car,
-  Plus
+  Plus,
+  ChevronDown
 } from "lucide-react";
 
 interface DashboardStats {
@@ -47,6 +49,37 @@ interface PlayerAttendance {
   excused: number;
   total_records: number;
   attendance_rate: number;
+}
+
+interface CoachHours {
+  coach_id: string;
+  coach_name: string;
+  team_name: string;
+  total_hours: number;
+  activity_count: number;
+}
+
+interface CoachKilometers {
+  coach_id: string;
+  coach_name: string;
+  team_name: string;
+  total_kilometers: number;
+  activity_count: number;
+}
+
+interface MonthlyBilling {
+  coach_id: string;
+  coach_name: string;
+  month: string;
+  training_count: number;
+  training_hours: number;
+  match_count: number;
+  match_hours: number;
+  total_hours: number;
+  hourly_amount: number;
+  total_kilometers: number;
+  kilometer_amount: number;
+  total_amount: number;
 }
 
 interface PlayerDetail {
@@ -84,13 +117,20 @@ export default function DashboardPage() {
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedSeason, setSelectedSeason] = useState("");
   const [selectedTeam, setSelectedTeam] = useState<string>("all");
+  const [selectedCoach, setSelectedCoach] = useState<string>("all");
   const [showMobilePlayerAttendance, setShowMobilePlayerAttendance] = useState(false);
+  const [showMobileCoachHours, setShowMobileCoachHours] = useState(false);
+  const [showMobileCoachKilometers, setShowMobileCoachKilometers] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
 
   const [playerAttendance, setPlayerAttendance] = useState<PlayerAttendance[]>([]);
+  const [coachHours, setCoachHours] = useState<CoachHours[]>([]);
+  const [coachKilometers, setCoachKilometers] = useState<CoachKilometers[]>([]);
+  const [monthlyBilling, setMonthlyBilling] = useState<MonthlyBilling[]>([]);
+  const [billingExpanded, setBillingExpanded] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPlayerDetail, setSelectedPlayerDetail] = useState<PlayerDetail | null>(null);
   const [coachRates, setCoachRates] = useState<any>(null);
@@ -107,10 +147,13 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) {
       loadTeams();
+      loadCoaches();
       loadStats();
       loadPlayerAttendance();
+      loadCoachHours();
+      loadCoachKilometers();
     }
-  }, [user, isAdmin, selectedMonth, selectedTeam]);
+  }, [user, isAdmin, selectedMonth, selectedTeam, selectedCoach]);
 
   async function loadInitialData() {
     try {
@@ -647,6 +690,257 @@ export default function DashboardPage() {
     }
   }
 
+  async function loadCoaches() {
+    try {
+      if (!isAdmin) {
+        // Coaches only see themselves
+        if (user?.id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .eq("id", user.id)
+            .single();
+          
+          if (profile) {
+            setCoaches([profile]);
+            setSelectedCoach(profile.id); // Auto-select themselves
+          }
+        }
+      } else {
+        // Admin sees all coaches
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .eq("role", "coach")
+          .order("full_name", { ascending: true });
+
+        if (error) throw error;
+        setCoaches(data || []);
+      }
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju trenerjev:", error);
+    }
+  }
+
+  async function loadCoachHours() {
+    try {
+      const [year, month] = selectedMonth.split("-");
+      const startDate = `${year}-${month}-01`;
+      const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split("T")[0];
+
+      let coachIds: string[] = [];
+      let teamIds: string[] = [];
+
+      // Determine filters
+      if (isAdmin) {
+        if (selectedCoach !== "all") {
+          coachIds = [selectedCoach];
+        }
+        if (selectedTeam !== "all") {
+          teamIds = [selectedTeam];
+        }
+      } else if (user?.id) {
+        coachIds = [user.id];
+        if (selectedTeam !== "all") {
+          teamIds = [selectedTeam];
+        }
+      }
+
+      // Build query for activities
+      let activitiesQuery = supabase
+        .from("activities")
+        .select(`
+          id,
+          team_id,
+          start_time,
+          end_time,
+          activity_coaches(
+            coach_id,
+            hours_worked
+          ),
+          teams(name)
+        `)
+        .gte("activity_date", startDate)
+        .lte("activity_date", endDate);
+
+      if (teamIds.length > 0) {
+        activitiesQuery = activitiesQuery.in("team_id", teamIds);
+      }
+
+      const { data: activities, error: activitiesError } = await activitiesQuery;
+      if (activitiesError) throw activitiesError;
+
+      if (!activities || activities.length === 0) {
+        setCoachHours([]);
+        return;
+      }
+
+      // Group by coach and team
+      const hoursMap = new Map<string, CoachHours>();
+
+      for (const activity of activities) {
+        const activityCoaches = activity.activity_coaches || [];
+        
+        for (const ac of activityCoaches) {
+          if (coachIds.length > 0 && !coachIds.includes(ac.coach_id)) continue;
+
+          const key = `${ac.coach_id}-${activity.team_id}`;
+          
+          if (!hoursMap.has(key)) {
+            hoursMap.set(key, {
+              coach_id: ac.coach_id,
+              coach_name: "", // Will fill later
+              team_name: activity.teams?.name || "",
+              total_hours: 0,
+              activity_count: 0,
+            });
+          }
+
+          const entry = hoursMap.get(key)!;
+          entry.total_hours += ac.hours_worked || 0;
+          entry.activity_count += 1;
+        }
+      }
+
+      // Get coach names
+      const uniqueCoachIds = Array.from(new Set(Array.from(hoursMap.values()).map(h => h.coach_id)));
+      const { data: coachProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", uniqueCoachIds);
+
+      const coachNameMap = new Map(
+        (coachProfiles || []).map(p => [p.id, p.full_name])
+      );
+
+      const hoursArray = Array.from(hoursMap.values()).map(h => ({
+        ...h,
+        coach_name: coachNameMap.get(h.coach_id) || "Neznan trener",
+      }));
+
+      // Sort by coach name, then team name
+      hoursArray.sort((a, b) => {
+        const coachCompare = a.coach_name.localeCompare(b.coach_name);
+        if (coachCompare !== 0) return coachCompare;
+        return a.team_name.localeCompare(b.team_name);
+      });
+
+      setCoachHours(hoursArray);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju ur trenerjev:", error);
+      setCoachHours([]);
+    }
+  }
+
+  async function loadCoachKilometers() {
+    try {
+      const [year, month] = selectedMonth.split("-");
+      const startDate = `${year}-${month}-01`;
+      const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split("T")[0];
+
+      let coachIds: string[] = [];
+      let teamIds: string[] = [];
+
+      // Determine filters
+      if (isAdmin) {
+        if (selectedCoach !== "all") {
+          coachIds = [selectedCoach];
+        }
+        if (selectedTeam !== "all") {
+          teamIds = [selectedTeam];
+        }
+      } else if (user?.id) {
+        coachIds = [user.id];
+        if (selectedTeam !== "all") {
+          teamIds = [selectedTeam];
+        }
+      }
+
+      // Build query for activities
+      let activitiesQuery = supabase
+        .from("activities")
+        .select(`
+          id,
+          team_id,
+          activity_coaches(
+            coach_id,
+            kilometers
+          ),
+          teams(name)
+        `)
+        .gte("activity_date", startDate)
+        .lte("activity_date", endDate);
+
+      if (teamIds.length > 0) {
+        activitiesQuery = activitiesQuery.in("team_id", teamIds);
+      }
+
+      const { data: activities, error: activitiesError } = await activitiesQuery;
+      if (activitiesError) throw activitiesError;
+
+      if (!activities || activities.length === 0) {
+        setCoachKilometers([]);
+        return;
+      }
+
+      // Group by coach and team
+      const kilometersMap = new Map<string, CoachKilometers>();
+
+      for (const activity of activities) {
+        const activityCoaches = activity.activity_coaches || [];
+        
+        for (const ac of activityCoaches) {
+          if (coachIds.length > 0 && !coachIds.includes(ac.coach_id)) continue;
+          if (!ac.kilometers || ac.kilometers === 0) continue; // Skip zero kilometers
+
+          const key = `${ac.coach_id}-${activity.team_id}`;
+          
+          if (!kilometersMap.has(key)) {
+            kilometersMap.set(key, {
+              coach_id: ac.coach_id,
+              coach_name: "", // Will fill later
+              team_name: activity.teams?.name || "",
+              total_kilometers: 0,
+              activity_count: 0,
+            });
+          }
+
+          const entry = kilometersMap.get(key)!;
+          entry.total_kilometers += ac.kilometers || 0;
+          entry.activity_count += 1;
+        }
+      }
+
+      // Get coach names
+      const uniqueCoachIds = Array.from(new Set(Array.from(kilometersMap.values()).map(k => k.coach_id)));
+      const { data: coachProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", uniqueCoachIds);
+
+      const coachNameMap = new Map(
+        (coachProfiles || []).map(p => [p.id, p.full_name])
+      );
+
+      const kilometersArray = Array.from(kilometersMap.values()).map(k => ({
+        ...k,
+        coach_name: coachNameMap.get(k.coach_id) || "Neznan trener",
+      }));
+
+      // Sort by coach name, then team name
+      kilometersArray.sort((a, b) => {
+        const coachCompare = a.coach_name.localeCompare(b.coach_name);
+        if (coachCompare !== 0) return coachCompare;
+        return a.team_name.localeCompare(b.team_name);
+      });
+
+      setCoachKilometers(kilometersArray);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju kilometrov trenerjev:", error);
+      setCoachKilometers([]);
+    }
+  }
+
   async function handlePlayerClick(playerId: string) {
     try {
       const { data: playerData } = await supabase
@@ -869,7 +1163,7 @@ export default function DashboardPage() {
           {/* Filters */}
           <Card>
             <CardContent className="pt-6">
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="month_filter">Mesec</Label>
                   <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -906,6 +1200,25 @@ export default function DashboardPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {isAdmin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="coach_filter">Trener</Label>
+                    <Select value={selectedCoach} onValueChange={setSelectedCoach}>
+                      <SelectTrigger id="coach_filter">
+                        <SelectValue placeholder="Izberi trenerja" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Vsi trenerji</SelectItem>
+                        {coaches.map((coach) => (
+                          <SelectItem key={coach.id} value={coach.id}>
+                            {coach.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -1000,6 +1313,176 @@ export default function DashboardPage() {
                             </TableCell>
                             <TableCell>{player.team_name}</TableCell>
                             <TableCell>{player.head_coach_name}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Coach Hours */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Ure v mesecu</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMobileCoachHours(!showMobileCoachHours)}
+                  className="md:hidden"
+                >
+                  {showMobileCoachHours ? "Skrij pregled" : "Prikaži pregled"}
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            
+            <CardContent className="hidden md:block">
+              {coachHours.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Ni podatkov o urah za izbrano obdobje
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Trener</TableHead>
+                        <TableHead>Selekcija</TableHead>
+                        <TableHead className="text-right">Število aktivnosti</TableHead>
+                        <TableHead className="text-right">Skupno ur</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {coachHours.map((coach, idx) => (
+                        <TableRow key={`${coach.coach_id}-${coach.team_name}-${idx}`}>
+                          <TableCell>{coach.coach_name}</TableCell>
+                          <TableCell>{coach.team_name}</TableCell>
+                          <TableCell className="text-right">{coach.activity_count}</TableCell>
+                          <TableCell className="text-right">
+                            {coach.total_hours.toFixed(1)} h
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+
+            {showMobileCoachHours && (
+              <CardContent className="block md:hidden">
+                {coachHours.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Ni podatkov o urah za izbrano obdobje
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Trener</TableHead>
+                          <TableHead>Selekcija</TableHead>
+                          <TableHead className="text-right">Aktivnosti</TableHead>
+                          <TableHead className="text-right">Skupno ur</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {coachHours.map((coach, idx) => (
+                          <TableRow key={`${coach.coach_id}-${coach.team_name}-${idx}`}>
+                            <TableCell>{coach.coach_name}</TableCell>
+                            <TableCell>{coach.team_name}</TableCell>
+                            <TableCell className="text-right">{coach.activity_count}</TableCell>
+                            <TableCell className="text-right">
+                              {coach.total_hours.toFixed(1)} h
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Coach Kilometers */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Kilometri v mesecu</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMobileCoachKilometers(!showMobileCoachKilometers)}
+                  className="md:hidden"
+                >
+                  {showMobileCoachKilometers ? "Skrij pregled" : "Prikaži pregled"}
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            
+            <CardContent className="hidden md:block">
+              {coachKilometers.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Ni podatkov o kilometrih za izbrano obdobje
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Trener</TableHead>
+                        <TableHead>Selekcija</TableHead>
+                        <TableHead className="text-right">Aktivnosti s kilometri</TableHead>
+                        <TableHead className="text-right">Skupno km</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {coachKilometers.map((coach, idx) => (
+                        <TableRow key={`${coach.coach_id}-${coach.team_name}-${idx}`}>
+                          <TableCell>{coach.coach_name}</TableCell>
+                          <TableCell>{coach.team_name}</TableCell>
+                          <TableCell className="text-right">{coach.activity_count}</TableCell>
+                          <TableCell className="text-right">
+                            {coach.total_kilometers.toFixed(1)} km
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+
+            {showMobileCoachKilometers && (
+              <CardContent className="block md:hidden">
+                {coachKilometers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Ni podatkov o kilometrih za izbrano obdobje
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Trener</TableHead>
+                          <TableHead>Selekcija</TableHead>
+                          <TableHead className="text-right">Aktivnosti</TableHead>
+                          <TableHead className="text-right">Skupno km</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {coachKilometers.map((coach, idx) => (
+                          <TableRow key={`${coach.coach_id}-${coach.team_name}-${idx}`}>
+                            <TableCell>{coach.coach_name}</TableCell>
+                            <TableCell>{coach.team_name}</TableCell>
+                            <TableCell className="text-right">{coach.activity_count}</TableCell>
+                            <TableCell className="text-right">
+                              {coach.total_kilometers.toFixed(1)} km
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
