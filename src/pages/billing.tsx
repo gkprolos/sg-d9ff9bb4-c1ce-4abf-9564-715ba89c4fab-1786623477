@@ -278,8 +278,8 @@ export default function BillingPage() {
               // Calculate hourly amount based on role and activity type
               if (coachRates) {
                 const hourlyRate = activity.activity_type_id === 1
-                  ? (isHead ? coachRates.head_training_rate : coachRates.assistant_training_rate)
-                  : (isHead ? coachRates.head_training_2_rate : coachRates.assistant_training_2_rate);
+                  ? (isHead ? coachRates.head_type1_per_hour : coachRates.assistant_type1_per_hour)
+                  : (isHead ? coachRates.head_type2_per_hour : coachRates.assistant_type2_per_hour);
                 entry.hourly_amount += hours * (hourlyRate || 0);
               }
             } else if (isMatch) {
@@ -288,7 +288,7 @@ export default function BillingPage() {
               
               // Calculate match amount (fixed rate per match)
               if (coachRates) {
-                const matchRate = isHead ? coachRates.head_match_rate : coachRates.assistant_match_rate;
+                const matchRate = isHead ? coachRates.head_type3_fixed : coachRates.assistant_type3_fixed;
                 entry.hourly_amount += matchRate || 0;
               }
             }
@@ -297,7 +297,7 @@ export default function BillingPage() {
             const kilometers = ac.mileage_km || 0;
             entry.total_kilometers += kilometers;
             if (coachRates && kilometers > 0) {
-              entry.kilometer_amount += kilometers * (coachRates.mileage_rate || 0);
+              entry.kilometer_amount += kilometers * (coachRates.mileage_per_km || 0);
             }
           }
         }
