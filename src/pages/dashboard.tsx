@@ -1059,7 +1059,7 @@ export default function DashboardPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.active_teams}</div>
+                <div className="text-2xl font-bold">{stats.activeTeams}</div>
               </CardContent>
             </Card>
 
@@ -1069,7 +1069,7 @@ export default function DashboardPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.active_players}</div>
+                <div className="text-2xl font-bold">{stats.activePlayers}</div>
               </CardContent>
             </Card>
 
@@ -1081,7 +1081,7 @@ export default function DashboardPage() {
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{stats.active_venues}</div>
+                    <div className="text-2xl font-bold">{stats.activeVenues}</div>
                   </CardContent>
                 </Card>
 
@@ -1091,7 +1091,7 @@ export default function DashboardPage() {
                     <Activity className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{stats.total_activities}</div>
+                    <div className="text-2xl font-bold">{stats.totalActivities}</div>
                     <p className="text-xs text-muted-foreground">v {selectedMonth}</p>
                   </CardContent>
                 </Card>
@@ -1102,7 +1102,7 @@ export default function DashboardPage() {
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{stats.total_hours.toFixed(1)}</div>
+                    <div className="text-2xl font-bold">{stats.totalHours.toFixed(1)}</div>
                     <p className="text-xs text-muted-foreground">skupno ur</p>
                   </CardContent>
                 </Card>
@@ -1119,7 +1119,7 @@ export default function DashboardPage() {
                   <Car className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.total_kilometers.toFixed(1)}</div>
+                  <div className="text-2xl font-bold">{stats.totalKilometers.toFixed(1)}</div>
                   <p className="text-xs text-muted-foreground">skupno km</p>
                 </CardContent>
               </Card>
@@ -1130,7 +1130,7 @@ export default function DashboardPage() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.total_amount.toFixed(2)} €</div>
+                  <div className="text-2xl font-bold">{stats.totalAmount.toFixed(2)} €</div>
                   <p className="text-xs text-muted-foreground">skupni stroški</p>
                 </CardContent>
               </Card>
