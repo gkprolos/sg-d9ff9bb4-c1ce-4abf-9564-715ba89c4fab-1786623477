@@ -421,17 +421,24 @@ export default function AttendancePage() {
     try {
       setLoading(true);
 
-      // Mark activity as completed
-      const { error } = await supabase
-        .from("activities")
-        .update({ is_completed: true })
-        .eq("id", selectedActivity);
+      // Call RPC function to complete activity and calculate amounts
+      const { data, error } = await supabase.rpc('complete_activity_with_rates', {
+        p_activity_id: selectedActivity
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Napaka pri zaključevanju aktivnosti:", error);
+        toast({
+          variant: "destructive",
+          title: "Napaka pri zaključevanju",
+          description: error.message,
+        });
+        throw error;
+      }
 
       toast({
-        title: "Prisotnost shranjena!",
-        description: `Vnos uspešno zaključen: ${presentCount} prisotnih, ${absentCount} odsotnih, ${excusedCount} opravičenih.`,
+        title: "Aktivnost uspešno zaključena!",
+        description: `Prisotnost shranjena: ${presentCount} prisotnih, ${absentCount} odsotnih, ${excusedCount} opravičenih. Obračun je bil avtomatsko izračunan.`,
       });
 
       // Redirect back to activities
@@ -440,11 +447,7 @@ export default function AttendancePage() {
       }, 1500);
     } catch (error: any) {
       console.error("Napaka pri zaključevanju vnosa:", error);
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: error.message || "Napaka pri zaključevanju vnosa",
-      });
+      // Error toast already shown above
     } finally {
       setLoading(false);
     }
