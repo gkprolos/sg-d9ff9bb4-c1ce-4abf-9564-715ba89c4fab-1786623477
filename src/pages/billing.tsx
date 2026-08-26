@@ -187,20 +187,6 @@ export default function BillingPage() {
           return diffMonths;
         })();
 
-      // Load coach_rates for all coaches in advance
-      let coachRatesQuery = supabase
-        .from("coach_rates")
-        .select("*");
-
-      if (coachIds.length > 0) {
-        coachRatesQuery = coachRatesQuery.in("coach_id", coachIds);
-      }
-
-      const { data: coachRatesData } = await coachRatesQuery;
-      const coachRatesMap = new Map(
-        (coachRatesData || []).map(cr => [cr.coach_id, cr])
-      );
-
       // Load months
       for (let i = startMonthOffset; i < startMonthOffset + monthsToLoad; i++) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -210,13 +196,18 @@ export default function BillingPage() {
         const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
         const endDate = new Date(year, month, 0).toISOString().split("T")[0];
 
-        // Get activities for this month
+        console.log(`Loading billing for ${monthStr}...`);
+
+        // Get activities for this month with full details
         let activitiesQuery = supabase
           .from("activities")
           .select(`
             id,
             team_id,
+            season_id,
             activity_type_id,
+            start_time,
+            end_time,
             activity_coaches(
               coach_id,
               role,
@@ -231,9 +222,46 @@ export default function BillingPage() {
           activitiesQuery = activitiesQuery.in("team_id", teamIds);
         }
 
-        const { data: activities } = await activitiesQuery;
+        const { data: activities, error: activitiesError } = await activitiesQuery;
+        
+        if (activitiesError) {
+          console.error("Error loading activities:", activitiesError);
+          throw activitiesError;
+        }
 
-        if (!activities || activities.length === 0) continue;
+        if (!activities || activities.length === 0) {
+          console.log(`No activities found for ${monthStr}`);
+          continue;
+        }
+
+        console.log(`Found ${activities.length} activities for ${monthStr}`);
+
+        // Get unique season IDs from activities
+        const seasonIds = Array.from(new Set(activities.map(a => a.season_id)));
+        console.log(`Season IDs: ${seasonIds.join(", ")}`);
+
+        // Load coach_rates for all coaches and seasons
+        let coachRatesQuery = supabase
+          .from("coach_rates")
+          .select("*")
+          .in("season_id", seasonIds);
+
+        if (coachIds.length > 0) {
+          coachRatesQuery = coachRatesQuery.in("coach_id", coachIds);
+        }
+
+        const { data: coachRatesData, error: ratesError } = await coachRatesQuery;
+        
+        if (ratesError) {
+          console.error("Error loading coach rates:", ratesError);
+        }
+
+        console.log(`Found ${(coachRatesData || []).length} coach rate records`);
+
+        // Create map: coach_id + season_id -> rates
+        const coachRatesMap = new Map(
+          (coachRatesData || []).map(cr => [`${cr.coach_id}-${cr.season_id}`, cr])
+        );
 
         // Group by coach
         const coachBillingMap = new Map<string, {
@@ -251,6 +279,17 @@ export default function BillingPage() {
           const isTraining = activity.activity_type_id === 1 || activity.activity_type_id === 2;
           const isMatch = activity.activity_type_id === 3;
 
+          // Calculate hours from start_time and end_time if hours_worked is NULL
+          let calculatedHours = 0;
+          if (activity.start_time && activity.end_time) {
+            const start = new Date(`2000-01-01T${activity.start_time}`);
+            const end = new Date(`2000-01-01T${activity.end_time}`);
+            const diffMs = end.getTime() - start.getTime();
+            calculatedHours = diffMs / (1000 * 60 * 60); // Convert to hours
+          }
+
+          console.log(`Activity ${activity.id}: type=${activity.activity_type_id}, calculated_hours=${calculatedHours.toFixed(2)}`);
+
           for (const ac of activityCoaches) {
             if (coachIds.length > 0 && !coachIds.includes(ac.coach_id)) continue;
 
@@ -267,9 +306,21 @@ export default function BillingPage() {
             }
 
             const entry = coachBillingMap.get(ac.coach_id)!;
-            const hours = ac.hours_worked || 0;
-            const coachRates = coachRatesMap.get(ac.coach_id);
+            
+            // Use hours_worked if available, otherwise use calculated hours
+            const hours = ac.hours_worked !== null && ac.hours_worked !== undefined 
+              ? ac.hours_worked 
+              : calculatedHours;
+
+            console.log(`  Coach ${ac.coach_id}: role=${ac.role}, hours=${hours.toFixed(2)}`);
+
+            // Get coach rates for this season
+            const coachRates = coachRatesMap.get(`${ac.coach_id}-${activity.season_id}`);
             const isHead = ac.role === "head";
+
+            if (!coachRates) {
+              console.warn(`No coach rates found for coach ${ac.coach_id} in season ${activity.season_id}`);
+            }
 
             if (isTraining) {
               entry.training_count += 1;
@@ -280,7 +331,10 @@ export default function BillingPage() {
                 const hourlyRate = activity.activity_type_id === 1
                   ? (isHead ? coachRates.head_type1_per_hour : coachRates.assistant_type1_per_hour)
                   : (isHead ? coachRates.head_type2_per_hour : coachRates.assistant_type2_per_hour);
-                entry.hourly_amount += hours * (hourlyRate || 0);
+                
+                const amount = hours * (hourlyRate || 0);
+                entry.hourly_amount += amount;
+                console.log(`    Training rate: ${hourlyRate}, amount: ${amount.toFixed(2)}`);
               }
             } else if (isMatch) {
               entry.match_count += 1;
@@ -290,6 +344,7 @@ export default function BillingPage() {
               if (coachRates) {
                 const matchRate = isHead ? coachRates.head_type3_fixed : coachRates.assistant_type3_fixed;
                 entry.hourly_amount += matchRate || 0;
+                console.log(`    Match rate: ${matchRate}`);
               }
             }
 
@@ -297,10 +352,14 @@ export default function BillingPage() {
             const kilometers = ac.mileage_km || 0;
             entry.total_kilometers += kilometers;
             if (coachRates && kilometers > 0) {
-              entry.kilometer_amount += kilometers * (coachRates.rate_per_km || 0);
+              const kmAmount = kilometers * (coachRates.rate_per_km || 0);
+              entry.kilometer_amount += kmAmount;
+              console.log(`    Kilometers: ${kilometers}, rate: ${coachRates.rate_per_km}, amount: ${kmAmount.toFixed(2)}`);
             }
           }
         }
+
+        console.log(`Processed ${coachBillingMap.size} coaches for ${monthStr}`);
 
         // Get coach names and create billing records
         const uniqueCoachIds = Array.from(coachBillingMap.keys());
@@ -319,6 +378,8 @@ export default function BillingPage() {
           const totalHours = billing.training_hours + billing.match_hours;
           const totalAmount = billing.hourly_amount + billing.kilometer_amount;
 
+          console.log(`Coach ${coachNameMap.get(coachId)}: training_hours=${billing.training_hours.toFixed(1)}, hourly_amount=${billing.hourly_amount.toFixed(2)}, km_amount=${billing.kilometer_amount.toFixed(2)}, total=${totalAmount.toFixed(2)}`);
+
           billingArray.push({
             coach_id: coachId,
             coach_name: coachNameMap.get(coachId) || "Neznan trener",
@@ -335,6 +396,8 @@ export default function BillingPage() {
           });
         }
       }
+
+      console.log(`Total billing records: ${billingArray.length}`);
 
       // Sort by month (descending), then coach name
       billingArray.sort((a, b) => {
