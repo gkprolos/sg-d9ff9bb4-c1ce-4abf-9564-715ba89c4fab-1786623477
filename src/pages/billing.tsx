@@ -46,10 +46,10 @@ export default function BillingPage() {
     async function checkAdmin() {
       if (user) {
         const { data, error } = await supabase
-          .rpc("is_admin", { user_id: user.id });
+          .rpc("is_admin" as any, { user_id: user.id });
         
-        if (!error) {
-          setIsAdmin(data || false);
+        if (!error && typeof data === "boolean") {
+          setIsAdmin(data);
         }
       }
     }
