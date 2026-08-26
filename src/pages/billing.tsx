@@ -266,7 +266,24 @@ export default function BillingPage() {
           continue;
         }
 
-        console.log(`Found ${activities.length} activities for ${monthStr}`);
+        console.log(`Found ${activities.length} activities BEFORE coach filter for ${monthStr}`);
+
+        // Filter activities by coach if specific coach selected
+        let filteredActivities = activities;
+        if (coachIds.length > 0) {
+          filteredActivities = activities.filter(activity => {
+            const activityCoaches = activity.activity_coaches || [];
+            return activityCoaches.some(ac => coachIds.includes(ac.coach_id));
+          });
+          console.log(`Filtered to ${filteredActivities.length} activities for selected coach(es)`);
+        }
+
+        if (filteredActivities.length === 0) {
+          console.log(`No activities found after coach filter for ${monthStr}`);
+          continue;
+        }
+
+        console.log(`Processing ${filteredActivities.length} activities for ${monthStr}`);
 
         // Group by coach
         const coachBillingMap = new Map<string, {
@@ -279,7 +296,7 @@ export default function BillingPage() {
           kilometer_amount: number;
         }>();
 
-        for (const activity of activities) {
+        for (const activity of filteredActivities) {
           const activityCoaches = activity.activity_coaches || [];
           const isTraining = activity.activity_type_id === 1 || activity.activity_type_id === 2;
           const isMatch = activity.activity_type_id === 3;
