@@ -5,10 +5,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getActiveTeams } from "@/services/teamsService";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, UserPlus, Trash2 } from "lucide-react";
+import type React from "react";
 
 interface Team {
   id: string;
@@ -55,12 +58,38 @@ export default function MyTeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [managePlayersDialogOpen, setManagePlayersDialogOpen] = useState(false);
   const [addPlayerDialogOpen, setAddPlayerDialogOpen] = useState(false);
-  const [removePlayerDialogOpen, setRemovePlayerDialogOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [teamPlayers, setTeamPlayers] = useState<TeamPlayer[]>([]);
   const [availablePlayers, setAvailablePlayers] = useState<any[]>([]);
   const [selectedPlayerToAdd, setSelectedPlayerToAdd] = useState("");
   const [playerToRemove, setPlayerToRemove] = useState<{ teamPlayerId: string; playerName: string } | null>(null);
+  const [allPlayers, setAllPlayers] = useState<any[]>([]);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [genderFilter, setGenderFilter] = useState<string>("all");
+
+  // Filter players by search term and gender
+  const filteredPlayers = allPlayers.filter((player) => {
+    // Search filter
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      player.first_name.toLowerCase().includes(searchLower) ||
+      player.last_name.toLowerCase().includes(searchLower);
+
+    if (!matchesSearch) return false;
+
+    // Gender filter from dropdown
+    if (genderFilter !== "all") {
+      if (!player.gender || player.gender.toUpperCase() !== genderFilter.toUpperCase()) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Check if exactly one player matches search
+  const exactMatch = filteredPlayers.length === 1 ? filteredPlayers[0] : null;
 
   useEffect(() => {
     loadTeams();
@@ -111,46 +140,107 @@ export default function MyTeamsPage() {
       }
 
       setTeamPlayers(data || []);
+      setSelectedPlayers((data || []).map((tp: any) => tp.player_id));
     } catch (error: any) {
       console.error("Napaka pri nalaganju igralcev selekcije:", error);
     }
   }
 
-  async function loadAvailablePlayers(teamId: string) {
+  async function loadAllPlayers() {
     try {
-      // Get all active players
-      const { data: allPlayers, error: playersError } = await supabase
+      const { data, error } = await supabase
         .from("players")
-        .select("id, first_name, last_name")
+        .select(`
+          id, 
+          first_name, 
+          last_name, 
+          date_of_birth, 
+          gender,
+          teams:team_players(
+            teams(id, name, short_name)
+          )
+        `)
         .eq("is_active", true)
-        .order("last_name", { ascending: true })
-        .order("first_name", { ascending: true });
+        .order("last_name", { ascending: true });
 
-      if (playersError) throw playersError;
-
-      // Get players already in this team
-      const { data: teamPlayerIds, error: teamError } = await supabase
-        .from("team_players")
-        .select("player_id")
-        .eq("team_id", teamId);
-
-      if (teamError) throw teamError;
-
-      const assignedPlayerIds = new Set((teamPlayerIds || []).map(tp => tp.player_id));
-      
-      // Filter out players already in team
-      const available = (allPlayers || []).filter(p => !assignedPlayerIds.has(p.id));
-      setAvailablePlayers(available);
+      if (error) throw error;
+      setAllPlayers(data || []);
     } catch (error: any) {
-      console.error("Napaka pri nalaganju razpoložljivih igralcev:", error);
+      console.error("Napaka pri nalaganju igralcev:", error);
     }
   }
 
   async function handleManagePlayersClick(team: Team) {
     setSelectedTeam(team);
+    setSearchTerm(""); // Reset search when opening dialog
+    setGenderFilter("all"); // Reset gender filter when opening dialog
+    await loadAllPlayers();
     await loadTeamPlayers(team.id);
-    await loadAvailablePlayers(team.id);
     setManagePlayersDialogOpen(true);
+  }
+
+  async function togglePlayer(playerId: string) {
+    if (!selectedTeam) return;
+
+    const isCurrentlySelected = selectedPlayers.includes(playerId);
+
+    try {
+      if (isCurrentlySelected) {
+        // Remove player - delete from DB immediately
+        const { error } = await supabase
+          .from("team_players")
+          .delete()
+          .eq("team_id", selectedTeam.id)
+          .eq("player_id", playerId);
+
+        if (error) throw error;
+
+        // Update local state
+        setSelectedPlayers(prev => prev.filter(id => id !== playerId));
+        setTeamPlayers(prev => prev.filter(tp => tp.player_id !== playerId));
+
+        toast({
+          title: "Odstranjen",
+          description: "Igralec odstranjen iz selekcije",
+        });
+      } else {
+        // Add player - insert to DB immediately
+        const { error } = await supabase
+          .from("team_players")
+          .insert([{
+            team_id: selectedTeam.id,
+            player_id: playerId,
+          }]);
+
+        if (error) throw error;
+
+        // Update local state
+        setSelectedPlayers(prev => [...prev, playerId]);
+        
+        // Reload team players to get full data
+        await loadTeamPlayers(selectedTeam.id);
+
+        toast({
+          title: "Dodan",
+          description: "Igralec dodan v selekcijo",
+        });
+      }
+    } catch (error: any) {
+      console.error("Napaka pri upravljanju igralca:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri shranjevanju",
+      });
+    }
+  }
+
+  function handleSearchKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && exactMatch) {
+      e.preventDefault();
+      togglePlayer(exactMatch.id);
+      setSearchTerm(""); // Clear search after adding
+    }
   }
 
   function handleAddPlayerClick() {
@@ -196,7 +286,7 @@ export default function MyTeamsPage() {
 
       setAddPlayerDialogOpen(false);
       await loadTeamPlayers(selectedTeam.id);
-      await loadAvailablePlayers(selectedTeam.id);
+      await loadAllPlayers();
     } catch (error: any) {
       console.error("Napaka pri dodajanju igralca v selekcijo:", error);
     } finally {
@@ -238,7 +328,7 @@ export default function MyTeamsPage() {
       setRemovePlayerDialogOpen(false);
       setPlayerToRemove(null);
       await loadTeamPlayers(selectedTeam.id);
-      await loadAvailablePlayers(selectedTeam.id);
+      await loadAllPlayers();
     } catch (error: any) {
       console.error("Napaka pri odstranjevanju igralca iz selekcije:", error);
     } finally {
@@ -321,156 +411,114 @@ export default function MyTeamsPage() {
 
           {/* Manage Players Dialog */}
           <Dialog open={managePlayersDialogOpen} onOpenChange={setManagePlayersDialogOpen}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+                <DialogTitle>
                   Upravljanje igralcev - {selectedTeam?.name}
                 </DialogTitle>
               </DialogHeader>
 
-              <div className="space-y-6 py-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">
-                    Igralci v selekciji ({teamPlayers.length})
-                  </h3>
-                  <Button onClick={handleAddPlayerClick} size="sm">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Dodaj igralca
-                  </Button>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="gender_filter">Filter po spolu</Label>
+                  <Select value={genderFilter} onValueChange={setGenderFilter}>
+                    <SelectTrigger id="gender_filter">
+                      <SelectValue placeholder="Vsi igralci" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Vsi igralci</SelectItem>
+                      <SelectItem value="M">Samo moški (M)</SelectItem>
+                      <SelectItem value="F">Samo ženske (F)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {teamPlayers.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>V selekciji še ni igralcev</p>
-                    <p className="text-sm mt-2">Dodajte prvega igralca</p>
+                <div className="space-y-2">
+                  <Label htmlFor="player_search">Iskanje igralca</Label>
+                  <Input
+                    id="player_search"
+                    placeholder="Ime ali priimek..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Igralci ({filteredPlayers.length})</Label>
+                  <div className="border rounded-lg">
+                    <ScrollArea className="h-[300px] sm:h-[400px]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="text-xs">
+                            <TableHead className="w-[50px]"></TableHead>
+                            <TableHead>Ime</TableHead>
+                            <TableHead>Priimek</TableHead>
+                            <TableHead>Datum rojstva</TableHead>
+                            <TableHead>Druge selekcije</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredPlayers.map((player) => {
+                            const isSelected = selectedPlayers.includes(player.id);
+                            const otherTeams = player.teams
+                              ?.filter((tp: any) => tp.teams.id !== selectedTeam?.id)
+                              .map((tp: any) => tp.teams) || [];
+
+                            return (
+                              <TableRow key={player.id} className="text-sm">
+                                <TableCell className="py-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => togglePlayer(player.id)}
+                                    className="h-4 w-4"
+                                  />
+                                </TableCell>
+                                <TableCell className="font-medium py-2">
+                                  {player.first_name}
+                                </TableCell>
+                                <TableCell className="py-2">{player.last_name}</TableCell>
+                                <TableCell className="py-2">
+                                  {player.date_of_birth
+                                    ? new Date(player.date_of_birth).toLocaleDateString("sl-SI")
+                                    : "N/A"}
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <div className="flex flex-wrap gap-1">
+                                    {otherTeams.length > 0 ? (
+                                      otherTeams.map((team: any, idx: number) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
+                                          {team.short_name || team.name}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">-</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
                   </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ime</TableHead>
-                        <TableHead>Priimek</TableHead>
-                        <TableHead>Datum rojstva</TableHead>
-                        <TableHead className="text-right">Akcije</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {teamPlayers.map((tp) => (
-                        <TableRow key={tp.id}>
-                          <TableCell className="font-medium">{tp.players.first_name}</TableCell>
-                          <TableCell>{tp.players.last_name}</TableCell>
-                          <TableCell>
-                            {tp.players.date_of_birth
-                              ? new Date(tp.players.date_of_birth).toLocaleDateString("sl-SI")
-                              : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() =>
-                                handleRemovePlayerClick(
-                                  tp.id,
-                                  `${tp.players.first_name} ${tp.players.last_name}`
-                                )
-                              }
-                              title="Odstrani iz selekcije"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                </div>
               </div>
 
-              <DialogFooter>
+              <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setManagePlayersDialogOpen(false)}
+                  disabled={loading}
                 >
                   Zapri
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
-
-          {/* Add Player to Team Dialog */}
-          <Dialog open={addPlayerDialogOpen} onOpenChange={setAddPlayerDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Dodaj igralca v {selectedTeam?.name}</DialogTitle>
-              </DialogHeader>
-
-              <div className="space-y-4 py-4">
-                {availablePlayers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Vsi igralci so že v tej selekciji ali ni razpoložljivih igralcev.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="player_select">Izberi igralca *</Label>
-                    <Select value={selectedPlayerToAdd} onValueChange={setSelectedPlayerToAdd}>
-                      <SelectTrigger id="player_select">
-                        <SelectValue placeholder="Izberi igralca" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availablePlayers.map((player) => (
-                          <SelectItem key={player.id} value={player.id}>
-                            {player.first_name} {player.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setAddPlayerDialogOpen(false)}
-                  disabled={loading}
-                >
-                  Prekliči
-                </Button>
-                <Button
-                  onClick={handleConfirmAddPlayer}
-                  disabled={loading || availablePlayers.length === 0}
-                >
-                  {loading ? "Dodajam..." : "Dodaj"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* Remove Player Confirmation Dialog */}
-          <AlertDialog open={removePlayerDialogOpen} onOpenChange={setRemovePlayerDialogOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Potrditev odstranitve</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Nameravaš odstraniti igralca <strong>{playerToRemove?.playerName}</strong> iz
-                  selekcije <strong>{selectedTeam?.name}</strong>. Odstranim?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Prekliči</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleConfirmRemovePlayer}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Odstrani
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </AppLayout>
     </ProtectedRoute>
