@@ -41,6 +41,7 @@ import {
   Activity,
   ClipboardCheck,
   Building,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
