@@ -2,6 +2,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,8 @@ import {
   TrendingDown,
   Clock,
   DollarSign,
-  Car
+  Car,
+  Plus
 } from "lucide-react";
 
 interface DashboardStats {
@@ -704,15 +706,26 @@ export default function DashboardPage() {
     <ProtectedRoute allowedRoles={["admin", "coach"]}>
       <AppLayout>
         <div className="space-y-6">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">
-              {isAdmin ? "Nadzorna plošča" : "Moj pregled"}
-            </h2>
-            <p className="text-muted-foreground">
-              {isAdmin 
-                ? "Pregled statistike kluba in aktivnosti" 
-                : "Pregled mojih aktivnosti in statistike"}
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">
+                {isAdmin ? "Nadzorna plošča" : "Moj pregled"}
+              </h2>
+              <p className="text-muted-foreground">
+                {isAdmin 
+                  ? "Pregled statistike kluba in aktivnosti" 
+                  : "Pregled mojih aktivnosti in statistike"}
+              </p>
+            </div>
+
+            {!isAdmin && (
+              <Link href="/attendance">
+                <Button size="lg" className="w-full sm:w-auto">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Dodaj prisotnost
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* KPI Cards */}
