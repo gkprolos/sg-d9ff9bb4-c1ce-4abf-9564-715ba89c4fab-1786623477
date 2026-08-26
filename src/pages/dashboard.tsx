@@ -923,7 +923,7 @@ export default function DashboardPage() {
                           <TableCell className="text-right">{player.absent}</TableCell>
                           <TableCell className="text-right">{player.excused}</TableCell>
                           <TableCell className="text-right">
-                            {player.attendance_percentage.toFixed(1)}%
+                            {player.attendance_rate.toFixed(1)}%
                           </TableCell>
                         </TableRow>
                       ))}
@@ -954,7 +954,7 @@ export default function DashboardPage() {
                             <TableCell className="text-right">{player.absent}</TableCell>
                             <TableCell className="text-right">{player.excused}</TableCell>
                             <TableCell className="text-right">
-                              {player.attendance_percentage.toFixed(1)}%
+                              {player.attendance_rate.toFixed(1)}%
                             </TableCell>
                           </TableRow>
                         ))}
