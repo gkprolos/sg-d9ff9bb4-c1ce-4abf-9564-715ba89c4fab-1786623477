@@ -140,10 +140,8 @@ export default function DashboardPage() {
       }
       console.log("Loading stats with season:", selectedSeason);
       loadStats();
-      loadMonthlyHours();
       loadCoachHours();
       loadCoachKilometers();
-      loadActivityBreakdown();
     }
   }, [user, isAdmin, selectedMonth, selectedSeason]);
 
@@ -288,7 +286,7 @@ export default function DashboardPage() {
       let teamsQuery = supabase
         .from("teams")
         .select("id", { count: "exact", head: true })
-        .eq("is_active", true);
+        .eq("is_archived", false);
 
       if (selectedSeason && selectedSeason.length > 0) {
         teamsQuery = teamsQuery.eq("season_id", selectedSeason);
