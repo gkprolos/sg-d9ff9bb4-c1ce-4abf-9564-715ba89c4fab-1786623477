@@ -1500,13 +1500,15 @@ export default function DashboardPage() {
                           <TableHead>Trener</TableHead>
                           <TableHead>Selekcija</TableHead>
                           <TableHead className="text-right">Aktivnosti</TableHead>
-                          <TableHead className="text-right">Skupno km</TableHead>
+                          <TableHead className="text-right">Skupaj km</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {coachKilometers.map((coach, idx) => (
-                          <TableRow key={`mobile-${coach.coach_id}-${idx}`}>
+                          <TableRow key={`mobile-${coach.coach_id}-${coach.team_name}-${idx}`}>
                             <TableCell>{coach.coach_name}</TableCell>
+                            <TableCell>{coach.team_name}</TableCell>
+                            <TableCell className="text-right">{coach.activity_count}</TableCell>
                             <TableCell className="text-right">
                               {coach.total_kilometers.toFixed(1)} km
                             </TableCell>
