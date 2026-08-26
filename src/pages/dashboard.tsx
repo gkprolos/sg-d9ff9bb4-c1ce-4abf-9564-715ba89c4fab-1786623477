@@ -23,7 +23,8 @@ import {
   DollarSign,
   Car,
   Plus,
-  ChevronDown
+  ChevronDown,
+  MapPin
 } from "lucide-react";
 
 interface DashboardStats {
@@ -1050,113 +1051,91 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* KPI Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Summary Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Aktivne selekcije</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.active_teams}</div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Aktivni igralci</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.activePlayers}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  M: {stats.malePlayers} • F: {stats.femalePlayers}
-                </p>
+                <div className="text-2xl font-bold">{stats.active_players}</div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {isAdmin ? "Aktivne selekcije" : "Moje selekcije"}
-                </CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.activeTeams}</div>
-              </CardContent>
-            </Card>
+            {isAdmin && (
+              <>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Dvorane</CardTitle>
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.active_venues}</div>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Dvorane</CardTitle>
-                <Building className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.activeVenues}</div>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Skupaj aktivnosti</CardTitle>
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.total_activities}</div>
+                    <p className="text-xs text-muted-foreground">v {selectedMonth}</p>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Skupaj aktivnosti</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalActivities}</div>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Ure v mesecu</CardTitle>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.total_hours.toFixed(1)}</div>
+                    <p className="text-xs text-muted-foreground">skupno ur</p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
 
-          {/* Monthly Stats */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Aktivnosti v mesecu</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.monthlyActivities}</div>
-              </CardContent>
-            </Card>
+          {/* Second row - only for admin */}
+          {isAdmin && (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Kilometri v mesecu</CardTitle>
+                  <Car className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.total_kilometers.toFixed(1)}</div>
+                  <p className="text-xs text-muted-foreground">skupno km</p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Ure v mesecu</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.monthlyHours}h</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Kilometri v mesecu</CardTitle>
-                <Car className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.monthlyKilometers} km</div>
-              </CardContent>
-            </Card>
-
-            {!isAdmin && (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Mesečni obračun</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.monthlyAmount.toFixed(2)} €</div>
+                  <div className="text-2xl font-bold">{stats.total_amount.toFixed(2)} €</div>
+                  <p className="text-xs text-muted-foreground">skupni stroški</p>
                 </CardContent>
               </Card>
-            )}
-          </div>
-
-          {/* Mesečni obračun Card - Clickable Link */}
-          <Link href="/billing">
-            <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Mesečni obračun</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Kliknite za ogled podrobnega mesečnega obračuna
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
+            </div>
+          )}
 
           {/* Filters */}
           <Card>
@@ -1558,6 +1537,20 @@ export default function DashboardPage() {
               </CardContent>
             )}
           </Card>
+
+          {/* Monthly Kilometers by Coach - only for admin */}
+          {isAdmin && (
+            <Card>
+              <CardHeader className="flex items-center justify-between cursor-pointer" onClick={() => setShowMobileCoachKilometers(!showMobileCoachKilometers)}>
+                <div className="flex items-center gap-2">
+                  <Car className="h-5 w-5" />
+                  <CardTitle>Kilometri v mesecu</CardTitle>
+                </div>
+                <ChevronDown className={`h-5 w-5 transition-transform md:hidden ${showMobileCoachKilometers ? 'rotate-180' : ''}`} />
+              </CardHeader>
+              <CardContent className="hidden md:block">
+            </Card>
+          )}
         </div>
       </AppLayout>
     </ProtectedRoute>
