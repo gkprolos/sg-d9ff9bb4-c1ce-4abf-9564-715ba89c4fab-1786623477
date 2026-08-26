@@ -55,6 +55,7 @@ export default function AttendancePage() {
     venue_id: "",
     start_time: "",
     end_time: "",
+    mileage_km: "",
   });
 
   useEffect(() => {
@@ -321,8 +322,30 @@ export default function AttendancePage() {
 
       setSelectedActivity(activityId);
       setShowNewActivity(false);
-      setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "" });
+      setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "", mileage_km: "" });
       await loadActivitiesForDate();
+      
+      // Update mileage if provided
+      if (newActivityForm.mileage_km && parseFloat(newActivityForm.mileage_km) > 0) {
+        const mileageValue = parseFloat(newActivityForm.mileage_km);
+        
+        const { error: mileageError } = await supabase
+          .from("activity_coaches")
+          .update({ mileage_km: mileageValue })
+          .eq("activity_id", activityId)
+          .eq("coach_id", user.id);
+
+        if (mileageError) {
+          console.error("Napaka pri shranjevanju kilometrov:", mileageError);
+          toast({
+            variant: "destructive",
+            title: "Opozorilo",
+            description: "Aktivnost je bila ustvarjena, vendar kilometri niso bili shranjeni.",
+          });
+        } else {
+          console.log(`Kilometri shranjeni: ${mileageValue} km za trenerja ${user.id}`);
+        }
+      }
       
       // Explicitly load players for the newly created/opened activity
       await loadPlayersForActivity(activityId);
@@ -552,6 +575,20 @@ export default function AttendancePage() {
                           onChange={(e) => setNewActivityForm({ ...newActivityForm, end_time: e.target.value })}
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="mileage_km">Kilometri (opcijsko)</Label>
+                      <Input
+                        id="mileage_km"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        placeholder="0"
+                        value={newActivityForm.mileage_km}
+                        onChange={(e) => setNewActivityForm({ ...newActivityForm, mileage_km: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">Tvoji prevoženi kilometri za to aktivnost</p>
                     </div>
 
                     <div className="flex gap-2">
