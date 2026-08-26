@@ -599,7 +599,7 @@ export default function AttendancePage() {
                         variant="outline"
                         onClick={() => {
                           setShowNewActivity(false);
-                          setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "" });
+                          setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "", mileage_km: "" });
                         }}
                       >
                         Prekliči
