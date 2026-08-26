@@ -438,8 +438,16 @@ export default function DashboardPage() {
   }
 
   async function loadPlayerAttendance() {
+    // Skip if no specific team selected
+    if (selectedTeam === "all") {
+      setPlayerAttendance([]);
+      return;
+    }
+
     try {
-      setLoading(true);
+      const [year, month] = selectedMonth.split("-");
+      const startDate = `${year}-${month}-01`;
+      const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split("T")[0];
 
       const now = new Date();
       const attYear = now.getFullYear();
