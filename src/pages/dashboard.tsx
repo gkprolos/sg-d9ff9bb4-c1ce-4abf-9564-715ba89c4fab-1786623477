@@ -153,6 +153,7 @@ export default function DashboardPage() {
       loadPlayerAttendance();
       loadCoachHours();
       loadCoachKilometers();
+      loadMonthlyBilling();
     }
   }, [user, isAdmin, selectedMonth, selectedTeam, selectedCoach]);
 
@@ -941,6 +942,150 @@ export default function DashboardPage() {
     }
   }
 
+  async function loadMonthlyBilling() {
+    try {
+      let coachIds: string[] = [];
+
+      // Determine which coaches to load
+      if (isAdmin) {
+        if (selectedCoach !== "all") {
+          coachIds = [selectedCoach];
+        }
+      } else if (user?.id) {
+        coachIds = [user.id];
+      }
+
+      const billingArray: MonthlyBilling[] = [];
+      const now = new Date();
+
+      // Load last 6 months
+      for (let i = 0; i < 6; i++) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+        const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+        const endDate = new Date(year, month, 0).toISOString().split("T")[0];
+
+        // Get activities for this month
+        const activitiesQuery = supabase
+          .from("activities")
+          .select(`
+            id,
+            activity_type_id,
+            activity_coaches(
+              coach_id,
+              hours_worked,
+              mileage_km,
+              total_amount
+            )
+          `)
+          .gte("activity_date", startDate)
+          .lte("activity_date", endDate);
+
+        const { data: activities } = await activitiesQuery;
+
+        if (!activities || activities.length === 0) continue;
+
+        // Group by coach
+        const coachBillingMap = new Map<string, {
+          training_count: number;
+          training_hours: number;
+          match_count: number;
+          match_hours: number;
+          total_kilometers: number;
+          hourly_amount: number;
+          kilometer_amount: number;
+        }>();
+
+        for (const activity of activities) {
+          const activityCoaches = activity.activity_coaches || [];
+          const isTraining = activity.activity_type_id === 1 || activity.activity_type_id === 2;
+          const isMatch = activity.activity_type_id === 3;
+
+          for (const ac of activityCoaches) {
+            if (coachIds.length > 0 && !coachIds.includes(ac.coach_id)) continue;
+
+            if (!coachBillingMap.has(ac.coach_id)) {
+              coachBillingMap.set(ac.coach_id, {
+                training_count: 0,
+                training_hours: 0,
+                match_count: 0,
+                match_hours: 0,
+                total_kilometers: 0,
+                hourly_amount: 0,
+                kilometer_amount: 0,
+              });
+            }
+
+            const entry = coachBillingMap.get(ac.coach_id)!;
+            const hours = ac.hours_worked || 0;
+
+            if (isTraining) {
+              entry.training_count += 1;
+              entry.training_hours += hours;
+            } else if (isMatch) {
+              entry.match_count += 1;
+              entry.match_hours += hours * 4; // Matches count as 4x hours
+            }
+
+            entry.total_kilometers += ac.mileage_km || 0;
+            
+            // Calculate amounts from total_amount in activity_coaches
+            // This already includes hourly and kilometer amounts
+            const totalAmount = ac.total_amount || 0;
+            const kilometerAmount = (ac.mileage_km || 0) * 0.37; // Estimate km rate
+            entry.kilometer_amount += kilometerAmount;
+            entry.hourly_amount += totalAmount - kilometerAmount;
+          }
+        }
+
+        // Get coach names and create billing records
+        const uniqueCoachIds = Array.from(coachBillingMap.keys());
+        const { data: coachProfiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", uniqueCoachIds);
+
+        const coachNameMap = new Map(
+          (coachProfiles || []).map(p => [p.id, p.full_name])
+        );
+
+        for (const [coachId, billing] of coachBillingMap) {
+          const totalHours = billing.training_hours + billing.match_hours;
+          const totalAmount = billing.hourly_amount + billing.kilometer_amount;
+
+          billingArray.push({
+            coach_id: coachId,
+            coach_name: coachNameMap.get(coachId) || "Neznan trener",
+            month: monthStr,
+            training_count: billing.training_count,
+            training_hours: Math.round(billing.training_hours * 10) / 10,
+            match_count: billing.match_count,
+            match_hours: Math.round(billing.match_hours * 10) / 10,
+            total_hours: Math.round(totalHours * 10) / 10,
+            hourly_amount: Math.round(billing.hourly_amount * 100) / 100,
+            total_kilometers: Math.round(billing.total_kilometers * 10) / 10,
+            kilometer_amount: Math.round(billing.kilometer_amount * 100) / 100,
+            total_amount: Math.round(totalAmount * 100) / 100,
+          });
+        }
+      }
+
+      // Sort by month (descending), then coach name
+      billingArray.sort((a, b) => {
+        const monthCompare = b.month.localeCompare(a.month);
+        if (monthCompare !== 0) return monthCompare;
+        return a.coach_name.localeCompare(b.coach_name);
+      });
+
+      setMonthlyBilling(billingArray);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju mesečnih obračunov:", error);
+      setMonthlyBilling([]);
+    }
+  }
+
   async function handlePlayerClick(playerId: string) {
     try {
       const { data: playerData } = await supabase
@@ -1492,6 +1637,73 @@ export default function DashboardPage() {
               </CardContent>
             )}
           </Card>
+
+          {/* Monthly Billing */}
+          <Collapsible open={billingExpanded} onOpenChange={setBillingExpanded}>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Mesečni obračun</span>
+                    <ChevronDown className={`h-5 w-5 transition-transform ${billingExpanded ? "rotate-180" : ""}`} />
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent>
+                <CardContent>
+                  {monthlyBilling.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      Ni podatkov o obračunih
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Trener</TableHead>
+                            <TableHead>Mesec</TableHead>
+                            <TableHead className="text-right">Treningi</TableHead>
+                            <TableHead className="text-right">Ure treningov</TableHead>
+                            <TableHead className="text-right">Tekme</TableHead>
+                            <TableHead className="text-right">Ure tekem (×4)</TableHead>
+                            <TableHead className="text-right">Skupno ur</TableHead>
+                            <TableHead className="text-right">Znesek ur</TableHead>
+                            <TableHead className="text-right">Kilometri</TableHead>
+                            <TableHead className="text-right">Znesek km</TableHead>
+                            <TableHead className="text-right font-semibold">Skupaj</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {monthlyBilling.map((billing, idx) => {
+                            const [year, month] = billing.month.split("-");
+                            const monthName = monthNames[parseInt(month) - 1];
+                            const displayMonth = `${monthName} ${year}`;
+                            
+                            return (
+                              <TableRow key={`${billing.coach_id}-${billing.month}-${idx}`}>
+                                <TableCell>{billing.coach_name}</TableCell>
+                                <TableCell>{displayMonth}</TableCell>
+                                <TableCell className="text-right">{billing.training_count}</TableCell>
+                                <TableCell className="text-right">{billing.training_hours.toFixed(1)} h</TableCell>
+                                <TableCell className="text-right">{billing.match_count}</TableCell>
+                                <TableCell className="text-right">{billing.match_hours.toFixed(1)} h</TableCell>
+                                <TableCell className="text-right font-medium">{billing.total_hours.toFixed(1)} h</TableCell>
+                                <TableCell className="text-right">{billing.hourly_amount.toFixed(2)} €</TableCell>
+                                <TableCell className="text-right">{billing.total_kilometers.toFixed(1)} km</TableCell>
+                                <TableCell className="text-right">{billing.kilometer_amount.toFixed(2)} €</TableCell>
+                                <TableCell className="text-right font-semibold">{billing.total_amount.toFixed(2)} €</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         </div>
       </AppLayout>
     </ProtectedRoute>
