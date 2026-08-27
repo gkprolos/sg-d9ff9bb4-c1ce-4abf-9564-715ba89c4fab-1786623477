@@ -57,6 +57,10 @@ export default function ReportsPage() {
     return currentYear.toString();
   });
 
+  // Team filter
+  const [selectedTeam, setSelectedTeam] = useState<string>("all");
+  const [teamsList, setTeamsList] = useState<Array<{ id: string; name: string }>>([]);
+
   // Generate years array (2026 to 2036 - 10 years)
   const years = Array.from(
     { length: 11 },
@@ -73,7 +77,7 @@ export default function ReportsPage() {
     if (user && selectedYear) {
       loadReports();
     }
-  }, [user, isAdmin, selectedYear]);
+  }, [user, isAdmin, selectedYear, selectedTeam]);
 
   async function checkAdminStatus() {
     if (!user?.id) return;
@@ -158,7 +162,10 @@ export default function ReportsPage() {
           team_name: team.name,
           head_coach_name: firstCoach ? coachNameMap.get(firstCoach.coach_id) || "Ni trenerja" : "Ni trenerja",
         };
-      });
+      }).sort((a, b) => a.team_name.localeCompare(b.team_name, 'sl')); // Sort by name A-Z
+
+      // Update teams list for filter dropdown
+      setTeamsList(processedTeams.map(t => ({ id: t.team_id, name: t.team_name })));
 
       // Get all activities for selected year
       const yearStart = `${selectedYear}-01-01`;
@@ -225,7 +232,12 @@ export default function ReportsPage() {
         };
       });
 
-      setTeamReports(reportsData);
+      // Filter by selected team if not "all"
+      const filteredReports = selectedTeam === "all" 
+        ? reportsData 
+        : reportsData.filter(r => r.team_id === selectedTeam);
+
+      setTeamReports(filteredReports);
     } catch (error: any) {
       console.error("Napaka pri nalaganju poročil:", error);
       toast({
@@ -319,6 +331,23 @@ export default function ReportsPage() {
                         {years.map((year) => (
                           <SelectItem key={year} value={year}>
                             {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Selekcija</label>
+                    <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Vse selekcije" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Vse selekcije</SelectItem>
+                        {teamsList.map((team) => (
+                          <SelectItem key={team.id} value={team.id}>
+                            {team.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
