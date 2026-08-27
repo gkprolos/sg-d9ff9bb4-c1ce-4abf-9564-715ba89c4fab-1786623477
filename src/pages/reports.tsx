@@ -416,7 +416,7 @@ export default function ReportsPage() {
 
   const handleExportExcel = async () => {
     try {
-      if (reports.length === 0) {
+      if (teamReports.length === 0) {
         toast({
           title: "Ni podatkov",
           description: "Ni podatkov za izvoz",
@@ -427,7 +427,7 @@ export default function ReportsPage() {
 
       const workbook = XLSX.utils.book_new();
 
-      reports.forEach((report) => {
+      teamReports.forEach((report) => {
         const worksheetData = [
           ["Selekcija", report.team_name],
           ["Trener", report.head_coach_name],
