@@ -81,16 +81,14 @@ export default function ReportsPage() {
     if (!user?.id) return;
 
     try {
-      // Check if user has any coach records - if yes, they're a coach, otherwise admin
-      const { data: coachRecords } = await supabase
-        .from("team_coaches")
-        .select("id")
-        .eq("coach_id", user.id)
-        .limit(1);
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
 
-      // If user has coach records, they're a coach (not admin for this context)
-      // If no coach records, assume admin
-      setIsAdmin(!coachRecords || coachRecords.length === 0);
+      if (error) throw error;
+      setIsAdmin(data?.role === "admin");
     } catch (error: any) {
       console.error("Napaka pri preverjanju admin statusa:", error);
       setIsAdmin(false);
