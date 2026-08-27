@@ -68,19 +68,23 @@ export default function ReportsPage() {
   );
 
   useEffect(() => {
-    if (user) {
-      checkAdminStatus();
-    }
-  }, [user]);
+    async function initializeReports() {
+      if (!user) return;
 
-  useEffect(() => {
-    if (user && selectedYear) {
-      loadReports();
-    }
-  }, [user, isAdmin, selectedYear, selectedTeam]);
+      // First, check admin status
+      await checkAdminStatus();
 
-  async function checkAdminStatus() {
-    if (!user?.id) return;
+      // Then load reports (isAdmin will be set by now)
+      if (selectedYear) {
+        await loadReports();
+      }
+    }
+
+    initializeReports();
+  }, [user, selectedYear, selectedTeam]);
+
+  async function checkAdminStatus(): Promise<boolean> {
+    if (!user?.id) return false;
 
     try {
       const { data, error } = await supabase
@@ -93,16 +97,20 @@ export default function ReportsPage() {
       const adminStatus = data?.role === "admin";
       console.log("checkAdminStatus result:", { role: data?.role, isAdmin: adminStatus });
       setIsAdmin(adminStatus);
+      return adminStatus;
     } catch (error: any) {
       console.error("Napaka pri preverjanju admin statusa:", error);
       setIsAdmin(false);
+      return false;
     }
   }
 
   async function loadReports() {
     if (!selectedYear) return;
 
-    console.log("loadReports START - isAdmin:", isAdmin, "user:", user?.id);
+    // Get admin status synchronously
+    const adminStatus = isAdmin;
+    console.log("loadReports START - isAdmin:", adminStatus, "user:", user?.id);
 
     try {
       setLoading(true);
@@ -123,7 +131,7 @@ export default function ReportsPage() {
 
       // Filter teams by coach if not admin
       let filteredTeams = teams;
-      if (!isAdmin && user?.id) {
+      if (!adminStatus && user?.id) {
         console.log("Filtering teams for coach (NOT admin):", user.id);
         const { data: userTeams } = await supabase
           .from("team_coaches")
