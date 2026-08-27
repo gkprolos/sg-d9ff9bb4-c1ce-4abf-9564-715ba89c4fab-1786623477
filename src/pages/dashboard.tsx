@@ -112,10 +112,11 @@ export default function DashboardPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
 
+  const [coachHours, setCoachHours] = useState<any[]>([]);
+  const [coachKilometers, setCoachKilometers] = useState<any[]>([]);
   const [playerAttendance, setPlayerAttendance] = useState<PlayerAttendance[]>([]);
-  const [coachHours, setCoachHours] = useState<CoachHours[]>([]);
-  const [coachKilometers, setCoachKilometers] = useState<CoachKilometers[]>([]);
-  const [coaches, setCoaches] = useState<any[]>([]);
+  const [teamStats, setTeamStats] = useState<any[]>([]);
+  const [showLowAttendanceOnly, setShowLowAttendanceOnly] = useState(true);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPlayerDetail, setSelectedPlayerDetail] = useState<PlayerDetail | null>(null);
   const [coachRates, setCoachRates] = useState<any>(null);
