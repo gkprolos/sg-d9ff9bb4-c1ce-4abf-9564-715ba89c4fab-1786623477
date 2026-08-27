@@ -131,17 +131,22 @@ export default function ReportsPage() {
         return;
       }
 
-      // Get all team_coaches with profiles
+      // Get all team_coaches
       const { data: teamCoaches } = await supabase
         .from("team_coaches")
-        .select(`
-          team_id,
-          is_head_coach,
-          coach_id,
-          profiles!team_coaches_coach_id_fkey (
-            full_name
-          )
-        `);
+        .select("team_id, is_head_coach, coach_id");
+
+      // Get all profiles for coaches
+      const coachIds = Array.from(new Set((teamCoaches || []).map(tc => tc.coach_id)));
+      const { data: coachProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", coachIds);
+
+      // Create a map of coach_id -> full_name
+      const coachNameMap = new Map(
+        (coachProfiles || []).map(p => [p.id, p.full_name])
+      );
 
       // Process teams and get head coach
       const processedTeams = filteredTeams.map((team: any) => {
@@ -151,7 +156,7 @@ export default function ReportsPage() {
         return {
           team_id: team.id,
           team_name: team.name,
-          head_coach_name: headCoach?.profiles?.full_name || "Ni glavnega trenerja",
+          head_coach_name: headCoach ? coachNameMap.get(headCoach.coach_id) || "Ni glavnega trenerja" : "Ni glavnega trenerja",
         };
       });
 
