@@ -57,10 +57,10 @@ export default function ReportsPage() {
     return currentYear.toString();
   });
 
-  // Generate years array (2024 to current year + 2)
+  // Generate years array (2026 to 2036 - 10 years)
   const years = Array.from(
-    { length: new Date().getFullYear() - 2024 + 3 },
-    (_, i) => (2024 + i).toString()
+    { length: 11 },
+    (_, i) => (2026 + i).toString()
   );
 
   useEffect(() => {
@@ -100,40 +100,10 @@ export default function ReportsPage() {
       setLoading(true);
 
       // Get all teams (not filtered by season, just not archived)
-      let teamsQuery = supabase
+      const { data: teams, error: teamsError } = await supabase
         .from("teams")
-        .select(`
-          id,
-          name,
-          season_id,
-          team_coaches (
-            is_head_coach,
-            coach_id,
-            profiles (
-              full_name
-            )
-          )
-        `)
+        .select("id, name, season_id")
         .eq("is_archived", false);
-
-      // If not admin, filter to only teams where user is a coach
-      if (!isAdmin && user?.id) {
-        const { data: userTeams } = await supabase
-          .from("team_coaches")
-          .select("team_id")
-          .eq("coach_id", user.id);
-
-        const teamIds = (userTeams || []).map(ut => ut.team_id);
-        if (teamIds.length > 0) {
-          teamsQuery = teamsQuery.in("id", teamIds);
-        } else {
-          setTeamReports([]);
-          setLoading(false);
-          return;
-        }
-      }
-
-      const { data: teams, error: teamsError } = await teamsQuery;
 
       if (teamsError) throw teamsError;
 
@@ -143,9 +113,40 @@ export default function ReportsPage() {
         return;
       }
 
+      // Filter teams by coach if not admin
+      let filteredTeams = teams;
+      if (!isAdmin && user?.id) {
+        const { data: userTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id);
+
+        const teamIds = (userTeams || []).map(ut => ut.team_id);
+        filteredTeams = teams.filter(t => teamIds.includes(t.id));
+      }
+
+      if (filteredTeams.length === 0) {
+        setTeamReports([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get all team_coaches with profiles
+      const { data: teamCoaches } = await supabase
+        .from("team_coaches")
+        .select(`
+          team_id,
+          is_head_coach,
+          profiles (
+            full_name
+          )
+        `);
+
       // Process teams and get head coach
-      const processedTeams = teams.map((team: any) => {
-        const headCoach = (team.team_coaches || []).find((tc: any) => tc.is_head_coach);
+      const processedTeams = filteredTeams.map((team: any) => {
+        const coaches = (teamCoaches || []).filter((tc: any) => tc.team_id === team.id);
+        const headCoach = coaches.find((tc: any) => tc.is_head_coach);
+        
         return {
           team_id: team.id,
           team_name: team.name,
