@@ -56,6 +56,8 @@ export default function AttendancePage() {
     start_time: "",
     end_time: "",
     mileage_km: "",
+    activity_type_id: "1", // Default to "Trening v dvorani"
+    is_home_game: null as boolean | null,
   });
 
   useEffect(() => {
@@ -246,6 +248,16 @@ export default function AttendancePage() {
       return;
     }
 
+    // Validate is_home_game for type 3
+    if (newActivityForm.activity_type_id === "3" && newActivityForm.is_home_game === null) {
+      toast({
+        variant: "destructive",
+        title: "Manjkajo podatki",
+        description: "Za uradno tekmo je obvezna izbira doma/gostovanje",
+      });
+      return;
+    }
+
     if (!user?.id) {
       toast({
         variant: "destructive",
@@ -270,12 +282,12 @@ export default function AttendancePage() {
         {
           p_team_id: newActivityForm.team_id,
           p_activity_date: selectedDate,
-          p_activity_type_id: 1, // Default to training
+          p_activity_type_id: parseInt(newActivityForm.activity_type_id),
           p_venue_id: newActivityForm.venue_id || null,
           p_custom_venue: null,
           p_start_time: newActivityForm.start_time || null,
           p_end_time: newActivityForm.end_time || null,
-          p_is_home_game: null,
+          p_is_home_game: newActivityForm.is_home_game,
         }
       );
 
@@ -322,7 +334,7 @@ export default function AttendancePage() {
 
       setSelectedActivity(activityId);
       setShowNewActivity(false);
-      setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "", mileage_km: "" });
+      setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "", mileage_km: "", activity_type_id: "1", is_home_game: null });
       await loadActivitiesForDate();
       
       // Update mileage if provided
@@ -557,6 +569,51 @@ export default function AttendancePage() {
                       </Select>
                     </div>
 
+                    <div className="space-y-2">
+                      <Label htmlFor="activity_type">Vrsta aktivnosti *</Label>
+                      <Select
+                        value={newActivityForm.activity_type_id}
+                        onValueChange={(value) => setNewActivityForm({ ...newActivityForm, activity_type_id: value, is_home_game: value === "3" ? null : null })}
+                      >
+                        <SelectTrigger id="activity_type">
+                          <SelectValue placeholder="Izberi vrsto" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 - Trening v dvorani</SelectItem>
+                          <SelectItem value="2">2 - Trening ali pripravljalna tekma zunaj dvorane</SelectItem>
+                          <SelectItem value="3">3 - Uradna tekma</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {newActivityForm.activity_type_id === "3" && (
+                      <div className="space-y-2">
+                        <Label>Lokacija tekme *</Label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="is_home_game"
+                              checked={newActivityForm.is_home_game === true}
+                              onChange={() => setNewActivityForm({ ...newActivityForm, is_home_game: true })}
+                              className="w-4 h-4"
+                            />
+                            <span>Domača tekma</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="is_home_game"
+                              checked={newActivityForm.is_home_game === false}
+                              onChange={() => setNewActivityForm({ ...newActivityForm, is_home_game: false })}
+                              className="w-4 h-4"
+                            />
+                            <span>Gostovanje</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="start_time">Začetek *</Label>
@@ -602,7 +659,7 @@ export default function AttendancePage() {
                         variant="outline"
                         onClick={() => {
                           setShowNewActivity(false);
-                          setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "", mileage_km: "" });
+                          setNewActivityForm({ team_id: "", venue_id: "", start_time: "", end_time: "", mileage_km: "", activity_type_id: "1", is_home_game: null });
                         }}
                       >
                         Prekliči

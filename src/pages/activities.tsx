@@ -77,6 +77,8 @@ export default function ActivitiesPage() {
     end_time: "",
     venue_id: "",
     mileage_km: 0,
+    activity_type_id: 1,
+    is_home_game: null as boolean | null,
   });
 
   const isAdmin = userRole === "admin";
@@ -293,6 +295,8 @@ export default function ActivitiesPage() {
         .from("activities")
         .select(`
           venue_id,
+          activity_type_id,
+          is_home_game,
           activity_coaches(coach_id, mileage_km)
         `)
         .eq("id", activity.id)
@@ -310,6 +314,8 @@ export default function ActivitiesPage() {
         end_time: activity.end_time,
         venue_id: data?.venue_id || "",
         mileage_km: firstCoachMileage,
+        activity_type_id: data?.activity_type_id || 1,
+        is_home_game: data?.is_home_game ?? null,
       });
 
       // Now open the dialog with all data loaded
@@ -338,6 +344,16 @@ export default function ActivitiesPage() {
       return;
     }
 
+    // Validate is_home_game for type 3
+    if (editForm.activity_type_id === 3 && editForm.is_home_game === null) {
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Za uradno tekmo je obvezna izbira doma/gostovanje",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -349,6 +365,8 @@ export default function ActivitiesPage() {
           start_time: editForm.start_time,
           end_time: editForm.end_time,
           venue_id: editForm.venue_id || null,
+          activity_type_id: editForm.activity_type_id,
+          is_home_game: editForm.is_home_game,
         })
         .eq("id", selectedActivity.id);
 
@@ -739,6 +757,51 @@ export default function ActivitiesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit_activity_type">Vrsta aktivnosti *</Label>
+                  <Select
+                    value={editForm.activity_type_id.toString()}
+                    onValueChange={(value) => setEditForm({ ...editForm, activity_type_id: parseInt(value), is_home_game: value === "3" ? editForm.is_home_game : null })}
+                  >
+                    <SelectTrigger id="edit_activity_type">
+                      <SelectValue placeholder="Izberi vrsto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 - Trening v dvorani</SelectItem>
+                      <SelectItem value="2">2 - Trening ali pripravljalna tekma zunaj dvorane</SelectItem>
+                      <SelectItem value="3">3 - Uradna tekma</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {editForm.activity_type_id === 3 && (
+                  <div className="space-y-2">
+                    <Label>Lokacija tekme *</Label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="edit_is_home_game"
+                          checked={editForm.is_home_game === true}
+                          onChange={() => setEditForm({ ...editForm, is_home_game: true })}
+                          className="w-4 h-4"
+                        />
+                        <span>Domača tekma</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="edit_is_home_game"
+                          checked={editForm.is_home_game === false}
+                          onChange={() => setEditForm({ ...editForm, is_home_game: false })}
+                          className="w-4 h-4"
+                        />
+                        <span>Gostovanje</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
