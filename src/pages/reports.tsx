@@ -11,6 +11,12 @@ import { FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+interface MonthData {
+  month: number;
+  attendees: number;
+  hours: number;
+}
+
 interface MonthlyStats {
   month: number;
   attendance_count: number;
@@ -21,7 +27,7 @@ interface TeamReport {
   team_id: string;
   team_name: string;
   head_coach_name: string;
-  monthly_stats: MonthlyStats[];
+  monthly_data: MonthData[];
 }
 
 const MONTHS = [
@@ -70,26 +76,21 @@ export default function ReportsPage() {
     }
   }, [user, isAdmin, selectedYear]);
 
-  async function checkUserRole() {
-    if (!user) return;
-    
+  async function checkAdminStatus() {
+    if (!user?.id) return;
+
     try {
-      const { data: profile } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("id")
+        .select("is_admin")
         .eq("id", user.id)
         .single();
 
-      const { data: adminRole } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .single();
-
-      setIsAdmin(!!adminRole);
+      if (error) throw error;
+      setIsAdmin(data?.is_admin || false);
     } catch (error: any) {
-      console.error("Napaka pri preverjanju vloge:", error);
+      console.error("Napaka pri preverjanju admin statusa:", error);
+      setIsAdmin(false);
     }
   }
 
