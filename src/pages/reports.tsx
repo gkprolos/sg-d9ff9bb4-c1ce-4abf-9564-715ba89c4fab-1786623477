@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 interface MonthData {
   month: number;
@@ -80,14 +81,16 @@ export default function ReportsPage() {
     if (!user?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", user.id)
-        .single();
+      // Check if user has any coach records - if yes, they're a coach, otherwise admin
+      const { data: coachRecords } = await supabase
+        .from("team_coaches")
+        .select("id")
+        .eq("coach_id", user.id)
+        .limit(1);
 
-      if (error) throw error;
-      setIsAdmin(data?.is_admin || false);
+      // If user has coach records, they're a coach (not admin for this context)
+      // If no coach records, assume admin
+      setIsAdmin(!coachRecords || coachRecords.length === 0);
     } catch (error: any) {
       console.error("Napaka pri preverjanju admin statusa:", error);
       setIsAdmin(false);
@@ -107,9 +110,9 @@ export default function ReportsPage() {
       
       const activeSeason = data?.find(s => s.is_active);
       if (activeSeason) {
-        setSelectedSeason(activeSeason.id);
+        setSelectedYear(activeSeason.id);
       } else if (data && data.length > 0) {
-        setSelectedSeason(data[0].id);
+        setSelectedYear(data[0].id);
       }
     } catch (error: any) {
       console.error("Napaka pri nalaganju sezon:", error);
@@ -408,6 +411,56 @@ export default function ReportsPage() {
     }
   }
 
+  const handleExportExcel = async () => {
+    try {
+      if (reports.length === 0) {
+        toast({
+          title: "Ni podatkov",
+          description: "Ni podatkov za izvoz",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const workbook = XLSX.utils.book_new();
+
+      reports.forEach((report) => {
+        const worksheetData = [
+          ["Selekcija", report.team_name],
+          ["Trener", report.head_coach_name],
+          ["Leto", selectedYear],
+          [],
+          ["Mesec", ...monthNames],
+          [
+            "Vključenih",
+            ...report.monthly_data.map((m) => m.attendees),
+          ],
+          [
+            "Ur vadbe",
+            ...report.monthly_data.map((m) => m.hours.toFixed(1)),
+          ],
+        ];
+
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        XLSX.utils.book_append_sheet(workbook, worksheet, report.team_name.substring(0, 31));
+      });
+
+      XLSX.writeFile(workbook, `Porocila_${selectedYear}.xlsx`);
+
+      toast({
+        title: "Uspešno",
+        description: "Poročilo je bilo izvoženo",
+      });
+    } catch (error: any) {
+      console.error("Napaka pri izvozu:", error);
+      toast({
+        title: "Napaka",
+        description: "Napaka pri izvozu poročila",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <ProtectedRoute>
       <AppLayout>
@@ -491,17 +544,17 @@ export default function ReportsPage() {
                         <TableBody>
                           <TableRow>
                             <TableCell className="font-medium">Vključenih</TableCell>
-                            {report.monthly_stats.map((stat) => (
-                              <TableCell key={stat.month} className="text-center">
-                                {stat.attendance_count}
+                            {report.monthly_data.map((month) => (
+                              <TableCell key={`attendees-${month.month}`} className="text-center">
+                                {month.attendees}
                               </TableCell>
                             ))}
                           </TableRow>
                           <TableRow>
                             <TableCell className="font-medium">Ur vadbe</TableCell>
-                            {report.monthly_stats.map((stat) => (
-                              <TableCell key={stat.month} className="text-center">
-                                {stat.total_hours.toFixed(0)}
+                            {report.monthly_data.map((month) => (
+                              <TableCell key={`hours-${month.month}`} className="text-center">
+                                {month.hours.toFixed(1)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -512,8 +565,8 @@ export default function ReportsPage() {
                     {/* Mobile view */}
                     <div className="block md:hidden space-y-4">
                       {MONTHS.map((month) => {
-                        const stat = report.monthly_stats.find((s) => s.month === month.value);
-                        if (!stat || (stat.attendance_count === 0 && stat.total_hours === 0)) {
+                        const stat = report.monthly_data.find((s) => s.month === month.value);
+                        if (!stat || (stat.attendees === 0 && stat.hours === 0)) {
                           return null;
                         }
                         return (
@@ -522,11 +575,11 @@ export default function ReportsPage() {
                             <div className="grid grid-cols-2 gap-2 text-sm">
                               <div>
                                 <span className="text-muted-foreground">Vključenih:</span>
-                                <span className="ml-2 font-medium">{stat.attendance_count}</span>
+                                <span className="ml-2 font-medium">{stat.attendees}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Ur vadbe:</span>
-                                <span className="ml-2 font-medium">{stat.total_hours.toFixed(0)}</span>
+                                <span className="ml-2 font-medium">{stat.hours.toFixed(0)}</span>
                               </div>
                             </div>
                           </div>
