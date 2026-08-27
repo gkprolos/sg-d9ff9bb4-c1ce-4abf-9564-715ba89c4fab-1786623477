@@ -36,7 +36,14 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   
-  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [selectedYear, setSelectedYear] = useState<string>(() => {
+    const currentYear = new Date().getFullYear();
+    return currentYear.toString();
+  });
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    return currentMonth.toString();
+  });
   const [selectedTeam, setSelectedTeam] = useState<string>("all");
   const [selectedCoach, setSelectedCoach] = useState<string>("all");
   const [teams, setTeams] = useState<any[]>([]);
