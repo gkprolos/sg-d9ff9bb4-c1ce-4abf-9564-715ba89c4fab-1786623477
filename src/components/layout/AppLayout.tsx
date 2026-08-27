@@ -42,6 +42,9 @@ import {
   ClipboardCheck,
   Building,
   DollarSign,
+  Calculator,
+  FileText,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -171,10 +174,40 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarMenuItem>
 
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === "/billing"}
+                className="cursor-pointer"
+              >
                 <Link href="/billing">
-                  <DollarSign className="h-4 w-4" />
-                  <span>Mesečni obračun</span>
+                  <Calculator className="h-4 w-4" />
+                  <span>Obračun</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === "/reports"}
+                className="cursor-pointer"
+              >
+                <Link href="/reports">
+                  <FileText className="h-4 w-4" />
+                  <span>Poročila</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === "/audit"}
+                className="cursor-pointer"
+              >
+                <Link href="/audit">
+                  <Shield className="h-4 w-4" />
+                  <span>Revizijska sled</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
