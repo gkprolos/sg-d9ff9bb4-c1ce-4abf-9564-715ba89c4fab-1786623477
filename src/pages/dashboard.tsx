@@ -662,30 +662,14 @@ export default function DashboardPage() {
 
   async function loadCoaches() {
     try {
-      if (!isAdmin) {
-        // Coaches only see themselves
-        if (user?.id) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("id, full_name")
-            .eq("id", user.id)
-            .single();
-          
-          if (profile) {
-            setCoaches([profile]);
-            setSelectedCoach(profile.id); // Auto-select themselves
-          }
-        }
-      } else {
-        // Admin sees all coaches
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .order("full_name", { ascending: true });
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("role", "coach")
+        .order("full_name");
 
-        if (error) throw error;
-        setCoaches(data || []);
-      }
+      if (error) throw error;
+      setCoachRates(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju trenerjev:", error);
     }
@@ -1266,7 +1250,7 @@ export default function DashboardPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Vsi trenerji</SelectItem>
-                        {coaches.map((coach) => (
+                        {(coachRates || []).map((coach: any) => (
                           <SelectItem key={coach.id} value={coach.id}>
                             {coach.full_name}
                           </SelectItem>
