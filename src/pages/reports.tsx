@@ -47,18 +47,28 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [teamReports, setTeamReports] = useState<TeamReport[]>([]);
   const [seasons, setSeasons] = useState<any[]>([]);
-  const [selectedSeason, setSelectedSeason] = useState("");
+  const [selectedYear, setSelectedYear] = useState<string>(() => {
+    const currentYear = new Date().getFullYear();
+    return currentYear.toString();
+  });
+
+  // Generate years array (2024 to current year + 2)
+  const years = Array.from(
+    { length: new Date().getFullYear() - 2024 + 3 },
+    (_, i) => (2024 + i).toString()
+  );
 
   useEffect(() => {
-    checkUserRole();
-    loadSeasons();
+    if (user) {
+      checkAdminStatus();
+    }
   }, [user]);
 
   useEffect(() => {
-    if (selectedSeason) {
-      loadTeamReports();
+    if (user && selectedYear) {
+      loadReports();
     }
-  }, [selectedSeason]);
+  }, [user, isAdmin, selectedYear]);
 
   async function checkUserRole() {
     if (!user) return;
@@ -111,7 +121,7 @@ export default function ReportsPage() {
   }
 
   async function loadTeamReports() {
-    if (!selectedSeason) return;
+    if (!selectedYear) return;
     
     setLoading(true);
     try {
@@ -258,6 +268,145 @@ export default function ReportsPage() {
     }
   }
 
+  async function loadReports() {
+    if (!selectedYear) return;
+
+    try {
+      setLoading(true);
+
+      // Get all teams (not filtered by season, just not archived)
+      let teamsQuery = supabase
+        .from("teams")
+        .select(`
+          id,
+          name,
+          season_id,
+          team_coaches (
+            is_head_coach,
+            coach_id,
+            profiles (
+              full_name
+            )
+          )
+        `)
+        .eq("is_archived", false);
+
+      // If not admin, filter to only teams where user is a coach
+      if (!isAdmin && user?.id) {
+        const { data: userTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id);
+
+        const teamIds = (userTeams || []).map(ut => ut.team_id);
+        if (teamIds.length > 0) {
+          teamsQuery = teamsQuery.in("id", teamIds);
+        } else {
+          setTeamReports([]);
+          setLoading(false);
+          return;
+        }
+      }
+
+      const { data: teams, error: teamsError } = await teamsQuery;
+
+      if (teamsError) throw teamsError;
+
+      if (!teams || teams.length === 0) {
+        setTeamReports([]);
+        setLoading(false);
+        return;
+      }
+
+      // Process teams and get head coach
+      const processedTeams = teams.map((team: any) => {
+        const headCoach = (team.team_coaches || []).find((tc: any) => tc.is_head_coach);
+        return {
+          team_id: team.id,
+          team_name: team.name,
+          head_coach_name: headCoach?.profiles?.full_name || "Ni glavnega trenerja",
+        };
+      });
+
+      // Get all activities for selected year
+      const yearStart = `${selectedYear}-01-01`;
+      const yearEnd = `${selectedYear}-12-31`;
+
+      const { data: activities, error: activitiesError } = await supabase
+        .from("activities")
+        .select(`
+          id,
+          team_id,
+          activity_date,
+          activity_type_id,
+          activity_coaches (
+            hours_worked
+          ),
+          attendance_records (
+            status
+          )
+        `)
+        .gte("activity_date", yearStart)
+        .lte("activity_date", yearEnd)
+        .eq("is_completed", true);
+
+      if (activitiesError) throw activitiesError;
+
+      // Build monthly stats for each team
+      const reportsData: TeamReport[] = processedTeams.map((team) => {
+        const monthlyData: MonthData[] = [];
+
+        // Initialize all 12 months
+        for (let month = 1; month <= 12; month++) {
+          const monthActivities = (activities || []).filter(
+            (a: any) => a.team_id === team.team_id && new Date(a.activity_date).getMonth() + 1 === month
+          );
+
+          let totalAttendees = 0;
+          let totalHours = 0;
+
+          monthActivities.forEach((activity: any) => {
+            // Count present attendees (status = 1)
+            const presentCount = (activity.attendance_records || []).filter(
+              (ar: any) => ar.status === 1
+            ).length;
+            totalAttendees += presentCount;
+
+            // Sum hours from all coaches
+            (activity.activity_coaches || []).forEach((ac: any) => {
+              totalHours += ac.hours_worked || 0;
+            });
+          });
+
+          monthlyData.push({
+            month,
+            attendees: totalAttendees,
+            hours: totalHours,
+          });
+        }
+
+        return {
+          team_id: team.team_id,
+          team_name: team.team_name,
+          head_coach_name: team.head_coach_name,
+          monthly_data: monthlyData,
+        };
+      });
+
+      setTeamReports(reportsData);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju poročil:", error);
+      toast({
+        title: "Napaka",
+        description: error.message || "Napaka pri nalaganju poročil",
+        variant: "destructive",
+      });
+      setTeamReports([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <ProtectedRoute>
       <AppLayout>
@@ -271,43 +420,47 @@ export default function ReportsPage() {
           </div>
 
           {/* Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <label className="text-sm font-medium mb-2 block">Sezona</label>
-                  <Select value={selectedSeason} onValueChange={setSelectedSeason}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Izberi sezono" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {seasons.map((season) => (
-                        <SelectItem key={season.id} value={season.id}>
-                          {season.name} {season.is_active && "(Aktivna)"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          <div className="mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Filtriranje</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Leto</label>
+                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Izberi leto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Team Reports */}
           {loading ? (
-            <Card>
-              <CardContent className="py-12">
-                <p className="text-center text-muted-foreground">Nalaganje poročil...</p>
-              </CardContent>
-            </Card>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <p className="text-muted-foreground">Nalaganje poročil...</p>
+              </div>
+            </div>
           ) : teamReports.length === 0 ? (
-            <Card>
-              <CardContent className="py-12">
-                <p className="text-center text-muted-foreground">
-                  Ni podatkov za izbrano sezono
-                </p>
-              </CardContent>
-            </Card>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Ni podatkov za izbrano leto</p>
+              </div>
+            </div>
           ) : (
             <div className="space-y-6">
               {teamReports.map((report) => (
