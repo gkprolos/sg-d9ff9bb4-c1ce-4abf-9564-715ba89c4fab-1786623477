@@ -137,7 +137,8 @@ export default function ReportsPage() {
         .select(`
           team_id,
           is_head_coach,
-          profiles (
+          coach_id,
+          profiles!team_coaches_coach_id_fkey (
             full_name
           )
         `);
