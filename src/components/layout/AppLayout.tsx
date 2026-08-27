@@ -390,14 +390,37 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         </SidebarMenuButton>
                       </SidebarMenuItem>
 
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                          <Link href="/billing">
-                            <DollarSign className="h-4 w-4" />
-                            <span>Mesečni obračun</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      {isAdmin ? (
+                        <>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/billing">
+                                <DollarSign className="h-4 w-4" />
+                                <span>Mesečni obračun</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/reports">
+                                <FileText className="h-4 w-4" />
+                                <span>Poročila</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        </>
+                      ) : (
+                        <>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/billing">
+                                <DollarSign className="h-4 w-4" />
+                                <span>Mesečni obračun</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        </>
+                      )}
 
                       {isAdmin ? (
                         <>
@@ -590,6 +613,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     {isAdmin ? (
                       <>
                         <Link
+                          href="/reports"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/reports"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <FileText className="h-4 w-4" />
+                          Poročila
+                        </Link>
+                        <Link
                           href="/teams"
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
@@ -600,54 +635,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         >
                           <Users className="h-4 w-4" />
                           Selekcije
-                        </Link>
-                        <Link
-                          href="/players"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/players"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <UserCog className="h-4 w-4" />
-                          Igralci
-                        </Link>
-                        <Link
-                          href="/coaches"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/coaches"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <ClipboardList className="h-4 w-4" />
-                          Trenerji
-                        </Link>
-                        <Link
-                          href="/venues"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/venues"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Building className="h-4 w-4" />
-                          Dvorane
-                        </Link>
-                        <Link
-                          href="/schedules"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/schedules"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Clock className="h-4 w-4" />
-                          Urniki
                         </Link>
                       </>
                     ) : (
