@@ -400,7 +400,7 @@ export default function ReportsPage() {
         };
       });
 
-      setTeamReports(reportsData);
+      setReports(reportsData);
     } catch (error: any) {
       console.error("Napaka pri nalaganju poročil:", error);
       toast({
