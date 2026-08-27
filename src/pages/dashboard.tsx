@@ -1265,15 +1265,25 @@ export default function DashboardPage() {
                       <TableBody>
                         {playerAttendance.map((player, idx) => (
                           <TableRow key={`${player.player_id}-${player.team_name}-${idx}`}>
-                            <TableCell>{player.player_name}</TableCell>
-                            <TableCell className="text-right">{player.present}</TableCell>
-                            <TableCell className="text-right">{player.absent}</TableCell>
-                            <TableCell className="text-right">{player.excused}</TableCell>
-                            <TableCell className="text-right">
-                              {player.attendance_rate.toFixed(1)}%
+                            <TableCell className="font-medium">
+                              {player.player_name}
                             </TableCell>
                             <TableCell>{player.team_name}</TableCell>
-                            <TableCell>{player.head_coach_name}</TableCell>
+                            <TableCell className="text-center">
+                              {player.total_activities}
+                            </TableCell>
+                            <TableCell className="text-center text-green-600">
+                              {player.present_count}
+                            </TableCell>
+                            <TableCell className="text-center text-red-600">
+                              {player.absent_count}
+                            </TableCell>
+                            <TableCell className="text-center text-orange-600">
+                              {player.excused_count}
+                            </TableCell>
+                            <TableCell className="text-center font-medium">
+                              {player.attendance_percentage}%
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
