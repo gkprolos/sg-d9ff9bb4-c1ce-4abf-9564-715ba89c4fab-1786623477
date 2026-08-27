@@ -71,12 +71,12 @@ export default function ReportsPage() {
     async function initializeReports() {
       if (!user) return;
 
-      // First, check admin status
-      await checkAdminStatus();
+      // First, check admin status and get result directly
+      const adminStatus = await checkAdminStatus();
 
-      // Then load reports (isAdmin will be set by now)
+      // Then load reports with admin status as parameter
       if (selectedYear) {
-        await loadReports();
+        await loadReports(adminStatus);
       }
     }
 
@@ -105,11 +105,9 @@ export default function ReportsPage() {
     }
   }
 
-  async function loadReports() {
+  async function loadReports(adminStatus: boolean) {
     if (!selectedYear) return;
 
-    // Get admin status synchronously
-    const adminStatus = isAdmin;
     console.log("loadReports START - isAdmin:", adminStatus, "user:", user?.id);
 
     try {
