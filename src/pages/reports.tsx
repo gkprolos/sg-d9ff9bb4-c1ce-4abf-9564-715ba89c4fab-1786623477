@@ -121,24 +121,53 @@ export default function ReportsPage() {
         .select(`
           id,
           name,
-          team_coaches!inner (
+          team_coaches (
             is_head_coach,
-            profiles!inner (
+            coach_id,
+            profiles (
               full_name
             )
           )
         `)
         .eq("season_id", selectedSeason)
-        .eq("is_archived", false)
-        .eq("team_coaches.is_head_coach", true);
+        .eq("is_archived", false);
 
+      // If not admin, filter to only teams where user is a coach
       if (!isAdmin && user?.id) {
-        teamsQuery = teamsQuery.eq("team_coaches.coach_id", user.id);
+        const { data: userTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id);
+
+        const teamIds = (userTeams || []).map(ut => ut.team_id);
+        if (teamIds.length > 0) {
+          teamsQuery = teamsQuery.in("id", teamIds);
+        } else {
+          setTeamReports([]);
+          setLoading(false);
+          return;
+        }
       }
 
       const { data: teams, error: teamsError } = await teamsQuery;
 
       if (teamsError) throw teamsError;
+
+      if (!teams || teams.length === 0) {
+        setTeamReports([]);
+        setLoading(false);
+        return;
+      }
+
+      // Process teams and get head coach
+      const processedTeams = teams.map((team: any) => {
+        const headCoach = (team.team_coaches || []).find((tc: any) => tc.is_head_coach);
+        return {
+          team_id: team.id,
+          team_name: team.name,
+          head_coach_name: headCoach?.profiles?.full_name || "Ni glavnega trenerja",
+        };
+      });
 
       // Get selected season details for date range
       const { data: season } = await supabase
@@ -151,7 +180,7 @@ export default function ReportsPage() {
       const endYear = season ? new Date(season.end_date).getFullYear() : startYear + 1;
 
       // For each team, calculate monthly stats
-      const reportsPromises = (teams || []).map(async (team: any) => {
+      const reportsPromises = (processedTeams || []).map(async (team: any) => {
         const monthlyStats: MonthlyStats[] = [];
 
         for (let month = 1; month <= 12; month++) {
