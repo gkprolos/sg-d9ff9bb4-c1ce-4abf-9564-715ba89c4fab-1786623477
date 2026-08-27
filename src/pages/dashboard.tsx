@@ -944,7 +944,7 @@ export default function DashboardPage() {
         query = query.eq("season_id", selectedSeason);
       }
 
-      if (selectedTeam) {
+      if (selectedTeam && selectedTeam !== "all") {
         query = query.eq("team_id", selectedTeam);
       }
 
