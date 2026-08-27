@@ -31,6 +31,11 @@ interface TeamReport {
   monthly_data: MonthData[];
 }
 
+const monthNames = [
+  "Januar", "Februar", "Marec", "April", "Maj", "Junij",
+  "Julij", "Avgust", "September", "Oktober", "November", "December"
+];
+
 const MONTHS = [
   { value: 1, label: "JAN" },
   { value: 2, label: "FEB" },
@@ -141,7 +146,7 @@ export default function ReportsPage() {
             )
           )
         `)
-        .eq("season_id", selectedSeason)
+        .eq("season_id", selectedYear)
         .eq("is_archived", false);
 
       // If not admin, filter to only teams where user is a coach
@@ -185,7 +190,7 @@ export default function ReportsPage() {
       const { data: season } = await supabase
         .from("seasons")
         .select("start_date, end_date")
-        .eq("id", selectedSeason)
+        .eq("id", selectedYear)
         .single();
 
       const startYear = season ? new Date(season.start_date).getFullYear() : new Date().getFullYear();
@@ -221,7 +226,7 @@ export default function ReportsPage() {
               )
             `)
             .eq("team_id", team.id)
-            .eq("season_id", selectedSeason)
+            .eq("season_id", selectedYear)
             .gte("activity_date", monthStart)
             .lte("activity_date", monthEnd);
 
