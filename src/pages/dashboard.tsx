@@ -144,6 +144,7 @@ export default function DashboardPage() {
       loadPlayerAttendance();
       loadCoachHours();
       loadCoachKilometers();
+      loadTeamStats();
     }
   }, [user, isAdmin, selectedMonth, selectedSeason, selectedTeam]);
 
@@ -1287,21 +1288,74 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
+          {/* Team Stats - Work Overview by Team */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                <CardTitle>Pregled dela po selekcijah</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {teamStats.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Ni podatkov o delu selekcij za izbrano obdobje
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Selekcija</TableHead>
+                        <TableHead className="text-right">Število aktivnosti</TableHead>
+                        <TableHead className="text-right">Treningi</TableHead>
+                        <TableHead className="text-right">Tekme</TableHead>
+                        <TableHead className="text-right">Skupaj ur</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {teamStats.map((team, idx) => (
+                        <TableRow key={`${team.team_id}-${idx}`}>
+                          <TableCell className="font-medium">{team.team_name}</TableCell>
+                          <TableCell className="text-right">{team.activity_count}</TableCell>
+                          <TableCell className="text-right">{team.training_count}</TableCell>
+                          <TableCell className="text-right">{team.match_count}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {team.total_hours.toFixed(1)} h
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Player Attendance by Team */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Pregled obiska po igralcih</span>
-                {/* Mobile toggle button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowMobilePlayerAttendance(!showMobilePlayerAttendance)}
-                  className="md:hidden"
-                >
-                  {showMobilePlayerAttendance ? "Skrij pregled" : "Prikaži pregled"}
-                </Button>
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Pregled obiska po igralcih</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={showLowAttendanceOnly ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowLowAttendanceOnly(!showLowAttendanceOnly)}
+                    className="hidden md:inline-flex"
+                  >
+                    {showLowAttendanceOnly ? "Prikaži vse" : "Samo nizka prisotnost"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMobilePlayerAttendance(!showMobilePlayerAttendance)}
+                    className="md:hidden"
+                  >
+                    {showMobilePlayerAttendance ? "Skrij pregled" : "Prikaži pregled"}
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             
             {/* Desktop view - always visible */}
@@ -1311,87 +1365,115 @@ export default function DashboardPage() {
                   Ni podatkov o obisku za izbrano obdobje
                 </p>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Igralec</TableHead>
-                        <TableHead className="text-right">Prisotnosti</TableHead>
-                        <TableHead className="text-right">Odsotnosti</TableHead>
-                        <TableHead className="text-right">Javljene</TableHead>
-                        <TableHead className="text-right">Odstotek</TableHead>
-                        <TableHead>Selekcija</TableHead>
-                        <TableHead>Glavni trener</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {playerAttendance.map((player, idx) => (
-                        <TableRow key={`${player.player_id}-${player.team_name}-${idx}`}>
-                          <TableCell>{player.player_name}</TableCell>
-                          <TableCell className="text-right">{player.present}</TableCell>
-                          <TableCell className="text-right">{player.absent}</TableCell>
-                          <TableCell className="text-right">{player.excused}</TableCell>
-                          <TableCell className="text-right">
-                            {player.attendance_rate.toFixed(1)}%
-                          </TableCell>
-                          <TableCell>{player.team_name}</TableCell>
-                          <TableCell>{player.head_coach_name}</TableCell>
+                <>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Igralec</TableHead>
+                          <TableHead className="text-right">Prisotnosti</TableHead>
+                          <TableHead className="text-right">Odsotnosti</TableHead>
+                          <TableHead className="text-right">Javljene</TableHead>
+                          <TableHead className="text-right">Odstotek</TableHead>
+                          <TableHead>Selekcija</TableHead>
+                          <TableHead>Glavni trener</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {playerAttendance
+                          .filter(player => !showLowAttendanceOnly || player.attendance_rate < 75)
+                          .map((player, idx) => (
+                            <TableRow key={`${player.player_id}-${player.team_name}-${idx}`}>
+                              <TableCell>{player.player_name}</TableCell>
+                              <TableCell className="text-right">{player.present}</TableCell>
+                              <TableCell className="text-right">{player.absent}</TableCell>
+                              <TableCell className="text-right">{player.excused}</TableCell>
+                              <TableCell className="text-right">
+                                {player.attendance_rate.toFixed(1)}%
+                              </TableCell>
+                              <TableCell>{player.team_name}</TableCell>
+                              <TableCell>{player.head_coach_name}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {showLowAttendanceOnly && playerAttendance.filter(p => p.attendance_rate < 75).length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4 border-t mt-4">
+                      Ni igralcev z nižjo prisotnostjo od 75%. Odlično delo! 🎉
+                    </p>
+                  )}
+                </>
               )}
             </CardContent>
 
             {/* Mobile view - toggle visibility */}
             {showMobilePlayerAttendance && (
               <CardContent className="block md:hidden">
+                <div className="mb-4">
+                  <Button
+                    variant={showLowAttendanceOnly ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowLowAttendanceOnly(!showLowAttendanceOnly)}
+                    className="w-full"
+                  >
+                    {showLowAttendanceOnly ? "Prikaži vse" : "Samo nizka prisotnost"}
+                  </Button>
+                </div>
                 {playerAttendance.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
                     Ni podatkov o obisku za izbrano obdobje
                   </p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Igralec</TableHead>
-                          <TableHead>Selekcija</TableHead>
-                          <TableHead className="text-center">Skupaj</TableHead>
-                          <TableHead className="text-center">Prisotnosti</TableHead>
-                          <TableHead className="text-center">Odsotnosti</TableHead>
-                          <TableHead className="text-center">Javljene</TableHead>
-                          <TableHead className="text-center">Odstotek</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {playerAttendance.map((player, idx) => (
-                          <TableRow key={`${player.player_id}-${player.team_name}-${idx}`}>
-                            <TableCell className="font-medium">
-                              {player.player_name}
-                            </TableCell>
-                            <TableCell>{player.team_name}</TableCell>
-                            <TableCell className="text-center">
-                              {player.total_records}
-                            </TableCell>
-                            <TableCell className="text-center text-green-600">
-                              {player.present}
-                            </TableCell>
-                            <TableCell className="text-center text-red-600">
-                              {player.absent}
-                            </TableCell>
-                            <TableCell className="text-center text-orange-600">
-                              {player.excused}
-                            </TableCell>
-                            <TableCell className="text-center font-medium">
-                              {player.attendance_rate.toFixed(1)}%
-                            </TableCell>
+                  <>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Igralec</TableHead>
+                            <TableHead>Selekcija</TableHead>
+                            <TableHead className="text-center">Skupaj</TableHead>
+                            <TableHead className="text-center">Prisotnosti</TableHead>
+                            <TableHead className="text-center">Odsotnosti</TableHead>
+                            <TableHead className="text-center">Javljene</TableHead>
+                            <TableHead className="text-center">Odstotek</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {playerAttendance
+                            .filter(player => !showLowAttendanceOnly || player.attendance_rate < 75)
+                            .map((player, idx) => (
+                              <TableRow key={`${player.player_id}-${player.team_name}-${idx}`}>
+                                <TableCell className="font-medium">
+                                  {player.player_name}
+                                </TableCell>
+                                <TableCell>{player.team_name}</TableCell>
+                                <TableCell className="text-center">
+                                  {player.total_records}
+                                </TableCell>
+                                <TableCell className="text-center text-green-600">
+                                  {player.present}
+                                </TableCell>
+                                <TableCell className="text-center text-red-600">
+                                  {player.absent}
+                                </TableCell>
+                                <TableCell className="text-center text-orange-600">
+                                  {player.excused}
+                                </TableCell>
+                                <TableCell className="text-center font-medium">
+                                  {player.attendance_rate.toFixed(1)}%
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {showLowAttendanceOnly && playerAttendance.filter(p => p.attendance_rate < 75).length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4 border-t mt-4">
+                        Ni igralcev z nižjo prisotnostjo od 75%. Odlično delo! 🎉
+                      </p>
+                    )}
+                  </>
                 )}
               </CardContent>
             )}
