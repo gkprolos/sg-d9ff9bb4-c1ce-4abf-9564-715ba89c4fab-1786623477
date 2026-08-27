@@ -363,12 +363,12 @@ export default function BillingPage() {
               console.log(`    Training: ${hours.toFixed(2)}h × ${hourlyRate} = ${amount.toFixed(2)} €`);
             } else if (isMatch) {
               entry.match_count += 1;
-              entry.match_hours += hours * 4; // Matches count as 4x hours for display
+              entry.match_hours += 4; // Official match always counts as 4 hours (regardless of actual duration)
               
-              // For matches, use hourly rate × actual hours (not ×4)
-              const amount = hours * hourlyRate;
+              // For matches, always use 4 hours × hourly rate
+              const amount = 4 * hourlyRate;
               entry.hourly_amount += amount;
-              console.log(`    Match: ${hours.toFixed(2)}h × ${hourlyRate} = ${amount.toFixed(2)} €`);
+              console.log(`    Match: 4h (fixed) × ${hourlyRate} = ${amount.toFixed(2)} €`);
             }
 
             // Calculate kilometer amount
