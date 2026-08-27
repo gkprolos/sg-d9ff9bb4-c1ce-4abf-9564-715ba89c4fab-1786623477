@@ -1254,12 +1254,12 @@ export default function DashboardPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Igralec</TableHead>
-                          <TableHead className="text-right">Prisotnosti</TableHead>
-                          <TableHead className="text-right">Odsotnosti</TableHead>
-                          <TableHead className="text-right">Javljene</TableHead>
-                          <TableHead className="text-right">Odstotek</TableHead>
                           <TableHead>Selekcija</TableHead>
-                          <TableHead>Glavni trener</TableHead>
+                          <TableHead className="text-center">Skupaj</TableHead>
+                          <TableHead className="text-center">Prisotnosti</TableHead>
+                          <TableHead className="text-center">Odsotnosti</TableHead>
+                          <TableHead className="text-center">Javljene</TableHead>
+                          <TableHead className="text-center">Odstotek</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1270,19 +1270,19 @@ export default function DashboardPage() {
                             </TableCell>
                             <TableCell>{player.team_name}</TableCell>
                             <TableCell className="text-center">
-                              {player.total_activities}
+                              {player.total_records}
                             </TableCell>
                             <TableCell className="text-center text-green-600">
-                              {player.present_count}
+                              {player.present}
                             </TableCell>
                             <TableCell className="text-center text-red-600">
-                              {player.absent_count}
+                              {player.absent}
                             </TableCell>
                             <TableCell className="text-center text-orange-600">
-                              {player.excused_count}
+                              {player.excused}
                             </TableCell>
                             <TableCell className="text-center font-medium">
-                              {player.attendance_percentage}%
+                              {player.attendance_rate.toFixed(1)}%
                             </TableCell>
                           </TableRow>
                         ))}
