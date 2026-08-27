@@ -909,6 +909,100 @@ export default function DashboardPage() {
     }
   }
 
+  async function loadTeamStats() {
+    try {
+      const monthStart = new Date(new Date().getFullYear(), parseInt(selectedMonth.split('-')[1]) - 1, 1)
+        .toISOString().split('T')[0];
+      const monthEnd = new Date(new Date().getFullYear(), parseInt(selectedMonth.split('-')[1]), 0)
+        .toISOString().split('T')[0];
+
+      let query = supabase
+        .from("activities")
+        .select(`
+          id,
+          team_id,
+          activity_type_id,
+          teams!inner (name),
+          activity_coaches!inner (
+            hours_worked
+          )
+        `)
+        .gte("activity_date", monthStart)
+        .lte("activity_date", monthEnd);
+
+      if (selectedSeason && selectedSeason.length > 0) {
+        query = query.eq("season_id", selectedSeason);
+      }
+
+      if (selectedTeam) {
+        query = query.eq("team_id", selectedTeam);
+      }
+
+      if (!isAdmin && user?.id) {
+        const { data: coachActivities } = await supabase
+          .from("activity_coaches")
+          .select("activity_id")
+          .eq("coach_id", user.id);
+
+        const activityIds = (coachActivities || []).map(ca => ca.activity_id);
+        if (activityIds.length > 0) {
+          query = query.in("id", activityIds);
+        } else {
+          setTeamStats([]);
+          return;
+        }
+      }
+
+      const { data: activities } = await query;
+
+      const teamStatsMap = new Map<string, {
+        team_id: string;
+        team_name: string;
+        activity_count: number;
+        training_count: number;
+        match_count: number;
+        total_hours: number;
+      }>();
+
+      (activities || []).forEach((activity: any) => {
+        const teamName = activity.teams.name;
+        const existing = teamStatsMap.get(activity.team_id);
+
+        const isTraining = activity.activity_type_id === 1 || activity.activity_type_id === 2;
+        const isMatch = activity.activity_type_id === 3;
+
+        let activityHours = 0;
+        (activity.activity_coaches || []).forEach((ac: any) => {
+          activityHours += ac.hours_worked || 0;
+        });
+
+        if (existing) {
+          existing.activity_count += 1;
+          if (isTraining) existing.training_count += 1;
+          if (isMatch) existing.match_count += 1;
+          existing.total_hours += activityHours;
+        } else {
+          teamStatsMap.set(activity.team_id, {
+            team_id: activity.team_id,
+            team_name: teamName,
+            activity_count: 1,
+            training_count: isTraining ? 1 : 0,
+            match_count: isMatch ? 1 : 0,
+            total_hours: activityHours,
+          });
+        }
+      });
+
+      const teamStatsList = Array.from(teamStatsMap.values()).sort((a, b) =>
+        a.team_name.localeCompare(b.team_name)
+      );
+
+      setTeamStats(teamStatsList);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju statistike po selekcijah:", error);
+    }
+  }
+
   async function handlePlayerClick(playerId: string) {
     try {
       const { data: playerData } = await supabase
