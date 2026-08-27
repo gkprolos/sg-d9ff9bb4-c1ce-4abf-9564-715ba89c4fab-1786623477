@@ -662,14 +662,38 @@ export default function DashboardPage() {
 
   async function loadCoaches() {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .eq("role", "coach")
-        .order("full_name");
+      // Get coaches from coach_rates table (anyone who has billing rates is a coach)
+      const { data: coachRatesData, error } = await supabase
+        .from("coach_rates")
+        .select(`
+          coach_id,
+          profiles!inner (
+            id,
+            full_name,
+            email
+          )
+        `)
+        .eq("is_active", true);
 
       if (error) throw error;
-      setCoachRates(data || []);
+
+      // Deduplicate coaches (same coach may have multiple rate records)
+      const uniqueCoaches = new Map();
+      (coachRatesData || []).forEach((rate: any) => {
+        if (rate.profiles && !uniqueCoaches.has(rate.coach_id)) {
+          uniqueCoaches.set(rate.coach_id, {
+            id: rate.profiles.id,
+            full_name: rate.profiles.full_name,
+            email: rate.profiles.email,
+          });
+        }
+      });
+
+      const coachesList = Array.from(uniqueCoaches.values()).sort((a: any, b: any) => 
+        a.full_name.localeCompare(b.full_name)
+      );
+
+      setCoachRates(coachesList);
     } catch (error: any) {
       console.error("Napaka pri nalaganju trenerjev:", error);
     }
