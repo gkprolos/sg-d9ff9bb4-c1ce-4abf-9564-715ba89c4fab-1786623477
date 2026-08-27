@@ -18,12 +18,6 @@ interface MonthData {
   hours: number;
 }
 
-interface MonthlyStats {
-  month: number;
-  attendance_count: number;
-  total_hours: number;
-}
-
 interface TeamReport {
   team_id: string;
   team_name: string;
@@ -58,7 +52,6 @@ export default function ReportsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [teamReports, setTeamReports] = useState<TeamReport[]>([]);
-  const [seasons, setSeasons] = useState<any[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>(() => {
     const currentYear = new Date().getFullYear();
     return currentYear.toString();
@@ -97,181 +90,6 @@ export default function ReportsPage() {
     } catch (error: any) {
       console.error("Napaka pri preverjanju admin statusa:", error);
       setIsAdmin(false);
-    }
-  }
-
-  async function loadSeasons() {
-    try {
-      const { data, error } = await supabase
-        .from("seasons")
-        .select("id, name, start_date, end_date, is_active")
-        .order("start_date", { ascending: false });
-
-      if (error) throw error;
-
-      setSeasons(data || []);
-      
-      const activeSeason = data?.find(s => s.is_active);
-      if (activeSeason) {
-        setSelectedYear(activeSeason.id);
-      } else if (data && data.length > 0) {
-        setSelectedYear(data[0].id);
-      }
-    } catch (error: any) {
-      console.error("Napaka pri nalaganju sezon:", error);
-      toast({
-        title: "Napaka",
-        description: "Sezon ni bilo mogoče naložiti.",
-        variant: "destructive",
-      });
-    }
-  }
-
-  async function loadTeamReports() {
-    if (!selectedYear) return;
-    
-    setLoading(true);
-    try {
-      // Get all teams for selected season
-      let teamsQuery = supabase
-        .from("teams")
-        .select(`
-          id,
-          name,
-          team_coaches (
-            is_head_coach,
-            coach_id,
-            profiles (
-              full_name
-            )
-          )
-        `)
-        .eq("season_id", selectedYear)
-        .eq("is_archived", false);
-
-      // If not admin, filter to only teams where user is a coach
-      if (!isAdmin && user?.id) {
-        const { data: userTeams } = await supabase
-          .from("team_coaches")
-          .select("team_id")
-          .eq("coach_id", user.id);
-
-        const teamIds = (userTeams || []).map(ut => ut.team_id);
-        if (teamIds.length > 0) {
-          teamsQuery = teamsQuery.in("id", teamIds);
-        } else {
-          setTeamReports([]);
-          setLoading(false);
-          return;
-        }
-      }
-
-      const { data: teams, error: teamsError } = await teamsQuery;
-
-      if (teamsError) throw teamsError;
-
-      if (!teams || teams.length === 0) {
-        setTeamReports([]);
-        setLoading(false);
-        return;
-      }
-
-      // Process teams and get head coach
-      const processedTeams = teams.map((team: any) => {
-        const headCoach = (team.team_coaches || []).find((tc: any) => tc.is_head_coach);
-        return {
-          team_id: team.id,
-          team_name: team.name,
-          head_coach_name: headCoach?.profiles?.full_name || "Ni glavnega trenerja",
-        };
-      });
-
-      // Get selected season details for date range
-      const { data: season } = await supabase
-        .from("seasons")
-        .select("start_date, end_date")
-        .eq("id", selectedYear)
-        .single();
-
-      const startYear = season ? new Date(season.start_date).getFullYear() : new Date().getFullYear();
-      const endYear = season ? new Date(season.end_date).getFullYear() : startYear + 1;
-
-      // For each team, calculate monthly stats
-      const reportsPromises = (processedTeams || []).map(async (team: any) => {
-        const monthlyStats: MonthlyStats[] = [];
-
-        for (let month = 1; month <= 12; month++) {
-          // Determine which year this month belongs to based on season dates
-          let year = startYear;
-          if (season) {
-            const seasonStartMonth = new Date(season.start_date).getMonth() + 1;
-            if (month < seasonStartMonth) {
-              year = endYear;
-            }
-          }
-
-          const monthStart = new Date(year, month - 1, 1).toISOString().split("T")[0];
-          const monthEnd = new Date(year, month, 0).toISOString().split("T")[0];
-
-          // Get activities for this team and month
-          const { data: activities } = await supabase
-            .from("activities")
-            .select(`
-              id,
-              attendance_records!inner (
-                status
-              ),
-              activity_coaches!inner (
-                hours_worked
-              )
-            `)
-            .eq("team_id", team.id)
-            .eq("season_id", selectedYear)
-            .gte("activity_date", monthStart)
-            .lte("activity_date", monthEnd);
-
-          let attendanceCount = 0;
-          let totalHours = 0;
-
-          (activities || []).forEach((activity: any) => {
-            // Count present attendance (status = 1)
-            const presentCount = (activity.attendance_records || []).filter(
-              (ar: any) => ar.status === 1
-            ).length;
-            attendanceCount += presentCount;
-
-            // Sum hours from all coaches
-            (activity.activity_coaches || []).forEach((ac: any) => {
-              totalHours += ac.hours_worked || 0;
-            });
-          });
-
-          monthlyStats.push({
-            month,
-            attendance_count: attendanceCount,
-            total_hours: totalHours,
-          });
-        }
-
-        return {
-          team_id: team.id,
-          team_name: team.name,
-          head_coach_name: team.team_coaches[0]?.profiles?.full_name || "Ni določenega",
-          monthly_stats: monthlyStats,
-        };
-      });
-
-      const reports = await Promise.all(reportsPromises);
-      setTeamReports(reports.sort((a, b) => a.team_name.localeCompare(b.team_name)));
-    } catch (error: any) {
-      console.error("Napaka pri nalaganju poročil:", error);
-      toast({
-        title: "Napaka",
-        description: "Poročil ni bilo mogoče naložiti.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -400,7 +218,7 @@ export default function ReportsPage() {
         };
       });
 
-      setReports(reportsData);
+      setTeamReports(reportsData);
     } catch (error: any) {
       console.error("Napaka pri nalaganju poročil:", error);
       toast({
