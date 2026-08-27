@@ -131,111 +131,10 @@ export default function ReportsPage() {
         return;
       }
 
-      // Get all team_coaches
-      const { data: teamCoaches, error: teamCoachesError } = await supabase
+      // Get all team_coaches (without is_head_coach to avoid RLS issues)
+      const { data: teamCoaches } = await supabase
         .from("team_coaches")
-        .select("team_id, is_head_coach, coach_id");
-
-      if (teamCoachesError) {
-        console.error("Error loading team_coaches:", teamCoachesError);
-        // If query fails, try without is_head_coach column
-        const { data: altTeamCoaches } = await supabase
-          .from("team_coaches")
-          .select("team_id, coach_id");
-        
-        // Get all profiles for coaches
-        const coachIds = Array.from(new Set((altTeamCoaches || []).map(tc => tc.coach_id)));
-        const { data: coachProfiles } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .in("id", coachIds);
-
-        // Create a map of coach_id -> full_name
-        const coachNameMap = new Map(
-          (coachProfiles || []).map(p => [p.id, p.full_name])
-        );
-
-        // Process teams - just use first coach found for each team
-        const processedTeams = filteredTeams.map((team: any) => {
-          const coaches = (altTeamCoaches || []).filter((tc: any) => tc.team_id === team.id);
-          const firstCoach = coaches.length > 0 ? coaches[0] : null;
-          
-          return {
-            team_id: team.id,
-            team_name: team.name,
-            head_coach_name: firstCoach ? coachNameMap.get(firstCoach.coach_id) || "Ni glavnega trenerja" : "Ni glavnega trenerja",
-          };
-        });
-
-        // Continue with rest of function using processedTeams...
-        const yearStart = `${selectedYear}-01-01`;
-        const yearEnd = `${selectedYear}-12-31`;
-
-        const { data: activities, error: activitiesError } = await supabase
-          .from("activities")
-          .select(`
-            id,
-            team_id,
-            activity_date,
-            activity_type_id,
-            activity_coaches (
-              hours_worked
-            ),
-            attendance_records (
-              status
-            )
-          `)
-          .gte("activity_date", yearStart)
-          .lte("activity_date", yearEnd)
-          .eq("is_completed", true);
-
-        if (activitiesError) throw activitiesError;
-
-        // Build monthly stats for each team
-        const reportsData: TeamReport[] = processedTeams.map((team) => {
-          const monthlyData: MonthData[] = [];
-
-          // Initialize all 12 months
-          for (let month = 1; month <= 12; month++) {
-            const monthActivities = (activities || []).filter(
-              (a: any) => a.team_id === team.team_id && new Date(a.activity_date).getMonth() + 1 === month
-            );
-
-            let totalAttendees = 0;
-            let totalHours = 0;
-
-            monthActivities.forEach((activity: any) => {
-              // Count present attendees (status = 1)
-              const presentCount = (activity.attendance_records || []).filter(
-                (ar: any) => ar.status === 1
-              ).length;
-              totalAttendees += presentCount;
-
-              // Sum hours from all coaches
-              (activity.activity_coaches || []).forEach((ac: any) => {
-                totalHours += ac.hours_worked || 0;
-              });
-            });
-
-            monthlyData.push({
-              month,
-              attendees: totalAttendees,
-              hours: totalHours,
-            });
-          }
-
-          return {
-            team_id: team.team_id,
-            team_name: team.team_name,
-            head_coach_name: team.head_coach_name,
-            monthly_data: monthlyData,
-          };
-        });
-
-        setTeamReports(reportsData);
-        setLoading(false);
-        return;
-      }
+        .select("team_id, coach_id");
 
       // Get all profiles for coaches
       const coachIds = Array.from(new Set((teamCoaches || []).map(tc => tc.coach_id)));
@@ -249,15 +148,15 @@ export default function ReportsPage() {
         (coachProfiles || []).map(p => [p.id, p.full_name])
       );
 
-      // Process teams and get head coach
+      // Process teams and get first coach (since we can't query is_head_coach)
       const processedTeams = filteredTeams.map((team: any) => {
         const coaches = (teamCoaches || []).filter((tc: any) => tc.team_id === team.id);
-        const headCoach = coaches.find((tc: any) => tc.is_head_coach);
+        const firstCoach = coaches.length > 0 ? coaches[0] : null;
         
         return {
           team_id: team.id,
           team_name: team.name,
-          head_coach_name: headCoach ? coachNameMap.get(headCoach.coach_id) || "Ni glavnega trenerja" : "Ni glavnega trenerja",
+          head_coach_name: firstCoach ? coachNameMap.get(firstCoach.coach_id) || "Ni trenerja" : "Ni trenerja",
         };
       });
 
