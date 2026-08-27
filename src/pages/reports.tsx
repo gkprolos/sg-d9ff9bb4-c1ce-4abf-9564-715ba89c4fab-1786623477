@@ -90,7 +90,9 @@ export default function ReportsPage() {
         .single();
 
       if (error) throw error;
-      setIsAdmin(data?.role === "admin");
+      const adminStatus = data?.role === "admin";
+      console.log("checkAdminStatus result:", { role: data?.role, isAdmin: adminStatus });
+      setIsAdmin(adminStatus);
     } catch (error: any) {
       console.error("Napaka pri preverjanju admin statusa:", error);
       setIsAdmin(false);
@@ -99,6 +101,8 @@ export default function ReportsPage() {
 
   async function loadReports() {
     if (!selectedYear) return;
+
+    console.log("loadReports START - isAdmin:", isAdmin, "user:", user?.id);
 
     try {
       setLoading(true);
@@ -120,6 +124,7 @@ export default function ReportsPage() {
       // Filter teams by coach if not admin
       let filteredTeams = teams;
       if (!isAdmin && user?.id) {
+        console.log("Filtering teams for coach (NOT admin):", user.id);
         const { data: userTeams } = await supabase
           .from("team_coaches")
           .select("team_id")
@@ -127,6 +132,9 @@ export default function ReportsPage() {
 
         const teamIds = (userTeams || []).map(ut => ut.team_id);
         filteredTeams = teams.filter(t => teamIds.includes(t.id));
+        console.log("Filtered teams:", filteredTeams.length, "of", teams.length);
+      } else {
+        console.log("NOT filtering - showing all teams (admin or no user)");
       }
 
       if (filteredTeams.length === 0) {
