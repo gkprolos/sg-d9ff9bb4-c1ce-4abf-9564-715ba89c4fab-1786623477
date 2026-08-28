@@ -7,10 +7,10 @@ export default function Document() {
     <Html lang="sl">
       <Head>
         <SEOElements />
-        <link rel="icon" type="image/png" sizes="32x32" href="/LOGO-2015-C_B.gif" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/LOGO-2015-C_B.gif" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/LOGO-2015-C_B.gif" />
-        <link rel="shortcut icon" href="/LOGO-2015-C_B.gif" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
         {/*
           CRITICAL: DO NOT REMOVE THIS SCRIPT
           The Softgen AI monitoring script is essential for core app functionality.
