@@ -149,7 +149,7 @@ export function validatePlayerRow(
     });
   }
 
-  // Validate date of birth if provided
+  // Validate date of birth format ONLY if provided (not required)
   const dob = row[mapping['date_of_birth'] || 'Datum rojstva'];
   if (dob && dob.toString().trim() !== '') {
     const dobStr = dob.toString().trim();
@@ -167,7 +167,7 @@ export function validatePlayerRow(
       errors.push({
         row: rowIndex + 1,
         field: 'Datum rojstva',
-        message: 'Datum mora biti v formatu YYYY-MM-DD (npr. 2010-01-15), DD.MM.YYYY ali Excel številka',
+        message: 'Datum mora biti v formatu YYYY-MM-DD (npr. 2010-01-15), DD.MM.YYYY ali Excel številka. Polje lahko ostane prazno.',
       });
     }
   }

@@ -397,8 +397,8 @@ export default function PlayersPage() {
 
       for (const row of importData.rows) {
         try {
-          // Parse date of birth - handle multiple formats
-          let dateOfBirth = row[importMapping['date_of_birth']]?.toString().trim() || null;
+          // Parse date of birth - handle multiple formats, allow empty
+          let dateOfBirth: string | null = row[importMapping['date_of_birth']]?.toString().trim() || null;
           
           if (dateOfBirth) {
             // If Excel serial number (e.g., 44317), convert to YYYY-MM-DD
@@ -415,6 +415,7 @@ export default function PlayersPage() {
             }
             // Otherwise assume it's already YYYY-MM-DD
           }
+          // If dateOfBirth is empty/null, keep it as null (not '1800-01-01')
 
           const playerData = {
             first_name: row[importMapping['first_name']]?.toString().trim() || '',
