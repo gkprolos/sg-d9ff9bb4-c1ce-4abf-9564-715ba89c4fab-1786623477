@@ -136,6 +136,7 @@ export default function MyPlayersPage() {
           guardian2_name,
           guardian2_phone,
           guardian2_email,
+          gender,
           is_active,
           team_players(
             id,
@@ -265,6 +266,15 @@ export default function MyPlayersPage() {
       return;
     }
 
+    if (!playerForm.gender) {
+      toast({
+        variant: "destructive",
+        title: "Manjkajo podatki",
+        description: "Spol je obvezen",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -284,7 +294,7 @@ export default function MyPlayersPage() {
           guardian2_name: playerForm.guardian2_name || null,
           guardian2_phone: playerForm.guardian2_phone || null,
           guardian2_email: playerForm.guardian2_email || null,
-          gender: playerForm.gender || null,
+          gender: playerForm.gender,
           is_active: true,
         });
 
@@ -328,7 +338,7 @@ export default function MyPlayersPage() {
       guardian2_name: player.guardian2_name || "",
       guardian2_phone: player.guardian2_phone || "",
       guardian2_email: player.guardian2_email || "",
-      gender: (player as any).gender || "",
+      gender: (player as any).gender,
     });
     setEditDialogOpen(true);
   }
@@ -341,6 +351,15 @@ export default function MyPlayersPage() {
         variant: "destructive",
         title: "Manjkajo podatki",
         description: "Ime in priimek sta obvezna",
+      });
+      return;
+    }
+
+    if (!playerForm.gender) {
+      toast({
+        variant: "destructive",
+        title: "Manjkajo podatki",
+        description: "Spol je obvezen",
       });
       return;
     }
@@ -364,7 +383,7 @@ export default function MyPlayersPage() {
           guardian2_name: playerForm.guardian2_name || null,
           guardian2_phone: playerForm.guardian2_phone || null,
           guardian2_email: playerForm.guardian2_email || null,
-          gender: playerForm.gender || null,
+          gender: playerForm.gender,
         })
         .eq("id", selectedPlayer.id);
 
@@ -682,13 +701,13 @@ export default function MyPlayersPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="gender">Spol</Label>
+                  <Label htmlFor="gender">Spol *</Label>
                   <Select
                     value={playerForm.gender}
                     onValueChange={(value) => setPlayerForm({ ...playerForm, gender: value })}
                   >
                     <SelectTrigger id="gender">
-                      <SelectValue placeholder="Izberi spol (ni obvezno)" />
+                      <SelectValue placeholder="Izberi spol" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="M">Moški</SelectItem>
@@ -865,13 +884,13 @@ export default function MyPlayersPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit_gender">Spol</Label>
+                  <Label htmlFor="edit_gender">Spol *</Label>
                   <Select
                     value={playerForm.gender}
                     onValueChange={(value) => setPlayerForm({ ...playerForm, gender: value })}
                   >
                     <SelectTrigger id="edit_gender">
-                      <SelectValue placeholder="Izberi spol (ni obvezno)" />
+                      <SelectValue placeholder="Izberi spol" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="M">Moški</SelectItem>
