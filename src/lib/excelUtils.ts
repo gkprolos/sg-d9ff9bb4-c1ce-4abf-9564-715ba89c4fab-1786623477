@@ -141,7 +141,7 @@ export function validatePlayerRow(
 
   // Validate gender if provided
   const gender = row[mapping['gender'] || 'Spol'];
-  if (gender && !['M', 'F', 'm', 'f'].includes(gender.toString())) {
+  if (gender && !['M', 'F', 'm', 'f'].includes(gender.toString().trim())) {
     errors.push({
       row: rowIndex + 1,
       field: 'Spol',
@@ -151,13 +151,23 @@ export function validatePlayerRow(
 
   // Validate date of birth if provided
   const dob = row[mapping['date_of_birth'] || 'Datum rojstva'];
-  if (dob) {
-    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-    if (!datePattern.test(dob.toString())) {
+  if (dob && dob.toString().trim() !== '') {
+    const dobStr = dob.toString().trim();
+    
+    // Check if it's Excel serial date number (e.g., 44317)
+    const isExcelNumber = /^\d+(\.\d+)?$/.test(dobStr);
+    
+    // Check if it's already YYYY-MM-DD format
+    const isValidFormat = /^\d{4}-\d{2}-\d{2}$/.test(dobStr);
+    
+    // Check if it's DD.MM.YYYY or DD/MM/YYYY format
+    const isDDMMYYYY = /^\d{2}[./]\d{2}[./]\d{4}$/.test(dobStr);
+    
+    if (!isValidFormat && !isExcelNumber && !isDDMMYYYY) {
       errors.push({
         row: rowIndex + 1,
         field: 'Datum rojstva',
-        message: 'Datum mora biti v formatu YYYY-MM-DD (npr. 2010-01-15)',
+        message: 'Datum mora biti v formatu YYYY-MM-DD (npr. 2010-01-15), DD.MM.YYYY ali Excel številka',
       });
     }
   }

@@ -397,10 +397,29 @@ export default function PlayersPage() {
 
       for (const row of importData.rows) {
         try {
+          // Parse date of birth - handle multiple formats
+          let dateOfBirth = row[importMapping['date_of_birth']]?.toString().trim() || null;
+          
+          if (dateOfBirth) {
+            // If Excel serial number (e.g., 44317), convert to YYYY-MM-DD
+            if (/^\d+(\.\d+)?$/.test(dateOfBirth)) {
+              const excelEpoch = new Date(1899, 11, 30);
+              const daysOffset = parseFloat(dateOfBirth);
+              const date = new Date(excelEpoch.getTime() + daysOffset * 86400000);
+              dateOfBirth = date.toISOString().split('T')[0];
+            }
+            // If DD.MM.YYYY or DD/MM/YYYY format, convert to YYYY-MM-DD
+            else if (/^\d{2}[./]\d{2}[./]\d{4}$/.test(dateOfBirth)) {
+              const parts = dateOfBirth.split(/[./]/);
+              dateOfBirth = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            // Otherwise assume it's already YYYY-MM-DD
+          }
+
           const playerData = {
             first_name: row[importMapping['first_name']]?.toString().trim() || '',
             last_name: row[importMapping['last_name']]?.toString().trim() || '',
-            date_of_birth: row[importMapping['date_of_birth']]?.toString().trim() || null,
+            date_of_birth: dateOfBirth,
             gender: row[importMapping['gender']]?.toString().toUpperCase().trim() || null,
             address: row[importMapping['address']]?.toString().trim() || null,
             city: row[importMapping['city']]?.toString().trim() || null,
