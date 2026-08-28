@@ -4,9 +4,10 @@ import { SEOElements } from "@/components/SEO";
 
 export default function Document() {
   return (
-    <Html lang="en">
+    <Html lang="sl">
       <Head>
         <SEOElements />
+        <link rel="icon" href="/LOGO-2015-C_B.gif" />
         {/*
           CRITICAL: DO NOT REMOVE THIS SCRIPT
           The Softgen AI monitoring script is essential for core app functionality.
@@ -22,6 +23,7 @@ export default function Document() {
         className={cn(
           "min-h-screen w-full scroll-smooth bg-background text-foreground antialiased"
         )}
+        suppressHydrationWarning
       >
         <Main />
         <NextScript />
