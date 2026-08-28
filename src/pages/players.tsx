@@ -394,32 +394,56 @@ export default function PlayersPage() {
       setImporting(true);
       let successCount = 0;
       let failCount = 0;
+      let skippedCount = 0;
 
       for (const row of importData.rows) {
         try {
-          // Parse date of birth - handle multiple formats, allow empty
-          let dateOfBirth: string | null = row[importMapping['date_of_birth']]?.toString().trim() || null;
+          const firstName = row[importMapping['first_name']]?.toString().trim() || '';
+          const lastName = row[importMapping['last_name']]?.toString().trim() || '';
+
+          // Check if player already exists (by first_name + last_name)
+          const { data: existingPlayers, error: checkError } = await supabase
+            .from("players")
+            .select("id")
+            .eq("first_name", firstName)
+            .eq("last_name", lastName)
+            .limit(1);
+
+          if (checkError) throw checkError;
+
+          if (existingPlayers && existingPlayers.length > 0) {
+            console.log(`Preskok: ${firstName} ${lastName} že obstaja`);
+            skippedCount++;
+            continue; // Skip this player - already exists
+          }
+
+          // Parse date of birth - handle multiple formats, default to '1800-01-01' if empty
+          let dateOfBirth: string = '1800-01-01'; // Default value for empty/null
+          const dobRaw = row[importMapping['date_of_birth']]?.toString().trim();
           
-          if (dateOfBirth) {
+          if (dobRaw) {
             // If Excel serial number (e.g., 44317), convert to YYYY-MM-DD
-            if (/^\d+(\.\d+)?$/.test(dateOfBirth)) {
+            if (/^\d+(\.\d+)?$/.test(dobRaw)) {
               const excelEpoch = new Date(1899, 11, 30);
-              const daysOffset = parseFloat(dateOfBirth);
+              const daysOffset = parseFloat(dobRaw);
               const date = new Date(excelEpoch.getTime() + daysOffset * 86400000);
               dateOfBirth = date.toISOString().split('T')[0];
             }
             // If DD.MM.YYYY or DD/MM/YYYY format, convert to YYYY-MM-DD
-            else if (/^\d{2}[./]\d{2}[./]\d{4}$/.test(dateOfBirth)) {
-              const parts = dateOfBirth.split(/[./]/);
+            else if (/^\d{2}[./]\d{2}[./]\d{4}$/.test(dobRaw)) {
+              const parts = dobRaw.split(/[./]/);
               dateOfBirth = `${parts[2]}-${parts[1]}-${parts[0]}`;
             }
             // Otherwise assume it's already YYYY-MM-DD
+            else {
+              dateOfBirth = dobRaw;
+            }
           }
-          // If dateOfBirth is empty/null, keep it as null (not '1800-01-01')
+          // If dobRaw is empty/null, dateOfBirth stays '1800-01-01'
 
           const playerData = {
-            first_name: row[importMapping['first_name']]?.toString().trim() || '',
-            last_name: row[importMapping['last_name']]?.toString().trim() || '',
+            first_name: firstName,
+            last_name: lastName,
             date_of_birth: dateOfBirth,
             gender: row[importMapping['gender']]?.toString().toUpperCase().trim() || null,
             address: row[importMapping['address']]?.toString().trim() || null,
@@ -440,9 +464,13 @@ export default function PlayersPage() {
         }
       }
 
+      const message = skippedCount > 0 
+        ? `Uspešno: ${successCount}, Neuspešno: ${failCount}, Preskočeno: ${skippedCount}`
+        : `Uspešno: ${successCount}, Neuspešno: ${failCount}`;
+
       toast({
         title: "Uvoz zaključen",
-        description: `Uspešno: ${successCount}, Neuspešno: ${failCount}`,
+        description: message,
       });
 
       setImportDialogOpen(false);
