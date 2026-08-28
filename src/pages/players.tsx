@@ -222,12 +222,23 @@ export default function PlayersPage() {
 
     try {
       setLoading(true);
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("players")
         .delete()
         .eq("id", playerToDelete.id);
 
-      if (error) throw error;
+      console.log("DELETE response:", { data, error });
+
+      if (error) {
+        console.error("DELETE error details:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        throw error;
+      }
+
       toast({
         title: "Uspešno",
         description: "Igralec uspešno izbrisan",
@@ -240,7 +251,7 @@ export default function PlayersPage() {
       console.error("Napaka pri brisanju igralca:", error);
       toast({
         variant: "destructive",
-        title: "Napaka",
+        title: "Napaka pri brisanju",
         description: error.message || "Napaka pri brisanju igralca",
       });
     } finally {
