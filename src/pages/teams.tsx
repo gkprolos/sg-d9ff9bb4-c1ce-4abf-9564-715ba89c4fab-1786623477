@@ -293,7 +293,8 @@ export default function TeamsPage() {
         .select(`
           *,
           head_coach:profiles!head_coach_id(full_name),
-          coaches:team_coaches(coach_id)
+          coaches:team_coaches(coach_id),
+          team_players(count)
         `)
         .order("name", { ascending: true });
 
@@ -529,6 +530,7 @@ export default function TeamsPage() {
                         <TableHead>Starostna kategorija</TableHead>
                         <TableHead>Spol</TableHead>
                         <TableHead>Glavni trener</TableHead>
+                        <TableHead>Št. igralcev</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
@@ -541,6 +543,11 @@ export default function TeamsPage() {
                           <TableCell>{team.age_category || "N/A"}</TableCell>
                           <TableCell>{team.gender || "N/A"}</TableCell>
                           <TableCell>{team.head_coach?.full_name || "Ni izbran"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {(team as any).team_players?.[0]?.count || 0}
+                            </Badge>
+                          </TableCell>
                           <TableCell>
                             <Badge variant={team.is_active ? "default" : "secondary"}>
                               {team.is_active ? "Aktivna" : "Neaktivna"}

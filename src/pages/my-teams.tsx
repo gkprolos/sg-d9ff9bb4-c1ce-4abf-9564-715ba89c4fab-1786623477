@@ -98,8 +98,20 @@ export default function MyTeamsPage() {
   async function loadTeams() {
     try {
       setLoading(true);
-      const data = await getActiveTeams();
-      setTeams(data);
+      
+      // Fetch teams with player count
+      const { data, error } = await supabase
+        .from("teams")
+        .select(`
+          *,
+          seasons(name, is_active),
+          team_players(count)
+        `)
+        .eq("is_archived", false)
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setTeams(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju selekcij:", error);
       toast({
@@ -274,6 +286,7 @@ export default function MyTeamsPage() {
                       <TableHead>Kratka oznaka</TableHead>
                       <TableHead>Starostna kategorija</TableHead>
                       <TableHead>Spol</TableHead>
+                      <TableHead>Št. igralcev</TableHead>
                       <TableHead>Sezona</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Akcije</TableHead>
@@ -288,6 +301,11 @@ export default function MyTeamsPage() {
                           <TableCell>{team.short_name || "-"}</TableCell>
                           <TableCell>{team.age_category || "-"}</TableCell>
                           <TableCell>{team.gender || "-"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {(team as any).team_players?.[0]?.count || 0}
+                            </Badge>
+                          </TableCell>
                           <TableCell>
                             {team.seasons?.name || "-"}
                             {team.seasons?.is_active === false && (
