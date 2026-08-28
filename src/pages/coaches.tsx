@@ -140,14 +140,14 @@ export default function CoachesPage() {
       return;
     }
 
-    // Warn if trying to change password for existing user
-    if (selectedCoach && formData.password) {
+    // Validate password length if provided
+    if (formData.password && formData.password.length < 6) {
       toast({
         variant: "destructive",
-        title: "Opozorilo",
-        description: "Spreminjanje gesla trenutno ni podprto. Uporabite Supabase Dashboard → Authentication.",
+        title: "Napaka",
+        description: "Geslo mora biti dolgo vsaj 6 znakov",
       });
-      // Continue with other updates, ignore password
+      return;
     }
 
     try {
@@ -163,17 +163,43 @@ export default function CoachesPage() {
       };
 
       if (selectedCoach) {
-        // Update existing coach (password changes not supported)
+        // Update existing coach
         const { error } = await supabase
           .from("profiles")
           .update(payload)
           .eq("id", selectedCoach.id);
 
         if (error) throw error;
-        toast({
-          title: "Uspešno",
-          description: "Trener uspešno posodobljen",
-        });
+
+        // Update password if provided
+        if (formData.password) {
+          const passwordResponse = await fetch('/api/admin/update-coach-password', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: selectedCoach.id,
+              newPassword: formData.password,
+            }),
+          });
+
+          const passwordResult = await passwordResponse.json();
+
+          if (!passwordResponse.ok) {
+            throw new Error(passwordResult.error || 'Napaka pri spreminjanju gesla');
+          }
+
+          toast({
+            title: "Uspešno",
+            description: "Trener in geslo uspešno posodobljena",
+          });
+        } else {
+          toast({
+            title: "Uspešno",
+            description: "Trener uspešno posodobljen",
+          });
+        }
       } else {
         // Create new coach via Admin API route (keeps current user logged in)
         const response = await fetch('/api/admin/create-coach', {
@@ -449,7 +475,7 @@ export default function CoachesPage() {
                   />
                   {selectedCoach && (
                     <p className="text-xs text-muted-foreground">
-                      Pustite prazno, če ne želite spreminjati gesla. Za spreminjanje gesla trenutno uporabite Supabase Dashboard.
+                      Pustite prazno, če ne želite spreminjati gesla.
                     </p>
                   )}
                 </div>
