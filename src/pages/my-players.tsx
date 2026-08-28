@@ -80,6 +80,7 @@ export default function MyPlayersPage() {
     guardian2_name: "",
     guardian2_phone: "",
     guardian2_email: "",
+    gender: "",
   });
 
   useEffect(() => {
@@ -245,6 +246,7 @@ export default function MyPlayersPage() {
       guardian2_name: "",
       guardian2_phone: "",
       guardian2_email: "",
+      gender: "",
     });
   }
 
@@ -282,6 +284,7 @@ export default function MyPlayersPage() {
           guardian2_name: playerForm.guardian2_name || null,
           guardian2_phone: playerForm.guardian2_phone || null,
           guardian2_email: playerForm.guardian2_email || null,
+          gender: playerForm.gender || null,
           is_active: true,
         });
 
@@ -325,6 +328,7 @@ export default function MyPlayersPage() {
       guardian2_name: player.guardian2_name || "",
       guardian2_phone: player.guardian2_phone || "",
       guardian2_email: player.guardian2_email || "",
+      gender: (player as any).gender || "",
     });
     setEditDialogOpen(true);
   }
@@ -360,6 +364,7 @@ export default function MyPlayersPage() {
           guardian2_name: playerForm.guardian2_name || null,
           guardian2_phone: playerForm.guardian2_phone || null,
           guardian2_email: playerForm.guardian2_email || null,
+          gender: playerForm.gender || null,
         })
         .eq("id", selectedPlayer.id);
 
@@ -677,6 +682,22 @@ export default function MyPlayersPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="gender">Spol</Label>
+                  <Select
+                    value={playerForm.gender}
+                    onValueChange={(value) => setPlayerForm({ ...playerForm, gender: value })}
+                  >
+                    <SelectTrigger id="gender">
+                      <SelectValue placeholder="Izberi spol (ni obvezno)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M">Moški</SelectItem>
+                      <SelectItem value="F">Ženski</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="phone">Telefon igralca</Label>
                   <Input
                     id="phone"
@@ -841,6 +862,22 @@ export default function MyPlayersPage() {
                     value={playerForm.date_of_birth}
                     onChange={(e) => setPlayerForm({ ...playerForm, date_of_birth: e.target.value })}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit_gender">Spol</Label>
+                  <Select
+                    value={playerForm.gender}
+                    onValueChange={(value) => setPlayerForm({ ...playerForm, gender: value })}
+                  >
+                    <SelectTrigger id="edit_gender">
+                      <SelectValue placeholder="Izberi spol (ni obvezno)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M">Moški</SelectItem>
+                      <SelectItem value="F">Ženski</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
