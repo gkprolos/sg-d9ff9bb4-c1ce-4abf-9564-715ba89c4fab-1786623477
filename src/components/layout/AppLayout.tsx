@@ -360,17 +360,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarGroup>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                          <Link href="/dashboard">
-                            <LayoutDashboard className="h-4 w-4" />
-                            <span>{isAdmin ? "Nadzorna plošča" : "Moj pregled"}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-
-                      {isAdmin && (
+                      {userRole === "admin" ? (
                         <>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/dashboard">
+                                <LayoutDashboard className="h-4 w-4" />
+                                <span>Nadzorna plošča</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
                               <Link href="/activities">
@@ -381,58 +380,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           </SidebarMenuItem>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
-                              <Link href="/seasons">
-                                <Calendar className="h-4 w-4" />
-                                <span>Sezone</span>
+                              <Link href="/attendance">
+                                <ClipboardCheck className="h-4 w-4" />
+                                <span>Prisotnost</span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
-                        </>
-                      )}
-
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                          <Link href="/attendance">
-                            <ClipboardCheck className="h-4 w-4" />
-                            <span>{isAdmin ? "Prisotnost" : "Vnos prisotnosti"}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-
-                      {isAdmin ? (
-                        <>
-                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                              <Link href="/billing">
-                                <DollarSign className="h-4 w-4" />
-                                <span>Mesečni obračun</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                              <Link href="/reports">
-                                <FileText className="h-4 w-4" />
-                                <span>Poročila</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        </>
-                      ) : (
-                        <>
-                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                              <Link href="/billing">
-                                <DollarSign className="h-4 w-4" />
-                                <span>Mesečni obračun</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        </>
-                      )}
-
-                      {isAdmin ? (
-                        <>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
                               <Link href="/teams">
@@ -452,7 +405,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
                               <Link href="/coaches">
-                                <ClipboardList className="h-4 w-4" />
+                                <UserCircle className="h-4 w-4" />
                                 <span>Trenerji</span>
                               </Link>
                             </SidebarMenuButton>
@@ -460,8 +413,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
                               <Link href="/venues">
-                                <Building className="h-4 w-4" />
+                                <MapPin className="h-4 w-4" />
                                 <span>Dvorane</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/seasons">
+                                <Calendar className="h-4 w-4" />
+                                <span>Sezone</span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
@@ -470,6 +431,30 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               <Link href="/schedules">
                                 <Clock className="h-4 w-4" />
                                 <span>Urniki</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/smtp-settings">
+                                <Mail className="h-4 w-4" />
+                                <span>SMTP Nastavitve</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/billing">
+                                <DollarSign className="h-4 w-4" />
+                                <span>Obračuni</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/reports">
+                                <FileText className="h-4 w-4" />
+                                <span>Poročila</span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
@@ -551,240 +536,152 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 <ScrollArea className="flex-1 px-3 py-4">
                   <nav className="space-y-1">
-                    <Link
-                      href="/dashboard"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                        router.pathname === "/dashboard"
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      )}
-                    >
-                      <LayoutDashboard className="h-4 w-4" />
-                      {isAdmin ? "Nadzorna plošča" : "Moj pregled"}
-                    </Link>
-
-                    {isAdmin && (
-                      <>
-                        <Link
-                          href="/activities"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/activities"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Activity className="h-4 w-4" />
-                          Aktivnosti
-                        </Link>
-                        <Link
-                          href="/seasons"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/seasons"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Calendar className="h-4 w-4" />
-                          Sezone
-                        </Link>
-                      </>
-                    )}
-
-                    <Link
-                      href="/attendance"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                        router.pathname === "/attendance"
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      )}
-                    >
-                      <ClipboardCheck className="h-4 w-4" />
-                      {isAdmin ? "Prisotnost" : "Vnos prisotnosti"}
-                    </Link>
-
-                    <Link
-                      href="/billing"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                        router.pathname === "/billing"
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      )}
-                    >
-                      <DollarSign className="h-4 w-4" />
-                      Mesečni obračun
-                    </Link>
-
-                    {isAdmin ? (
-                      <>
-                        <Link
-                          href="/reports"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/reports"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <FileText className="h-4 w-4" />
-                          Poročila
-                        </Link>
-                        <Link
-                          href="/teams"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/teams"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Users className="h-4 w-4" />
-                          Selekcije
-                        </Link>
-                        <Link
-                          href="/players"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/players"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <UserCog className="h-4 w-4" />
-                          Igralci
-                        </Link>
-                        <Link
-                          href="/coaches"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/coaches"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <ClipboardList className="h-4 w-4" />
-                          Trenerji
-                        </Link>
-                        <Link
-                          href="/venues"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/venues"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Building className="h-4 w-4" />
-                          Dvorane
-                        </Link>
-                        <Link
-                          href="/schedules"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/schedules"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Clock className="h-4 w-4" />
-                          Urniki
-                        </Link>
-                        <Link
-                          href="/smtp-settings"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/smtp-settings"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Mail className="h-4 w-4" />
-                          SMTP Nastavitve
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <Link
-                          href="/activities"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/activities"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Activity className="h-4 w-4" />
-                          Moje aktivnosti
-                        </Link>
-                        <Link
-                          href="/my-players"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/my-players"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <UserCog className="h-4 w-4" />
-                          Igralci
-                        </Link>
-                        <Link
-                          href="/my-teams"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/my-teams"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Users className="h-4 w-4" />
-                          Selekcije
-                        </Link>
-                        <Link
-                          href="/my-venues"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/my-venues"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Building className="h-4 w-4" />
-                          Dvorane
-                        </Link>
-                        <Link
-                          href="/my-schedules"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                            router.pathname === "/my-schedules"
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Clock className="h-4 w-4" />
-                          Urniki
-                        </Link>
-                      </>
-                    )}
-
-                    <Separator className="my-3" />
-
-                    <Link
-                      href="/settings"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                        router.pathname === "/settings"
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      )}
-                    >
-                      <Settings className="h-4 w-4" />
-                      Nastavitve
-                    </Link>
+                    <>
+                      <Link
+                        href="/dashboard"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/dashboard"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <LayoutDashboard className="h-4 w-4" />
+                        Nadzorna plošča
+                      </Link>
+                      <Link
+                        href="/activities"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/activities"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <Activity className="h-4 w-4" />
+                        Aktivnosti
+                      </Link>
+                      <Link
+                        href="/attendance"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/attendance"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <ClipboardCheck className="h-4 w-4" />
+                        Prisotnost
+                      </Link>
+                      <Link
+                        href="/teams"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/teams"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <Users className="h-4 w-4" />
+                        Selekcije
+                      </Link>
+                      <Link
+                        href="/players"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/players"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <UserCog className="h-4 w-4" />
+                        Igralci
+                      </Link>
+                      <Link
+                        href="/coaches"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/coaches"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <UserCircle className="h-4 w-4" />
+                        Trenerji
+                      </Link>
+                      <Link
+                        href="/venues"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/venues"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <MapPin className="h-4 w-4" />
+                        Dvorane
+                      </Link>
+                      <Link
+                        href="/seasons"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/seasons"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <Calendar className="h-4 w-4" />
+                        Sezone
+                      </Link>
+                      <Link
+                        href="/schedules"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/schedules"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <Clock className="h-4 w-4" />
+                        Urniki
+                      </Link>
+                      <Link
+                        href="/smtp-settings"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/smtp-settings"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <Mail className="h-4 w-4" />
+                        SMTP Nastavitve
+                      </Link>
+                      <Link
+                        href="/billing"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/billing"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <DollarSign className="h-4 w-4" />
+                        Obračuni
+                      </Link>
+                      <Link
+                        href="/reports"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                          router.pathname === "/reports"
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        )}
+                      >
+                        <FileText className="h-4 w-4" />
+                        Poročila
+                      </Link>
+                    </>
                   </nav>
                 </ScrollArea>
               </SheetContent>
