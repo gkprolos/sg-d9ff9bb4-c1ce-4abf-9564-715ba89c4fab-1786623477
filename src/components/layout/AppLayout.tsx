@@ -175,7 +175,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/billing">
+                  <DollarSign className="h-4 w-4" />
+                  <span>Mesečni obračun</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/activities">
+                  <Activity className="h-4 w-4" />
+                  <span>Moje aktivnosti</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
@@ -584,6 +599,30 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             Prisotnost
                           </Link>
                           <Link
+                            href="/billing"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/billing"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <DollarSign className="h-4 w-4" />
+                            Mesečni obračun
+                          </Link>
+                          <Link
+                            href="/activities"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/activities"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <Activity className="h-4 w-4" />
+                            Moje aktivnosti
+                          </Link>
+                          <Link
                             href="/teams"
                             className={cn(
                               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
@@ -666,18 +705,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           >
                             <Mail className="h-4 w-4" />
                             SMTP Nastavitve
-                          </Link>
-                          <Link
-                            href="/billing"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/billing"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
-                            <DollarSign className="h-4 w-4" />
-                            Obračuni
                           </Link>
                           <Link
                             href="/reports"
