@@ -24,7 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { CalendarClock, Plus, Edit, Trash2, Clock } from "lucide-react";
+import { CalendarClock, Plus, Edit, Trash2, Clock, Loader2 } from "lucide-react";
 
 const DAYS = [
   { value: "1", label: "Ponedeljek" },
@@ -337,8 +337,27 @@ export default function SchedulesPage() {
     return DAYS.find((d) => d.value === dayOfWeek.toString())?.label || "N/A";
   }
 
-  function getDayName(dayOfWeek: number): string {
-    return getDayLabel(dayOfWeek);
+  function getDayName(day: number): string {
+    const days = ["Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota", "Nedelja"];
+    return days[day] || "N/A";
+  }
+
+  function handleEditSchedule(schedule: ScheduleTemplate) {
+    // TODO: Implement edit functionality
+    console.log("Edit schedule:", schedule);
+    toast({
+      title: "Uredi urnik",
+      description: "Funkcionalnost še ni implementirana",
+    });
+  }
+
+  function handleDeleteSchedule(schedule: ScheduleTemplate) {
+    // TODO: Implement delete functionality
+    console.log("Delete schedule:", schedule);
+    toast({
+      title: "Izbriši urnik",
+      description: "Funkcionalnost še ni implementirana",
+    });
   }
 
   function renderScheduleRow(schedule: ScheduleTemplate) {
@@ -496,6 +515,7 @@ export default function SchedulesPage() {
                       <SelectValue placeholder="Izberite selekcijo" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="">Vse</SelectItem>
                       {teams.map((team) => (
                         <SelectItem key={team.id} value={team.id}>
                           {team.name}
