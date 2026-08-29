@@ -63,9 +63,9 @@ export default function SMTPSettings() {
         .from("smtp_settings")
         .select("*")
         .eq("is_active", true)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 results
 
-      if (error && error.code !== "PGRST116") {
+      if (error) {
         throw error;
       }
 
@@ -74,6 +74,11 @@ export default function SMTPSettings() {
       }
     } catch (error: any) {
       console.error("Napaka pri nalaganju SMTP nastavitev:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Napaka pri nalaganju SMTP nastavitev",
+      });
     } finally {
       setLoading(false);
     }
