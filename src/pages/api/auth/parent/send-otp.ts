@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
+import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 
@@ -80,7 +81,6 @@ export default async function handler(
     const code = Math.floor(1000 + Math.random() * 9000).toString();
 
     // Hash the code before storing
-    const bcrypt = require("bcryptjs");
     const hashedCode = await bcrypt.hash(code, 10);
 
     // Store OTP code (expires in 3 minutes)
@@ -101,8 +101,29 @@ export default async function handler(
       return res.status(500).json({ error: "Napaka pri generiranju kode" });
     }
 
+    // Get SMTP settings from database
+    const { data: smtpConfig, error: smtpError } = await supabase
+      .from("smtp_settings")
+      .select("*")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (smtpError) {
+      console.error("SMTP settings error:", smtpError);
+      return res.status(500).json({ 
+        error: "SMTP nastavitve niso konfigurirane. Kontaktirajte administratorja." 
+      });
+    }
+
+    if (!smtpConfig) {
+      console.error("No active SMTP settings found");
+      return res.status(500).json({ 
+        error: "SMTP nastavitve niso konfigurirane. Kontaktirajte administratorja." 
+      });
+    }
+
     // Send email with OTP code
-    await sendOTPEmail(email, code);
+    await sendOTPEmail(email, code, smtpConfig);
 
     return res.status(200).json({ 
       success: true, 
@@ -117,68 +138,24 @@ export default async function handler(
 }
 
 async function sendOTPEmail(
-  recipientEmail: string,
-  code: string
+  toEmail: string, 
+  code: string,
+  smtpSettings: any
 ) {
   const transporter = nodemailer.createTransport({
-    host: (smtpSettings as SMTPSettings).smtp_host,
-    port: (smtpSettings as SMTPSettings).smtp_port,
-    secure: (smtpSettings as SMTPSettings).smtp_secure, // true for 465, false for other ports
+    host: smtpSettings.smtp_host,
+    port: smtpSettings.smtp_port,
+    secure: smtpSettings.smtp_secure,
     auth: {
-      user: (smtpSettings as SMTPSettings).smtp_username,
-      pass: (smtpSettings as SMTPSettings).smtp_password,
+      user: smtpSettings.smtp_username,
+      pass: smtpSettings.smtp_password,
     },
   });
 
-  const emailHTML = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #1e40af; color: white; padding: 20px; text-align: center; }
-        .content { background-color: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
-        .code { font-size: 32px; font-weight: bold; color: #1e40af; text-align: center; 
-                letter-spacing: 8px; padding: 20px; background-color: white; 
-                border: 2px dashed #1e40af; margin: 20px 0; }
-        .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
-        .warning { color: #dc2626; font-size: 14px; margin-top: 20px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>OK Lubnik - Prijavna Koda</h1>
-        </div>
-        <div class="content">
-          <p>Pozdravljeni,</p>
-          
-          <p>Vaša prijavna koda za dostop do športne aplikacije je:</p>
-          
-          <div class="code">${code}</div>
-          
-          <p><strong>Koda je veljavna 3 minute.</strong></p>
-          
-          <p>Če niste zahtevali te kode, ignorirajte to sporočilo.</p>
-          
-          <div class="warning">
-            ⚠️ Ne delite te kode z nikomer. Osebje OK Lubnik vas nikoli ne bo prosilo za vašo kodo.
-          </div>
-        </div>
-        <div class="footer">
-          <p>OK Lubnik - Športni Klub</p>
-          <p>To je avtomatsko generirano sporočilo. Ne odgovarjajte na ta email.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-
   const emailText = `
-OK Lubnik - Prijavna Koda
+Pozdravljeni,
 
-Vaša prijavna koda za dostop do športne aplikacije je:
+Vaša prijavna koda za dostop do podatkov o prisotnosti vašega otroka je:
 
 ${code}
 
@@ -186,16 +163,60 @@ Koda je veljavna 3 minute.
 
 Če niste zahtevali te kode, ignorirajte to sporočilo.
 
-⚠️ Ne delite te kode z nikomer. Osebje OK Lubnik vas nikoli ne bo prosilo za vašo kodo.
+Lep pozdrav,
+${smtpSettings.smtp_from_name}
+  `.trim();
 
----
-OK Lubnik - Športni Klub
-To je avtomatsko generirano sporočilo. Ne odgovarjajte na ta email.
-  `;
+  const emailHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .code { 
+      font-size: 32px; 
+      font-weight: bold; 
+      color: #2563eb; 
+      text-align: center; 
+      padding: 20px; 
+      background: #f3f4f6; 
+      border-radius: 8px; 
+      margin: 20px 0;
+      letter-spacing: 8px;
+    }
+    .footer { 
+      margin-top: 30px; 
+      padding-top: 20px; 
+      border-top: 1px solid #e5e7eb; 
+      font-size: 12px; 
+      color: #6b7280; 
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Prijavna Koda</h2>
+    <p>Pozdravljeni,</p>
+    <p>Vaša prijavna koda za dostop do podatkov o prisotnosti vašega otroka je:</p>
+    
+    <div class="code">${code}</div>
+    
+    <p><strong>Koda je veljavna 3 minute.</strong></p>
+    
+    <p>Če niste zahtevali te kode, ignorirajte to sporočilo.</p>
+    
+    <div class="footer">
+      <p>Lep pozdrav,<br>${smtpSettings.smtp_from_name}</p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
 
   await transporter.sendMail({
-    from: `"${(smtpSettings as SMTPSettings).smtp_from_name}" <${(smtpSettings as SMTPSettings).smtp_from_email}>`,
-    to: recipientEmail,
+    from: `"${smtpSettings.smtp_from_name}" <${smtpSettings.smtp_from_email}>`,
+    to: toEmail,
     subject: "Vaša prijavna koda - OK Lubnik",
     text: emailText,
     html: emailHTML,
