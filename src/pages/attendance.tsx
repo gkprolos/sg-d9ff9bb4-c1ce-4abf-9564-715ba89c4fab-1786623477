@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ClipboardCheck, Plus, Save } from "lucide-react";
+import { ClipboardCheck, Plus, Save, Calendar } from "lucide-react";
 
 interface Activity {
   id: string;
@@ -469,10 +469,23 @@ export default function AttendancePage() {
     <ProtectedRoute>
       <AppLayout>
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight">Vnos prisotnosti</h2>
-              <p className="text-muted-foreground">Evidentiranje prisotnosti igralcev</p>
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="h-6 w-6 text-primary" />
+              <h1 className="text-3xl font-bold">Prisotnost</h1>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => router.push("/attendance/monthly")}
+                variant="outline"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                Mesečni Pregled
+              </Button>
+              <Button onClick={() => setShowActivityDialog(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Aktivnost
+              </Button>
             </div>
           </div>
 
