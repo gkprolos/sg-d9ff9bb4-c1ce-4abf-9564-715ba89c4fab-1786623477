@@ -476,54 +476,102 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         </>
                       ) : (
                         <>
-                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                              <Link href="/dashboard">
-                                <LayoutDashboard className="h-4 w-4" />
-                                <span>Pregled</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                              <Link href="/activities">
-                                <Activity className="h-4 w-4" />
-                                <span>Moje aktivnosti</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                              <Link href="/my-players">
-                                <UserCog className="h-4 w-4" />
-                                <span>Igralci</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                              <Link href="/my-teams">
-                                <Users className="h-4 w-4" />
-                                <span>Selekcije</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                              <Link href="/my-venues">
-                                <Building className="h-4 w-4" />
-                                <span>Dvorane</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                          <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                              <Link href="/my-schedules">
-                                <Clock className="h-4 w-4" />
-                                <span>Urniki</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
+                          <Link
+                            href="/dashboard"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/dashboard"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <LayoutDashboard className="h-4 w-4" />
+                            Pregled
+                          </Link>
+                          <Link
+                            href="/attendance"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/attendance"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <ClipboardCheck className="h-4 w-4" />
+                            Prisotnost
+                          </Link>
+                          <Link
+                            href="/billing"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/billing"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <DollarSign className="h-4 w-4" />
+                            Mesečni obračun
+                          </Link>
+                          <Link
+                            href="/activities"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/activities"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <Activity className="h-4 w-4" />
+                            Moje aktivnosti
+                          </Link>
+                          <Link
+                            href="/my-players"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/my-players"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <UserCog className="h-4 w-4" />
+                            Igralci
+                          </Link>
+                          <Link
+                            href="/my-teams"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/my-teams"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <Users className="h-4 w-4" />
+                            Selekcije
+                          </Link>
+                          <Link
+                            href="/my-venues"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/my-venues"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <Building className="h-4 w-4" />
+                            Dvorane
+                          </Link>
+                          <Link
+                            href="/my-schedules"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/my-schedules"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <Clock className="h-4 w-4" />
+                            Urniki
+                          </Link>
                         </>
                       )}
                     </SidebarMenu>
@@ -734,18 +782,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             Pregled
                           </Link>
                           <Link
-                            href="/activities"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/activities"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
-                            <Activity className="h-4 w-4" />
-                            Moje aktivnosti
-                          </Link>
-                          <Link
                             href="/attendance"
                             className={cn(
                               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
@@ -756,6 +792,30 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           >
                             <ClipboardCheck className="h-4 w-4" />
                             Prisotnost
+                          </Link>
+                          <Link
+                            href="/billing"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/billing"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <DollarSign className="h-4 w-4" />
+                            Mesečni obračun
+                          </Link>
+                          <Link
+                            href="/activities"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/activities"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <Activity className="h-4 w-4" />
+                            Moje aktivnosti
                           </Link>
                           <Link
                             href="/my-players"
