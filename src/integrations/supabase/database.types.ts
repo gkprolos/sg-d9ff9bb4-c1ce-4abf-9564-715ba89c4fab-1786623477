@@ -11,7 +11,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -670,7 +670,7 @@ export type Database = {
           address: string | null
           city: string | null
           created_at: string
-          date_of_birth: string
+          date_of_birth: string | null
           first_name: string
           gender: string | null
           guardian1_email: string | null
@@ -693,7 +693,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           created_at?: string
-          date_of_birth: string
+          date_of_birth?: string | null
           first_name: string
           gender?: string | null
           guardian1_email?: string | null
@@ -716,7 +716,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           created_at?: string
-          date_of_birth?: string
+          date_of_birth?: string | null
           first_name?: string
           gender?: string | null
           guardian1_email?: string | null
@@ -866,6 +866,51 @@ export type Database = {
           name?: string
           start_date?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      smtp_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          smtp_from_email: string
+          smtp_from_name: string
+          smtp_host: string
+          smtp_password: string
+          smtp_port: number
+          smtp_secure: boolean
+          smtp_username: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          smtp_from_email: string
+          smtp_from_name?: string
+          smtp_host: string
+          smtp_password: string
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_username: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          smtp_from_email?: string
+          smtp_from_name?: string
+          smtp_host?: string
+          smtp_password?: string
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_username?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
