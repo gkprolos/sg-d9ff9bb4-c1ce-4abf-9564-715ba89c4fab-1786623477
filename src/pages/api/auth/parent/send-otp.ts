@@ -123,7 +123,22 @@ export default async function handler(
     }
 
     // Send email with OTP code
-    await sendOTPEmail(email, code, smtpConfig);
+    try {
+      await sendOTPEmail(email, code, smtpConfig);
+      console.log("OTP email sent successfully to:", email);
+    } catch (emailError: any) {
+      console.error("Email sending error:", emailError);
+      // Delete the OTP code since email failed to send
+      await supabase
+        .from("parent_auth_codes")
+        .delete()
+        .eq("parent_email", email)
+        .eq("code", hashedCode);
+      
+      return res.status(500).json({ 
+        error: "Napaka pri pošiljanju emaila. Preverite SMTP nastavitve." 
+      });
+    }
 
     return res.status(200).json({ 
       success: true, 
