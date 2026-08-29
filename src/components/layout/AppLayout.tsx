@@ -46,6 +46,7 @@ import {
   Calculator,
   FileText,
   Shield,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -253,6 +254,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <Link href="/schedules">
                       <Clock className="h-4 w-4" />
                       <span>Urniki</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/smtp-settings">
+                      <Mail className="h-4 w-4" />
+                      <span>SMTP Nastavitve</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -683,6 +692,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         >
                           <Clock className="h-4 w-4" />
                           Urniki
+                        </Link>
+                        <Link
+                          href="/smtp-settings"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/smtp-settings"
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Mail className="h-4 w-4" />
+                          SMTP Nastavitve
                         </Link>
                       </>
                     ) : (
