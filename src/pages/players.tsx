@@ -863,8 +863,8 @@ export default function PlayersPage() {
                   <Label htmlFor="medicalNotes">Zdravstvene opombe</Label>
                   <Textarea
                     id="medicalNotes"
-                    value={formData.medicalNotes}
-                    onChange={(e) => setFormData({ ...formData, medicalNotes: e.target.value })}
+                    value={formData.medical_notes}
+                    onChange={(e) => setFormData({ ...formData, medical_notes: e.target.value })}
                     placeholder="Zdravstvene opombe..."
                   />
                 </div>
@@ -876,8 +876,8 @@ export default function PlayersPage() {
                     <Label htmlFor="guardian1Name">Ime in priimek</Label>
                     <Input
                       id="guardian1Name"
-                      value={formData.guardian1Name}
-                      onChange={(e) => setFormData({ ...formData, guardian1Name: e.target.value })}
+                      value={formData.guardian1_name}
+                      onChange={(e) => setFormData({ ...formData, guardian1_name: e.target.value })}
                       placeholder="Ime in priimek starša 1"
                     />
                   </div>
@@ -886,8 +886,8 @@ export default function PlayersPage() {
                     <Input
                       id="guardian1Email"
                       type="email"
-                      value={formData.guardian1Email}
-                      onChange={(e) => setFormData({ ...formData, guardian1Email: e.target.value })}
+                      value={formData.guardian1_email}
+                      onChange={(e) => setFormData({ ...formData, guardian1_email: e.target.value })}
                       placeholder="starš1@email.com"
                     />
                   </div>
@@ -895,8 +895,8 @@ export default function PlayersPage() {
                     <Label htmlFor="guardian1Phone">Telefon</Label>
                     <Input
                       id="guardian1Phone"
-                      value={formData.guardian1Phone}
-                      onChange={(e) => setFormData({ ...formData, guardian1Phone: e.target.value })}
+                      value={formData.guardian1_phone}
+                      onChange={(e) => setFormData({ ...formData, guardian1_phone: e.target.value })}
                       placeholder="+386 ..."
                     />
                   </div>
@@ -909,8 +909,8 @@ export default function PlayersPage() {
                     <Label htmlFor="guardian2Name">Ime in priimek</Label>
                     <Input
                       id="guardian2Name"
-                      value={formData.guardian2Name}
-                      onChange={(e) => setFormData({ ...formData, guardian2Name: e.target.value })}
+                      value={formData.guardian2_name}
+                      onChange={(e) => setFormData({ ...formData, guardian2_name: e.target.value })}
                       placeholder="Ime in priimek starša 2"
                     />
                   </div>
@@ -919,8 +919,8 @@ export default function PlayersPage() {
                     <Input
                       id="guardian2Email"
                       type="email"
-                      value={formData.guardian2Email}
-                      onChange={(e) => setFormData({ ...formData, guardian2Email: e.target.value })}
+                      value={formData.guardian2_email}
+                      onChange={(e) => setFormData({ ...formData, guardian2_email: e.target.value })}
                       placeholder="starš2@email.com"
                     />
                   </div>
@@ -928,8 +928,8 @@ export default function PlayersPage() {
                     <Label htmlFor="guardian2Phone">Telefon</Label>
                     <Input
                       id="guardian2Phone"
-                      value={formData.guardian2Phone}
-                      onChange={(e) => setFormData({ ...formData, guardian2Phone: e.target.value })}
+                      value={formData.guardian2_phone}
+                      onChange={(e) => setFormData({ ...formData, guardian2_phone: e.target.value })}
                       placeholder="+386 ..."
                     />
                   </div>
@@ -939,8 +939,8 @@ export default function PlayersPage() {
                   <Label htmlFor="emergencyContact">Kontakt za nujne primere</Label>
                   <Input
                     id="emergencyContact"
-                    value={formData.emergencyContact}
-                    onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
+                    value={formData.emergency_contact}
+                    onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })}
                     placeholder="+386 ..."
                   />
                 </div>
