@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { UserCircle, Plus, Edit, Trash2, Upload, Download } from "lucide-react";
+import { UserCircle, Plus, Edit, Trash2, Upload, Download, Users } from "lucide-react";
 import {
   parseCSV,
   parseXLSX,
@@ -55,6 +55,7 @@ export default function PlayersPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -78,32 +79,44 @@ export default function PlayersPage() {
     left_date: "",
     notes: "",
   });
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadPlayers();
   }, []);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredPlayers(players);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = players.filter(
+      (player) =>
+        player.first_name.toLowerCase().includes(query) ||
+        player.last_name.toLowerCase().includes(query)
+    );
+    setFilteredPlayers(filtered);
+  }, [searchQuery, players]);
 
   async function loadPlayers() {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from("players")
-        .select(`
-          *,
-          teams:team_players(
-            teams(name, short_name)
-          )
-        `)
-        .order("last_name", { ascending: true });
+        .select("*")
+        .order("last_name");
 
       if (error) throw error;
       setPlayers(data || []);
+      setFilteredPlayers(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju igralcev:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti igralcev",
+        description: "Napaka pri nalaganju igralcev",
       });
     } finally {
       setLoading(false);
@@ -128,28 +141,34 @@ export default function PlayersPage() {
     setDialogOpen(true);
   }
 
-  function handleEdit(player: Player) {
+  function handleEditPlayer(player: Player) {
     setSelectedPlayer(player);
-    setFormData({
-      first_name: player.first_name,
-      last_name: player.last_name,
-      date_of_birth: player.date_of_birth || "",
-      gender: player.gender || "",
-      address: player.address || "",
-      city: player.city || "",
-      phone: player.phone || "",
-      is_active: player.is_active,
-      joined_date: player.joined_date || "",
-      left_date: player.left_date || "",
-      notes: player.notes || "",
-    });
+    setFirstName(player.first_name);
+    setLastName(player.last_name);
+    setDateOfBirth(player.date_of_birth || "");
+    setGender(player.gender || "male");
+    setEmail(player.email || "");
+    setPhone(player.phone || "");
+    setAddress(player.address || "");
+    setEmergencyContact(player.emergency_contact || "");
+    setMedicalNotes(player.medical_notes || "");
+    setIsActive(player.is_active);
+    
+    // Guardian 1 fields
+    setGuardian1Name(player.guardian_1_name || "");
+    setGuardian1Email(player.guardian_1_email || "");
+    setGuardian1Phone(player.guardian_1_phone || "");
+    
+    // Guardian 2 fields
+    setGuardian2Name(player.guardian_2_name || "");
+    setGuardian2Email(player.guardian_2_email || "");
+    setGuardian2Phone(player.guardian_2_phone || "");
+    
     setDialogOpen(true);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (!formData.first_name || !formData.last_name) {
+  async function handleSubmit() {
+    if (!firstName.trim() || !lastName.trim()) {
       toast({
         variant: "destructive",
         title: "Napaka",
@@ -159,56 +178,58 @@ export default function PlayersPage() {
     }
 
     try {
-      setLoading(true);
-
-      const payload = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        date_of_birth: formData.date_of_birth || null,
-        gender: formData.gender || null,
-        address: formData.address || null,
-        city: formData.city || null,
-        phone: formData.phone || null,
-        is_active: formData.is_active,
-        joined_date: formData.joined_date || null,
-        left_date: formData.left_date || null,
-        notes: formData.notes || null,
+      const playerData = {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        date_of_birth: dateOfBirth || null,
+        gender,
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        address: address.trim() || null,
+        emergency_contact: emergencyContact.trim() || null,
+        medical_notes: medicalNotes.trim() || null,
+        is_active: isActive,
+        guardian_1_name: guardian1Name.trim() || null,
+        guardian_1_email: guardian1Email.trim() || null,
+        guardian_1_phone: guardian1Phone.trim() || null,
+        guardian_2_name: guardian2Name.trim() || null,
+        guardian_2_email: guardian2Email.trim() || null,
+        guardian_2_phone: guardian2Phone.trim() || null,
       };
 
       if (selectedPlayer) {
         const { error } = await supabase
           .from("players")
-          .update(payload)
+          .update(playerData)
           .eq("id", selectedPlayer.id);
 
         if (error) throw error;
+
         toast({
           title: "Uspešno",
-          description: "Igralec uspešno posodobljen",
+          description: "Igralec posodobljen",
         });
       } else {
-        const { error } = await supabase
-          .from("players")
-          .insert([payload]);
+        const { error } = await supabase.from("players").insert([playerData]);
 
         if (error) throw error;
+
         toast({
           title: "Uspešno",
-          description: "Igralec uspešno ustvarjen",
+          description: "Igralec dodan",
         });
       }
 
       setDialogOpen(false);
+      resetForm();
       loadPlayers();
     } catch (error: any) {
-      console.error("Napaka pri shranjevanju igralca:", error);
+      console.error("Napaka pri shranjevanju:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju igralca",
+        description: "Napaka pri shranjevanju igralca",
       });
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -523,22 +544,46 @@ export default function PlayersPage() {
     }
   }
 
+  function resetForm() {
+    setSelectedPlayer(null);
+    setFirstName("");
+    setLastName("");
+    setDateOfBirth("");
+    setGender("male");
+    setEmail("");
+    setPhone("");
+    setAddress("");
+    setEmergencyContact("");
+    setMedicalNotes("");
+    setIsActive(true);
+    
+    // Guardian fields
+    setGuardian1Name("");
+    setGuardian1Email("");
+    setGuardian1Phone("");
+    setGuardian2Name("");
+    setGuardian2Email("");
+    setGuardian2Phone("");
+  }
+
   return (
     <ProtectedRoute allowedRoles={["admin"]}>
       <AppLayout>
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight">Igralci</h2>
-              <p className="text-muted-foreground">Upravljanje igralcev</p>
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-6 w-6 text-primary" />
+              <h1 className="text-3xl font-bold">Igralci</h1>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleImportClick}>
-                <Upload className="h-4 w-4 mr-2" />
-                Uvozi iz Excel
-              </Button>
-              <Button onClick={handleAdd}>
-                <Plus className="h-4 w-4 mr-2" />
+            <div className="flex gap-2 items-center flex-1 max-w-md">
+              <Input
+                placeholder="Išči po imenu ali priimku..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
                 Dodaj igralca
               </Button>
             </div>
@@ -577,7 +622,7 @@ export default function PlayersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {players.map((player) => (
+                      {filteredPlayers.map((player) => (
                         <TableRow key={player.id} className="text-sm">
                           <TableCell className="font-medium py-2">{player.first_name}</TableCell>
                           <TableCell className="py-2">{player.last_name}</TableCell>
@@ -612,7 +657,7 @@ export default function PlayersPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleEdit(player)}
+                                onClick={() => handleEditPlayer(player)}
                                 disabled={loading}
                                 className="h-7 text-xs"
                               >
@@ -767,6 +812,92 @@ export default function PlayersPage() {
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={3}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="medicalNotes">Zdravstvene opombe</Label>
+                  <Textarea
+                    id="medicalNotes"
+                    value={formData.medicalNotes}
+                    onChange={(e) => setFormData({ ...formData, medicalNotes: e.target.value })}
+                    placeholder="Zdravstvene opombe..."
+                  />
+                </div>
+
+                {/* Guardian 1 */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="font-semibold">Podatki starša 1</h3>
+                  <div className="grid gap-2">
+                    <Label htmlFor="guardian1Name">Ime in priimek</Label>
+                    <Input
+                      id="guardian1Name"
+                      value={formData.guardian1Name}
+                      onChange={(e) => setFormData({ ...formData, guardian1Name: e.target.value })}
+                      placeholder="Ime in priimek starša 1"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="guardian1Email">Email</Label>
+                    <Input
+                      id="guardian1Email"
+                      type="email"
+                      value={formData.guardian1Email}
+                      onChange={(e) => setFormData({ ...formData, guardian1Email: e.target.value })}
+                      placeholder="starš1@email.com"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="guardian1Phone">Telefon</Label>
+                    <Input
+                      id="guardian1Phone"
+                      value={formData.guardian1Phone}
+                      onChange={(e) => setFormData({ ...formData, guardian1Phone: e.target.value })}
+                      placeholder="+386 ..."
+                    />
+                  </div>
+                </div>
+
+                {/* Guardian 2 */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="font-semibold">Podatki starša 2</h3>
+                  <div className="grid gap-2">
+                    <Label htmlFor="guardian2Name">Ime in priimek</Label>
+                    <Input
+                      id="guardian2Name"
+                      value={formData.guardian2Name}
+                      onChange={(e) => setFormData({ ...formData, guardian2Name: e.target.value })}
+                      placeholder="Ime in priimek starša 2"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="guardian2Email">Email</Label>
+                    <Input
+                      id="guardian2Email"
+                      type="email"
+                      value={formData.guardian2Email}
+                      onChange={(e) => setFormData({ ...formData, guardian2Email: e.target.value })}
+                      placeholder="starš2@email.com"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="guardian2Phone">Telefon</Label>
+                    <Input
+                      id="guardian2Phone"
+                      value={formData.guardian2Phone}
+                      onChange={(e) => setFormData({ ...formData, guardian2Phone: e.target.value })}
+                      placeholder="+386 ..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="emergencyContact">Kontakt za nujne primere</Label>
+                  <Input
+                    id="emergencyContact"
+                    value={formData.emergencyContact}
+                    onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
+                    placeholder="+386 ..."
                   />
                 </div>
 
