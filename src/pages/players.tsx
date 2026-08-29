@@ -41,12 +41,9 @@ interface Player {
   last_name: string;
   date_of_birth: string | null;
   gender: string | null;
-  email: string | null;
   phone: string | null;
   address: string | null;
   city: string | null;
-  emergency_contact: string | null;
-  medical_notes: string | null;
   is_active: boolean;
   guardian1_name: string | null;
   guardian1_email: string | null;
@@ -84,9 +81,6 @@ export default function PlayersPage() {
     address: "",
     city: "",
     phone: "",
-    email: "",
-    emergency_contact: "",
-    medical_notes: "",
     guardian1_name: "",
     guardian1_email: "",
     guardian1_phone: "",
@@ -167,12 +161,9 @@ export default function PlayersPage() {
       last_name: player.last_name,
       date_of_birth: player.date_of_birth || "",
       gender: player.gender || "",
-      email: player.email || "",
       phone: player.phone || "",
       address: player.address || "",
       city: player.city || "",
-      emergency_contact: player.emergency_contact || "",
-      medical_notes: player.medical_notes || "",
       guardian1_name: player.guardian1_name || "",
       guardian1_email: player.guardian1_email || "",
       guardian1_phone: player.guardian1_phone || "",
@@ -207,12 +198,9 @@ export default function PlayersPage() {
         last_name: formData.last_name.trim(),
         date_of_birth: formData.date_of_birth || null,
         gender: formData.gender || null,
-        email: formData.email.trim() || null,
         phone: formData.phone.trim() || null,
         address: formData.address.trim() || null,
         city: formData.city.trim() || null,
-        emergency_contact: formData.emergency_contact.trim() || null,
-        medical_notes: formData.medical_notes.trim() || null,
         guardian1_name: formData.guardian1_name.trim() || null,
         guardian1_email: formData.guardian1_email.trim() || null,
         guardian1_phone: formData.guardian1_phone.trim() || null,
@@ -584,9 +572,6 @@ export default function PlayersPage() {
       address: "",
       city: "",
       phone: "",
-      email: "",
-      emergency_contact: "",
-      medical_notes: "",
       guardian1_name: "",
       guardian1_email: "",
       guardian1_phone: "",
