@@ -41,14 +41,24 @@ interface Player {
   last_name: string;
   date_of_birth: string | null;
   gender: string | null;
+  email: string | null;
+  phone: string | null;
   address: string | null;
   city: string | null;
-  phone: string | null;
+  emergency_contact: string | null;
+  medical_notes: string | null;
   is_active: boolean;
-  teams?: Array<{ teams: { name: string; short_name: string | null } }>;
+  guardian1_name: string | null;
+  guardian1_email: string | null;
+  guardian1_phone: string | null;
+  guardian2_name: string | null;
+  guardian2_email: string | null;
+  guardian2_phone: string | null;
   joined_date: string | null;
   left_date: string | null;
   notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function PlayersPage() {
@@ -155,14 +165,14 @@ export default function PlayersPage() {
     setIsActive(player.is_active);
     
     // Guardian 1 fields
-    setGuardian1Name(player.guardian_1_name || "");
-    setGuardian1Email(player.guardian_1_email || "");
-    setGuardian1Phone(player.guardian_1_phone || "");
+    setGuardian1Name(player.guardian1_name || "");
+    setGuardian1Email(player.guardian1_email || "");
+    setGuardian1Phone(player.guardian1_phone || "");
     
     // Guardian 2 fields
-    setGuardian2Name(player.guardian_2_name || "");
-    setGuardian2Email(player.guardian_2_email || "");
-    setGuardian2Phone(player.guardian_2_phone || "");
+    setGuardian2Name(player.guardian2_name || "");
+    setGuardian2Email(player.guardian2_email || "");
+    setGuardian2Phone(player.guardian2_phone || "");
     
     setDialogOpen(true);
   }
@@ -189,12 +199,12 @@ export default function PlayersPage() {
         emergency_contact: emergencyContact.trim() || null,
         medical_notes: medicalNotes.trim() || null,
         is_active: isActive,
-        guardian_1_name: guardian1Name.trim() || null,
-        guardian_1_email: guardian1Email.trim() || null,
-        guardian_1_phone: guardian1Phone.trim() || null,
-        guardian_2_name: guardian2Name.trim() || null,
-        guardian_2_email: guardian2Email.trim() || null,
-        guardian_2_phone: guardian2Phone.trim() || null,
+        guardian1_name: guardian1Name.trim() || null,
+        guardian1_email: guardian1Email.trim() || null,
+        guardian1_phone: guardian1Phone.trim() || null,
+        guardian2_name: guardian2Name.trim() || null,
+        guardian2_email: guardian2Email.trim() || null,
+        guardian2_phone: guardian2Phone.trim() || null,
       };
 
       if (selectedPlayer) {
