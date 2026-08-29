@@ -27,43 +27,43 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const { email } = req.body;
+
+  if (!email || typeof email !== "string") {
+    return res.status(400).json({ error: "Email je obvezen" });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: "Neveljaven email format" });
+  }
+
   try {
-    const { email } = req.body;
+    // Check if email exists in players table (guardian_1_email or guardian_2_email)
+    const { data: players, error: playerError } = await supabase
+      .from("players")
+      .select("id, first_name, last_name, guardian_1_email, guardian_2_email")
+      .or(`guardian_1_email.eq.${email},guardian_2_email.eq.${email}`)
+      .limit(1);
 
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ error: "Email je obvezen" });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: "Neveljaven email naslov" });
-    }
-
-    // Check if email exists in guardians table
-    const { data: guardian, error: guardianError } = await supabase
-      .from("guardians")
-      .select("id, email, name")
-      .eq("email", email.toLowerCase().trim())
-      .maybeSingle();
-
-    if (guardianError) {
-      console.error("Guardian lookup error:", guardianError);
+    if (playerError) {
+      console.error("Database error:", playerError);
       return res.status(500).json({ error: "Napaka pri preverjanju emaila" });
     }
 
-    if (!guardian) {
+    if (!players || players.length === 0) {
       return res.status(404).json({ 
-        error: "Email naslov ni registriran v sistemu" 
+        error: "Email ni najden. Preverite ali je vnesen kot kontakt starša pri igralcu." 
       });
     }
 
-    // Rate limiting: check recent OTP requests (max 3 per 15 minutes)
+    // Check rate limiting (max 3 OTP requests per 15 minutes)
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const { data: recentCodes, error: rateLimitError } = await supabase
       .from("parent_auth_codes")
       .select("id")
-      .eq("parent_email", email.toLowerCase().trim())
+      .eq("parent_email", email)
       .gte("created_at", fifteenMinutesAgo);
 
     if (rateLimitError) {
@@ -77,50 +77,37 @@ export default async function handler(
     }
 
     // Generate 4-digit OTP code
-    const code = crypto.randomInt(1000, 9999).toString();
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // Hash the code for storage (security best practice)
-    const codeHash = crypto.createHash("sha256").update(code).digest("hex");
+    // Hash the code before storing
+    const bcrypt = require("bcryptjs");
+    const hashedCode = await bcrypt.hash(code, 10);
 
     // Store OTP code (expires in 3 minutes)
     const expiresAt = new Date(Date.now() + 3 * 60 * 1000).toISOString();
     const { error: insertError } = await supabase
       .from("parent_auth_codes")
-      .insert({
-        parent_email: email.toLowerCase().trim(),
-        code: codeHash,
-        expires_at: expiresAt,
-        used: false,
-      });
+      .insert([
+        {
+          parent_email: email,
+          code: hashedCode,
+          expires_at: expiresAt,
+          used: false,
+        },
+      ]);
 
     if (insertError) {
-      console.error("OTP insert error:", insertError);
-      return res.status(500).json({ error: "Napaka pri shranjevanju kode" });
-    }
-
-    // Get SMTP settings
-    const { data: smtpSettings, error: smtpError } = await supabase
-      .from("smtp_settings")
-      .select("*")
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (smtpError || !smtpSettings) {
-      console.error("SMTP settings error:", smtpError);
-      return res.status(500).json({ 
-        error: "SMTP nastavitve niso konfigurirane. Kontaktirajte administratorja." 
-      });
+      console.error("Insert error:", insertError);
+      return res.status(500).json({ error: "Napaka pri generiranju kode" });
     }
 
     // Send email with OTP code
-    await sendOTPEmail(smtpSettings as SMTPSettings, email, code, guardian.name);
+    await sendOTPEmail(email, code);
 
     return res.status(200).json({ 
-      success: true,
-      message: "Koda je bila poslana na vaš email",
-      expiresIn: 180, // 3 minutes in seconds
+      success: true, 
+      message: "Koda poslana na email" 
     });
-
   } catch (error: any) {
     console.error("Send OTP error:", error);
     return res.status(500).json({ 
@@ -130,18 +117,16 @@ export default async function handler(
 }
 
 async function sendOTPEmail(
-  smtp: SMTPSettings,
   recipientEmail: string,
-  code: string,
-  recipientName: string
+  code: string
 ) {
   const transporter = nodemailer.createTransport({
-    host: smtp.smtp_host,
-    port: smtp.smtp_port,
-    secure: smtp.smtp_secure, // true for 465, false for other ports
+    host: (smtpSettings as SMTPSettings).smtp_host,
+    port: (smtpSettings as SMTPSettings).smtp_port,
+    secure: (smtpSettings as SMTPSettings).smtp_secure, // true for 465, false for other ports
     auth: {
-      user: smtp.smtp_username,
-      pass: smtp.smtp_password,
+      user: (smtpSettings as SMTPSettings).smtp_username,
+      pass: (smtpSettings as SMTPSettings).smtp_password,
     },
   });
 
@@ -167,7 +152,7 @@ async function sendOTPEmail(
           <h1>OK Lubnik - Prijavna Koda</h1>
         </div>
         <div class="content">
-          <p>Pozdravljeni${recipientName ? `, ${recipientName}` : ""},</p>
+          <p>Pozdravljeni,</p>
           
           <p>Vaša prijavna koda za dostop do športne aplikacije je:</p>
           
@@ -193,8 +178,6 @@ async function sendOTPEmail(
   const emailText = `
 OK Lubnik - Prijavna Koda
 
-Pozdravljeni${recipientName ? `, ${recipientName}` : ""},
-
 Vaša prijavna koda za dostop do športne aplikacije je:
 
 ${code}
@@ -211,7 +194,7 @@ To je avtomatsko generirano sporočilo. Ne odgovarjajte na ta email.
   `;
 
   await transporter.sendMail({
-    from: `"${smtp.smtp_from_name}" <${smtp.smtp_from_email}>`,
+    from: `"${(smtpSettings as SMTPSettings).smtp_from_name}" <${(smtpSettings as SMTPSettings).smtp_from_email}>`,
     to: recipientEmail,
     subject: "Vaša prijavna koda - OK Lubnik",
     text: emailText,
