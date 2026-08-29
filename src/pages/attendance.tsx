@@ -492,7 +492,7 @@ export default function AttendancePage() {
                 <Calendar className="mr-2 h-4 w-4" />
                 Mesečni Pregled
               </Button>
-              <Button onClick={() => setNewActivityDialogOpen(true)}>
+              <Button onClick={() => setActivityDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Aktivnost
               </Button>
