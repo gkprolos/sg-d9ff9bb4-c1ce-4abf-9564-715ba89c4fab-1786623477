@@ -63,7 +63,7 @@ interface Player {
 
 export default function PlayersPage() {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [players, setPlayers] = useState<Player[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -90,6 +90,20 @@ export default function PlayersPage() {
     notes: "",
   });
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [editForm, setEditForm] = useState({
+    first_name: "",
+    last_name: "",
+    date_of_birth: "",
+    gender: "male" as "male" | "female",
+    address: "",
+    city: "",
+    phone: "",
+    is_active: true,
+    joined_date: "",
+    left_date: "",
+    notes: "",
+  });
 
   useEffect(() => {
     loadPlayers();
