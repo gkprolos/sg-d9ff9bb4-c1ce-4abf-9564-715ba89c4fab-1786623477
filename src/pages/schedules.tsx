@@ -341,6 +341,46 @@ export default function SchedulesPage() {
     return getDayLabel(dayOfWeek);
   }
 
+  function renderScheduleRow(schedule: ScheduleTemplate) {
+    const dayName = getDayName(schedule.day_of_week);
+    
+    return (
+      <TableRow key={schedule.id}>
+        <TableCell>{dayName}</TableCell>
+        <TableCell>{schedule.teams?.name || "N/A"}</TableCell>
+        <TableCell>{schedule.start_time} - {schedule.end_time}</TableCell>
+        <TableCell>
+          {schedule.venues?.name || schedule.custom_venue || "N/A"}
+        </TableCell>
+        <TableCell>
+          {schedule.is_active ? (
+            <Badge variant="default">Aktiven</Badge>
+          ) : (
+            <Badge variant="secondary">Neaktiven</Badge>
+          )}
+        </TableCell>
+        <TableCell>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEditSchedule(schedule)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeleteSchedule(schedule)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
   return (
     <ProtectedRoute allowedRoles={["admin"]}>
       <AppLayout>
