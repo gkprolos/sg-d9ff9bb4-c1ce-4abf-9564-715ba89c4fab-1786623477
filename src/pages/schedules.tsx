@@ -39,14 +39,25 @@ const DAYS = [
 interface ScheduleTemplate {
   id: string;
   team_id: string;
-  venue_id: string;
-  team: { name: string };
-  venue: { name: string; city: string };
   day_of_week: number;
   start_time: string;
   end_time: string;
+  venue_id: string | null;
+  custom_venue: string | null;
   default_activity_type_id: number;
+  valid_from: string | null;
+  valid_to: string | null;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  teams: {
+    id: string;
+    name: string;
+  } | null;
+  venues: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface Schedule {
@@ -68,6 +79,7 @@ export default function SchedulesPage() {
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [schedules, setSchedules] = useState<ScheduleTemplate[]>([]);
+  const [filteredSchedules, setFilteredSchedules] = useState<ScheduleTemplate[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const [venues, setVenues] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);

@@ -34,9 +34,10 @@ const ACTIVITY_TYPE_NAMES: Record<number, string> = {
 export default function MySchedulesPage() {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
+  const [filteredSchedules, setFilteredSchedules] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [activities, setActivities] = useState<any[]>([]);
