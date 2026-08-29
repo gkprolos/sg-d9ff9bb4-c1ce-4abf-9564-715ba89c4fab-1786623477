@@ -58,6 +58,7 @@ export default function AttendancePage() {
   const [venues, setVenues] = useState<any[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [showNewActivity, setShowNewActivity] = useState(false);
+  const [newActivityOpen, setNewActivityOpen] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   
   const [newActivityForm, setNewActivityForm] = useState({
@@ -492,7 +493,7 @@ export default function AttendancePage() {
                 <Calendar className="mr-2 h-4 w-4" />
                 Mesečni Pregled
               </Button>
-              <Button onClick={() => setActivityDialogOpen(true)}>
+              <Button onClick={() => setNewActivityOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Aktivnost
               </Button>
