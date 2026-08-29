@@ -761,17 +761,6 @@ export default function PlayersPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="igralec@email.com"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="address">Naslov</Label>
                   <Input
                     id="address"
@@ -809,34 +798,27 @@ export default function PlayersPage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="is_active">Aktiven igralec</Label>
-                  <Switch
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_active: checked })
-                    }
-                  />
+                <div className="grid gap-2">
+                  <Label>Status</Label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="is_active"
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                      className="h-4 w-4"
+                    />
+                    <Label htmlFor="is_active" className="cursor-pointer">Aktiven</Label>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="grid gap-2">
                   <Label htmlFor="notes">Opombe</Label>
                   <Textarea
                     id="notes"
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="medicalNotes">Zdravstvene opombe</Label>
-                  <Textarea
-                    id="medicalNotes"
-                    value={formData.medical_notes}
-                    onChange={(e) => setFormData({ ...formData, medical_notes: e.target.value })}
-                    placeholder="Zdravstvene opombe..."
+                    placeholder="Opombe o igralcu..."
                   />
                 </div>
 
@@ -904,16 +886,6 @@ export default function PlayersPage() {
                       placeholder="+386 ..."
                     />
                   </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="emergencyContact">Kontakt za nujne primere</Label>
-                  <Input
-                    id="emergencyContact"
-                    value={formData.emergency_contact}
-                    onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })}
-                    placeholder="+386 ..."
-                  />
                 </div>
 
                 <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
