@@ -12,7 +12,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ClipboardCheck, Plus, Save, Calendar } from "lucide-react";
+import {
+  ClipboardCheck,
+  Plus,
+  Loader2,
+  Edit,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Calendar,
+  Save,
+} from "lucide-react";
 
 interface Activity {
   id: string;
@@ -482,7 +492,7 @@ export default function AttendancePage() {
                 <Calendar className="mr-2 h-4 w-4" />
                 Mesečni Pregled
               </Button>
-              <Button onClick={() => setShowActivityDialog(true)}>
+              <Button onClick={() => setNewActivityDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Aktivnost
               </Button>

@@ -97,7 +97,6 @@ export default function MonthlyAttendance() {
       let query = supabase
         .from("teams")
         .select("id, name")
-        .eq("is_active", true)
         .order("name");
 
       if (userRole === "coach") {
@@ -118,7 +117,6 @@ export default function MonthlyAttendance() {
       let query = supabase
         .from("players")
         .select("id, first_name, last_name")
-        .eq("is_active", true)
         .order("last_name");
 
       if (userRole === "coach") {
