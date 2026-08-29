@@ -568,6 +568,60 @@ export type Database = {
           },
         ]
       }
+      parent_auth_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          parent_email: string
+          used: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          parent_email: string
+          used?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          parent_email?: string
+          used?: boolean | null
+        }
+        Relationships: []
+      }
+      parent_credentials: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_login_at: string | null
+          parent_email: string
+          password_hash: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_login_at?: string | null
+          parent_email: string
+          password_hash?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_login_at?: string | null
+          parent_email?: string
+          password_hash?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       player_forms: {
         Row: {
           created_at: string
@@ -1202,6 +1256,12 @@ export type Database = {
           type1_count: number
           type2_count: number
           type3_count: number
+        }[]
+      }
+      get_parent_children: {
+        Args: { parent_email_param: string }
+        Returns: {
+          player_id: string
         }[]
       }
       get_players_lowest_attendance: {
