@@ -75,37 +75,57 @@ export default function MySchedulesPage() {
   async function loadSchedules() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from("schedule_templates")
         .select(`
-          id,
-          day_of_week,
-          start_time,
-          end_time,
-          valid_from,
-          valid_to,
-          is_active,
-          activity_type_id,
-          teams(name),
-          venues(name)
+          *,
+          teams (
+            id,
+            name
+          ),
+          venues (
+            id,
+            name
+          )
         `)
-        .eq("is_active", true)
-        .order("day_of_week", { ascending: true })
-        .order("start_time", { ascending: true });
+        .order("day_of_week")
+        .order("start_time");
 
-      if (error) {
-        console.error("Napaka pri nalaganju urnikov:", error);
-        toast({
-          variant: "destructive",
-          title: "Napaka",
-          description: error.message || "Ni mogoče naložiti urnikov",
-        });
-        throw error;
+      if (userRole === "coach") {
+        const coachId = (user as any)?.id;
+        if (!coachId) {
+          throw new Error("Coach ID not found");
+        }
+
+        const { data: teamCoaches, error: teamCoachError } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", coachId);
+
+        if (teamCoachError) throw teamCoachError;
+
+        const teamIds = teamCoaches?.map((tc) => tc.team_id) || [];
+        if (teamIds.length === 0) {
+          setSchedules([]);
+          setFilteredSchedules([]);
+          return;
+        }
+
+        query = query.in("team_id", teamIds);
       }
 
+      const { data, error } = await query;
+      if (error) throw error;
+
       setSchedules(data || []);
+      setFilteredSchedules(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju urnikov:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Napaka pri nalaganju urnikov",
+      });
     } finally {
       setLoading(false);
     }
@@ -266,7 +286,7 @@ export default function MySchedulesPage() {
                             {schedule.venues?.name || "-"}
                           </TableCell>
                           <TableCell>
-                            {ACTIVITY_TYPE_NAMES[schedule.activity_type_id] || "-"}
+                            {ACTIVITY_TYPE_NAMES[schedule.activity_type] || "-"}
                           </TableCell>
                           <TableCell>{schedule.valid_from || "-"}</TableCell>
                           <TableCell>{schedule.valid_to || "-"}</TableCell>

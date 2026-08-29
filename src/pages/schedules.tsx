@@ -140,20 +140,27 @@ export default function SchedulesPage() {
         .from("schedule_templates")
         .select(`
           *,
-          team:teams(name),
-          venue:venues(name, city)
+          teams (
+            id,
+            name
+          ),
+          venues (
+            id,
+            name
+          )
         `)
-        .order("day_of_week", { ascending: true })
-        .order("start_time", { ascending: true });
+        .order("day_of_week")
+        .order("start_time");
 
       if (error) throw error;
       setSchedules(data || []);
+      setFilteredSchedules(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju urnikov:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti urnikov",
+        description: "Napaka pri nalaganju urnikov",
       });
     } finally {
       setLoading(false);

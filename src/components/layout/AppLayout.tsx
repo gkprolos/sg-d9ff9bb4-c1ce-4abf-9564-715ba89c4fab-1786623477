@@ -719,6 +719,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             Moje aktivnosti
                           </Link>
                           <Link
+                            href="/attendance"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/attendance"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <ClipboardCheck className="h-4 w-4" />
+                            Prisotnost
+                          </Link>
+                          <Link
                             href="/my-players"
                             className={cn(
                               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
