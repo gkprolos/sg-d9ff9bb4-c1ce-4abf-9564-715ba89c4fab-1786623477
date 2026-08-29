@@ -84,26 +84,21 @@ export default function PlayersPage() {
     address: "",
     city: "",
     phone: "",
+    email: "",
+    emergency_contact: "",
+    medical_notes: "",
+    guardian1_name: "",
+    guardian1_email: "",
+    guardian1_phone: "",
+    guardian2_name: "",
+    guardian2_email: "",
+    guardian2_phone: "",
     is_active: true,
     joined_date: "",
     left_date: "",
     notes: "",
   });
   const [searchQuery, setSearchQuery] = useState("");
-
-  const [editForm, setEditForm] = useState({
-    first_name: "",
-    last_name: "",
-    date_of_birth: "",
-    gender: "male" as "male" | "female",
-    address: "",
-    city: "",
-    phone: "",
-    is_active: true,
-    joined_date: "",
-    left_date: "",
-    notes: "",
-  });
 
   useEffect(() => {
     loadPlayers();
@@ -167,32 +162,35 @@ export default function PlayersPage() {
 
   function handleEditPlayer(player: Player) {
     setSelectedPlayer(player);
-    setFirstName(player.first_name);
-    setLastName(player.last_name);
-    setDateOfBirth(player.date_of_birth || "");
-    setGender(player.gender || "male");
-    setEmail(player.email || "");
-    setPhone(player.phone || "");
-    setAddress(player.address || "");
-    setEmergencyContact(player.emergency_contact || "");
-    setMedicalNotes(player.medical_notes || "");
-    setIsActive(player.is_active);
-    
-    // Guardian 1 fields
-    setGuardian1Name(player.guardian1_name || "");
-    setGuardian1Email(player.guardian1_email || "");
-    setGuardian1Phone(player.guardian1_phone || "");
-    
-    // Guardian 2 fields
-    setGuardian2Name(player.guardian2_name || "");
-    setGuardian2Email(player.guardian2_email || "");
-    setGuardian2Phone(player.guardian2_phone || "");
-    
+    setFormData({
+      first_name: player.first_name,
+      last_name: player.last_name,
+      date_of_birth: player.date_of_birth || "",
+      gender: player.gender || "",
+      email: player.email || "",
+      phone: player.phone || "",
+      address: player.address || "",
+      city: player.city || "",
+      emergency_contact: player.emergency_contact || "",
+      medical_notes: player.medical_notes || "",
+      guardian1_name: player.guardian1_name || "",
+      guardian1_email: player.guardian1_email || "",
+      guardian1_phone: player.guardian1_phone || "",
+      guardian2_name: player.guardian2_name || "",
+      guardian2_email: player.guardian2_email || "",
+      guardian2_phone: player.guardian2_phone || "",
+      is_active: player.is_active,
+      joined_date: player.joined_date || "",
+      left_date: player.left_date || "",
+      notes: player.notes || "",
+    });
     setDialogOpen(true);
   }
 
-  async function handleSubmit() {
-    if (!firstName.trim() || !lastName.trim()) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    
+    if (!formData.first_name.trim() || !formData.last_name.trim()) {
       toast({
         variant: "destructive",
         title: "Napaka",
@@ -202,23 +200,29 @@ export default function PlayersPage() {
     }
 
     try {
+      setLoading(true);
+      
       const playerData = {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        date_of_birth: dateOfBirth || null,
-        gender,
-        email: email.trim() || null,
-        phone: phone.trim() || null,
-        address: address.trim() || null,
-        emergency_contact: emergencyContact.trim() || null,
-        medical_notes: medicalNotes.trim() || null,
-        is_active: isActive,
-        guardian1_name: guardian1Name.trim() || null,
-        guardian1_email: guardian1Email.trim() || null,
-        guardian1_phone: guardian1Phone.trim() || null,
-        guardian2_name: guardian2Name.trim() || null,
-        guardian2_email: guardian2Email.trim() || null,
-        guardian2_phone: guardian2Phone.trim() || null,
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        date_of_birth: formData.date_of_birth || null,
+        gender: formData.gender || null,
+        email: formData.email.trim() || null,
+        phone: formData.phone.trim() || null,
+        address: formData.address.trim() || null,
+        city: formData.city.trim() || null,
+        emergency_contact: formData.emergency_contact.trim() || null,
+        medical_notes: formData.medical_notes.trim() || null,
+        guardian1_name: formData.guardian1_name.trim() || null,
+        guardian1_email: formData.guardian1_email.trim() || null,
+        guardian1_phone: formData.guardian1_phone.trim() || null,
+        guardian2_name: formData.guardian2_name.trim() || null,
+        guardian2_email: formData.guardian2_email.trim() || null,
+        guardian2_phone: formData.guardian2_phone.trim() || null,
+        is_active: formData.is_active,
+        joined_date: formData.joined_date || null,
+        left_date: formData.left_date || null,
+        notes: formData.notes.trim() || null,
       };
 
       if (selectedPlayer) {
@@ -254,6 +258,8 @@ export default function PlayersPage() {
         title: "Napaka",
         description: "Napaka pri shranjevanju igralca",
       });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -570,24 +576,28 @@ export default function PlayersPage() {
 
   function resetForm() {
     setSelectedPlayer(null);
-    setFirstName("");
-    setLastName("");
-    setDateOfBirth("");
-    setGender("male");
-    setEmail("");
-    setPhone("");
-    setAddress("");
-    setEmergencyContact("");
-    setMedicalNotes("");
-    setIsActive(true);
-    
-    // Guardian fields
-    setGuardian1Name("");
-    setGuardian1Email("");
-    setGuardian1Phone("");
-    setGuardian2Name("");
-    setGuardian2Email("");
-    setGuardian2Phone("");
+    setFormData({
+      first_name: "",
+      last_name: "",
+      date_of_birth: "",
+      gender: "",
+      address: "",
+      city: "",
+      phone: "",
+      email: "",
+      emergency_contact: "",
+      medical_notes: "",
+      guardian1_name: "",
+      guardian1_email: "",
+      guardian1_phone: "",
+      guardian2_name: "",
+      guardian2_email: "",
+      guardian2_phone: "",
+      is_active: true,
+      joined_date: "",
+      left_date: "",
+      notes: "",
+    });
   }
 
   return (
@@ -770,6 +780,27 @@ export default function PlayersPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="phone">Telefon</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="igralec@email.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="address">Naslov</Label>
                   <Input
                     id="address"
@@ -788,34 +819,23 @@ export default function PlayersPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefon</Label>
+                  <Label htmlFor="joined_date">Datum vključitve</Label>
                   <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    id="joined_date"
+                    type="date"
+                    value={formData.joined_date}
+                    onChange={(e) => setFormData({ ...formData, joined_date: e.target.value })}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="joined_date">Datum vključitve</Label>
-                    <Input
-                      id="joined_date"
-                      type="date"
-                      value={formData.joined_date}
-                      onChange={(e) => setFormData({ ...formData, joined_date: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="left_date">Datum izstopa</Label>
-                    <Input
-                      id="left_date"
-                      type="date"
-                      value={formData.left_date}
-                      onChange={(e) => setFormData({ ...formData, left_date: e.target.value })}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="left_date">Datum izstopa</Label>
+                  <Input
+                    id="left_date"
+                    type="date"
+                    value={formData.left_date}
+                    onChange={(e) => setFormData({ ...formData, left_date: e.target.value })}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between">
