@@ -60,19 +60,6 @@ interface ScheduleTemplate {
   } | null;
 }
 
-interface Schedule {
-  id: string;
-  team_id: string;
-  venue_id: string;
-  team: { name: string };
-  venue: { name: string; city: string };
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
-  default_activity_type_id: number;
-  is_active: boolean;
-}
-
 export default function SchedulesPage() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -398,6 +385,22 @@ export default function SchedulesPage() {
         </TableCell>
       </TableRow>
     );
+  }
+
+  function applyFilters() {
+    let filtered = [...schedules];
+
+    if (selectedTeam) {
+      filtered = filtered.filter((s) => s.team_id === selectedTeam);
+    }
+
+    if (selectedDay) {
+      filtered = filtered.filter(
+        (s) => s.day_of_week === parseInt(selectedDay)
+      );
+    }
+
+    setFilteredSchedules(filtered);
   }
 
   return (
