@@ -650,7 +650,6 @@ export default function PlayersPage() {
                         <TableHead className="w-[60px]">Spol</TableHead>
                         <TableHead className="w-[120px]">Kraj</TableHead>
                         <TableHead className="w-[110px]">Telefon</TableHead>
-                        <TableHead className="w-[150px]">Selekcije</TableHead>
                         <TableHead className="w-[90px]">Status</TableHead>
                         <TableHead className="text-right w-[160px]">Akcije</TableHead>
                       </TableRow>
@@ -668,19 +667,6 @@ export default function PlayersPage() {
                           <TableCell className="py-2">{player.gender || "N/A"}</TableCell>
                           <TableCell className="py-2">{player.city || "N/A"}</TableCell>
                           <TableCell className="py-2">{player.phone || "N/A"}</TableCell>
-                          <TableCell className="py-2">
-                            <div className="flex flex-wrap gap-1">
-                              {player.teams && player.teams.length > 0 ? (
-                                player.teams.map((tp: any, idx: number) => (
-                                  <Badge key={idx} variant="secondary" className="text-xs">
-                                    {tp.teams.short_name || tp.teams.name}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-xs text-muted-foreground">-</span>
-                              )}
-                            </div>
-                          </TableCell>
                           <TableCell className="py-2">
                             <Badge variant={player.is_active ? "default" : "secondary"} className="text-xs">
                               {player.is_active ? "Aktiven" : "Neaktiven"}
