@@ -786,28 +786,30 @@ export default function MessagingPage() {
                           />
                         </div>
 
-                        <div>
-                          <label className="text-sm font-medium mb-2 block">Selekcija (Opcijsko)</label>
-                          <Select 
-                            value={selectedTeam || ""} 
-                            onValueChange={(value) => {
-                              setSelectedTeam(value);
-                              loadAvailableContacts(value || undefined);
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Izberi selekcijo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">Brez selekcije</SelectItem>
-                              {teams.map(team => (
-                                <SelectItem key={team.id} value={team.id}>
-                                  {team.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        {/* Show team selector only for coaches and admins */}
+                        {(isCoach || isAdmin) && (
+                          <div>
+                            <label className="text-sm font-medium mb-2 block">Selekcija (Opcijsko)</label>
+                            <Select 
+                              value={selectedTeam || undefined} 
+                              onValueChange={(value) => {
+                                setSelectedTeam(value);
+                                loadAvailableContacts(value || undefined);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Brez selekcije" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {teams.map(team => (
+                                  <SelectItem key={team.id} value={team.id}>
+                                    {team.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
 
                         <div>
                           <label className="text-sm font-medium mb-2 block">Prejemniki</label>
