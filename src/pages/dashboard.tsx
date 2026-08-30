@@ -921,9 +921,10 @@ export default function DashboardPage() {
 
   async function loadTeamStats() {
     try {
-      const monthStart = new Date(new Date().getFullYear(), parseInt(selectedMonth.split('-')[1]) - 1, 1)
+      const [selectedYear, selectedMonthNum] = selectedMonth.split('-');
+      const monthStart = new Date(parseInt(selectedYear), parseInt(selectedMonthNum) - 1, 1)
         .toISOString().split('T')[0];
-      const monthEnd = new Date(new Date().getFullYear(), parseInt(selectedMonth.split('-')[1]), 0)
+      const monthEnd = new Date(parseInt(selectedYear), parseInt(selectedMonthNum), 0)
         .toISOString().split('T')[0];
 
       let query = supabase
