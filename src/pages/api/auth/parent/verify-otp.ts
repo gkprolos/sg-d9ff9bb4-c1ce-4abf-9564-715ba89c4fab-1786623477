@@ -75,19 +75,6 @@ export default async function handler(
       console.error("OTP update error:", updateError);
     }
 
-    // Check if parent has password set
-    const { data: credential, error: credError } = await supabase
-      .from("parent_credentials")
-      .select("password_hash")
-      .eq("parent_email", email.toLowerCase().trim())
-      .maybeSingle();
-
-    if (credError) {
-      console.error("Credential check error:", credError);
-    }
-
-    const hasPassword = credential && credential.password_hash !== null;
-
     // Find players where this email is guardian1_email or guardian2_email
     const { data: players, error: playersError } = await supabase
       .from("players")
@@ -104,17 +91,8 @@ export default async function handler(
       return res.status(404).json({ error: "Skrbnik ne obstaja" });
     }
 
-    // Update last login timestamp if credential exists
-    if (credential) {
-      await supabase
-        .from("parent_credentials")
-        .update({ last_login_at: new Date().toISOString() })
-        .eq("parent_email", email.toLowerCase().trim());
-    }
-
     return res.status(200).json({
       success: true,
-      hasPassword,
       parent: {
         email: email.toLowerCase().trim(),
       },

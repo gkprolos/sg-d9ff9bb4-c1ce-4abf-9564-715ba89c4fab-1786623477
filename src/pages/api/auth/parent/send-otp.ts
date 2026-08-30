@@ -59,46 +59,29 @@ export default async function handler(
       });
     }
 
-    // Check rate limiting (max 3 OTP requests per 15 minutes)
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-    const { data: recentCodes, error: rateLimitError } = await supabase
-      .from("parent_auth_codes")
-      .select("id")
-      .eq("parent_email", email)
-      .gte("created_at", fifteenMinutesAgo);
-
-    if (rateLimitError) {
-      console.error("Rate limit check error:", rateLimitError);
-    }
-
-    if (recentCodes && recentCodes.length >= 3) {
-      return res.status(429).json({ 
-        error: "Preveč poskusov. Poskusite ponovno čez 15 minut." 
-      });
-    }
-
     // Generate 4-digit OTP code
     const code = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // Hash the code before storing
+    // Hash the code for secure storage
     const hashedCode = await bcrypt.hash(code, 10);
 
-    // Store OTP code (expires in 3 minutes)
-    const expiresAt = new Date(Date.now() + 3 * 60 * 1000).toISOString();
+    // Store code in parent_auth_codes table (expires in 10 minutes)
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
     const { error: insertError } = await supabase
       .from("parent_auth_codes")
-      .insert([
-        {
-          parent_email: email,
-          code: hashedCode,
-          expires_at: expiresAt,
-          used: false,
-        },
-      ]);
+      .insert({
+        parent_email: email.toLowerCase().trim(),
+        code: hashedCode,
+        expires_at: expiresAt.toISOString(),
+        used: false,
+        created_at: new Date().toISOString(),
+      });
 
     if (insertError) {
-      console.error("Insert error:", insertError);
-      return res.status(500).json({ error: "Napaka pri generiranju kode" });
+      console.error("OTP insert error:", insertError);
+      return res.status(500).json({ error: "Napaka pri ustvarjanju kode" });
     }
 
     // Get SMTP settings from database

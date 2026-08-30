@@ -16,11 +16,9 @@ export default function ParentLogin() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [step, setStep] = useState<AuthStep>("email");
+  const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", ""]);
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [canResend, setCanResend] = useState(true);
@@ -96,22 +94,16 @@ export default function ParentLogin() {
     }
   }
 
-  function handleOTPChange(index: number, value: string) {
-    // Only allow digits
-    if (value && !/^\d$/.test(value)) return;
+  function handleOtpChange(index: number, value: string) {
+    if (value.length <= 1 && /^\d*$/.test(value)) {
+      const newOtp = [...otp];
+      newOtp[index] = value;
+      setOtp(newOtp);
 
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (value && index < 3) {
-      otpRefs[index + 1].current?.focus();
-    }
-
-    // Auto-submit when all 4 digits entered
-    if (index === 3 && value && newOtp.every(d => d)) {
-      handleVerifyOTP(newOtp.join(""));
+      if (value && index < 3) {
+        const nextInput = document.getElementById(`otp-${index + 1}`);
+        nextInput?.focus();
+      }
     }
   }
 
@@ -121,124 +113,42 @@ export default function ParentLogin() {
     }
   }
 
-  async function handleVerifyOTP(code?: string) {
-    const otpCode = code || otp.join("");
-    
-    if (otpCode.length !== 4) {
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: "Vnesite vseh 4 številk kode",
-      });
-      return;
-    }
+  async function handleVerifyOtp() {
+    setLoading(true);
 
     try {
-      setLoading(true);
+      const code = otp.join("");
       const response = await fetch("/api/auth/parent/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: otpCode }),
+        body: JSON.stringify({ email, code }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Neveljavna koda");
+        throw new Error(data.error || "Napaka pri preverjanju kode");
       }
 
-      // Set Supabase session
-      if (data.session) {
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
-      }
+      // Store parent email in localStorage for session
+      localStorage.setItem("parentEmail", email);
 
-      // Check if parent already has password
-      if (data.hasPassword) {
-        // Redirect to parent dashboard
-        toast({
-          title: "Uspešna prijava",
-          description: "Dobrodošli nazaj!",
-        });
-        router.push("/attendance/monthly");
-      } else {
-        // Offer password setup
-        setStep("password");
-      }
+      toast({
+        title: "Uspešna prijava",
+        description: "Dobrodošli!",
+      });
+
+      // Redirect to parent dashboard
+      router.push("/my-children");
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Neveljavna koda",
-      });
-      setOtp(["", "", "", ""]);
-      otpRefs[0].current?.focus();
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleSetPassword(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (password.length < 6) {
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: "Geslo mora imeti vsaj 6 znakov",
-      });
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: "Gesli se ne ujemata",
-      });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await fetch("/api/auth/parent/set-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Napaka pri nastavljanju gesla");
-      }
-
-      toast({
-        title: "Geslo nastavljeno",
-        description: "Naslednjič se lahko prijavite z geslom",
-      });
-
-      setStep("complete");
-      setTimeout(() => router.push("/my-children"), 2000);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: error.message || "Napaka pri nastavljanju gesla",
+        description: error.message,
       });
     } finally {
       setLoading(false);
     }
-  }
-
-  function handleSkipPassword() {
-    toast({
-      title: "Prijava uspešna",
-      description: "Pri naslednji prijavi boste ponovno prejeli OTP kodo",
-    });
-    router.push("/my-children");
   }
 
   return (
@@ -251,186 +161,76 @@ export default function ParentLogin() {
           </p>
         </div>
 
-        <Card>
+        <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>
-              {step === "email" && "Vnesite email naslov"}
-              {step === "otp" && "Vnesite kodo"}
-              {step === "password" && "Nastavitev gesla"}
-              {step === "complete" && "Prijava uspešna"}
-            </CardTitle>
+            <CardTitle>Prijava za Starše</CardTitle>
             <CardDescription>
-              {step === "email" && "Poslali vam bomo 4-mestno kodo"}
-              {step === "otp" && `Koda poslana na ${email}`}
-              {step === "password" && "Nastavite geslo za hitrejše prihodnje prijave"}
-              {step === "complete" && "Preusmeritev na nadzorno ploščo..."}
+              {step === "email" && "Vnesite vaš email naslov"}
+              {step === "otp" && "Vnesite 4-mestno kodo"}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {step === "email" && (
-              <form onSubmit={handleSendOTP} className="space-y-4">
+              <>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email naslov</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="vas.email@primer.si"
+                    placeholder="vas.email@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoFocus
+                    disabled={loading}
                   />
                 </div>
-
-                <Alert>
-                  <Mail className="h-4 w-4" />
-                  <AlertDescription>
-                    Uporabite email naslov, ki je vpisan pri vašem otroku kot kontakt starša.
-                  </AlertDescription>
-                </Alert>
-
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Pošiljanje...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="mr-2 h-4 w-4" />
-                      Pošlji kodo
-                    </>
-                  )}
+                <Button
+                  onClick={handleSendOtp}
+                  disabled={loading || !email}
+                  className="w-full"
+                >
+                  {loading ? "Pošiljam..." : "Pošlji kodo"}
                 </Button>
-              </form>
+              </>
             )}
 
             {step === "otp" && (
-              <div className="space-y-4">
+              <>
                 <div className="space-y-2">
                   <Label>Vnesite 4-mestno kodo</Label>
                   <div className="flex gap-2 justify-center">
                     {otp.map((digit, index) => (
                       <Input
                         key={index}
-                        ref={otpRefs[index]}
+                        id={`otp-${index}`}
                         type="text"
                         inputMode="numeric"
                         maxLength={1}
                         value={digit}
-                        onChange={(e) => handleOTPChange(index, e.target.value)}
-                        onKeyDown={(e) => handleOTPKeyDown(index, e)}
-                        className="w-14 h-14 text-center text-2xl font-bold"
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        className="w-12 h-12 text-center text-lg"
                         disabled={loading}
                       />
                     ))}
                   </div>
                 </div>
-
-                {timeRemaining > 0 && (
-                  <Alert>
-                    <AlertDescription className="text-center">
-                      ⏱️ Veljavnost: <strong>{formatTime(timeRemaining)}</strong>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="flex gap-2">
+                <div className="space-y-2">
                   <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setStep("email")}
-                    disabled={loading}
-                    className="flex-1"
+                    onClick={handleVerifyOtp}
+                    disabled={loading || otp.some(d => !d)}
+                    className="w-full"
                   >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {loading ? "Preverjam..." : "Preveri kodo"}
+                  </Button>
+                  <Button
+                    onClick={() => setStep("email")}
+                    variant="outline"
+                    className="w-full"
+                    disabled={loading}
+                  >
                     Nazaj
                   </Button>
-                  <Button
-                    type="button"
-                    onClick={handleSendOTP}
-                    disabled={loading || !canResend}
-                    className="flex-1"
-                  >
-                    {loading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      "Pošlji novo kodo"
-                    )}
-                  </Button>
                 </div>
-              </div>
-            )}
-
-            {step === "password" && (
-              <form onSubmit={handleSetPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Novo geslo</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Najmanj 6 znakov"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoFocus
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Potrditev gesla</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Ponovite geslo"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <Alert>
-                  <Lock className="h-4 w-4" />
-                  <AlertDescription>
-                    Geslo omogoča hitrejšo prijavo brez OTP kode. To je opcijsko - lahko tudi preskočite.
-                  </AlertDescription>
-                </Alert>
-
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleSkipPassword}
-                    disabled={loading}
-                    className="flex-1"
-                  >
-                    Preskoči
-                  </Button>
-                  <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Shranjevanje...
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="mr-2 h-4 w-4" />
-                        Nastavi geslo
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {step === "complete" && (
-              <div className="text-center space-y-4">
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-                <p className="text-lg font-medium">Prijava uspešna!</p>
-                <p className="text-sm text-muted-foreground">
-                  Preusmeritev na nadzorno ploščo...
-                </p>
-              </div>
+              </>
             )}
           </CardContent>
         </Card>
