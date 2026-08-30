@@ -99,23 +99,31 @@ export default function MessagingPage() {
   const [effectiveRole, setEffectiveRole] = useState<"admin" | "coach" | "parent" | null>(null);
 
   useEffect(() => {
-    // Check parent session
+    // Priority: Supabase Auth user > Parent session
     if (typeof window !== "undefined") {
-      const parentSession = sessionStorage.getItem("parentSession");
-      if (parentSession) {
-        try {
-          const session = JSON.parse(parentSession);
-          setParentEmail(session.email);
-          setEffectiveRole("parent");
-          console.log("Parent session detected:", session.email);
-        } catch (e) {
-          console.error("Invalid parent session", e);
-        }
-      } else if (userRole) {
+      // If Supabase Auth user exists, use their role (admin/coach)
+      if (user && userRole) {
         setEffectiveRole(userRole);
-        console.log("User role detected:", userRole);
+        // Clear parent session when admin/coach logs in
+        sessionStorage.removeItem("parentSession");
+        setParentEmail(null);
+        console.log("Supabase Auth user detected - role:", userRole);
       } else {
-        console.log("No role detected - user:", user, "userRole:", userRole);
+        // No Supabase user - check for parent session
+        const parentSession = sessionStorage.getItem("parentSession");
+        if (parentSession) {
+          try {
+            const session = JSON.parse(parentSession);
+            setParentEmail(session.email);
+            setEffectiveRole("parent");
+            console.log("Parent session detected:", session.email);
+          } catch (e) {
+            console.error("Invalid parent session", e);
+            sessionStorage.removeItem("parentSession");
+          }
+        } else {
+          console.log("No role detected - user:", user, "userRole:", userRole);
+        }
       }
     }
   }, [user, userRole]);
