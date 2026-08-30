@@ -88,18 +88,24 @@ export default function MessagingPage() {
           const session = JSON.parse(parentSession);
           setParentEmail(session.email);
           setEffectiveRole("parent");
+          console.log("Parent session detected:", session.email);
         } catch (e) {
           console.error("Invalid parent session", e);
         }
       } else if (userRole) {
         setEffectiveRole(userRole);
+        console.log("User role detected:", userRole);
+      } else {
+        console.log("No role detected - user:", user, "userRole:", userRole);
       }
     }
-  }, [userRole]);
+  }, [user, userRole]);
 
   const isAdmin = effectiveRole === "admin";
   const isCoach = effectiveRole === "coach";
   const isParent = effectiveRole === "parent";
+
+  console.log("Effective role:", effectiveRole, "isAdmin:", isAdmin, "isCoach:", isCoach, "isParent:", isParent);
 
   useEffect(() => {
     if (effectiveRole) {

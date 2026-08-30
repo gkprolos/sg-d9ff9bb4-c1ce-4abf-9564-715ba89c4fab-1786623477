@@ -22,41 +22,59 @@ export default async function handler(
       return res.status(400).json({ error: "playerId, startDate, and endDate so obvezni" });
     }
 
-    // Query attendance records with activities JOIN
-    const { data: attendance, error } = await supabase
-      .from("attendance_records")
+    // Query activities directly with inner join on attendance_records
+    // This is the correct Supabase syntax for filtering by related table
+    const { data: activities, error } = await supabase
+      .from("activities")
       .select(`
         id,
-        player_id,
-        status,
-        activities (
+        activity_date,
+        start_time,
+        end_time,
+        activity_type_id,
+        is_home_game,
+        venue_id,
+        venues (
           id,
-          activity_date,
-          start_time,
-          end_time,
-          activity_type_id,
-          home_game,
-          venue_id,
-          venues (
-            id,
-            name,
-            city
-          )
+          name,
+          city
+        ),
+        attendance_records!inner (
+          id,
+          player_id,
+          status
         )
       `)
-      .eq("player_id", playerId)
-      .gte("activities.activity_date", startDate)
-      .lte("activities.activity_date", endDate)
-      .order("activities(activity_date)", { ascending: true });
+      .eq("attendance_records.player_id", playerId)
+      .gte("activity_date", startDate)
+      .lte("activity_date", endDate)
+      .order("activity_date", { ascending: true });
 
     if (error) {
       console.error("Get attendance error:", error);
       return res.status(500).json({ error: "Napaka pri nalaganju prisotnosti" });
     }
 
+    // Transform data to match expected format
+    const attendance = activities?.map(activity => ({
+      id: activity.attendance_records[0].id,
+      player_id: activity.attendance_records[0].player_id,
+      status: activity.attendance_records[0].status,
+      activities: {
+        id: activity.id,
+        activity_date: activity.activity_date,
+        start_time: activity.start_time,
+        end_time: activity.end_time,
+        activity_type_id: activity.activity_type_id,
+        home_game: activity.is_home_game,
+        venue_id: activity.venue_id,
+        venues: activity.venues
+      }
+    })) || [];
+
     return res.status(200).json({
       success: true,
-      attendance: attendance || [],
+      attendance,
     });
 
   } catch (error: any) {
