@@ -130,8 +130,11 @@ export default function ParentLogin() {
         throw new Error(data.error || "Napaka pri preverjanju kode");
       }
 
-      // Store parent email in localStorage for session
-      localStorage.setItem("parentEmail", email);
+      // Store parent session in localStorage
+      localStorage.setItem("parentSession", JSON.stringify({
+        email: email.toLowerCase().trim(),
+        loginTime: new Date().toISOString()
+      }));
 
       toast({
         title: "Uspešna prijava",
