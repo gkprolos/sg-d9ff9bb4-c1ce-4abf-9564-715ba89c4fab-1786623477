@@ -336,7 +336,7 @@ export default function MyPlayersPage() {
       guardian2_name: "",
       guardian2_phone: "",
       guardian2_email: "",
-      gender: "",
+      gender: "male",
     });
   }
 
@@ -903,14 +903,14 @@ export default function MyPlayersPage() {
                   <Label htmlFor="gender">Spol *</Label>
                   <Select
                     value={playerForm.gender}
-                    onValueChange={(value) => setPlayerForm({ ...playerForm, gender: value })}
+                    onValueChange={(value: "male" | "female") => setPlayerForm({ ...playerForm, gender: value })}
                   >
                     <SelectTrigger id="gender">
                       <SelectValue placeholder="Izberi spol" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="M">Moški</SelectItem>
-                      <SelectItem value="F">Ženski</SelectItem>
+                      <SelectItem value="male">Moški</SelectItem>
+                      <SelectItem value="female">Ženski</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
