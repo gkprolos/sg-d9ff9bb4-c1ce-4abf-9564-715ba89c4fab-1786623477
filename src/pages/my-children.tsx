@@ -84,72 +84,37 @@ export default function MyChildrenPage() {
     try {
       setLoading(true);
 
-      const emailLower = parentEmail.toLowerCase().trim();
-      console.log("Loading children for email:", emailLower);
+      console.log("Loading children for email:", parentEmail);
 
-      // Query for guardian1_email matches
-      const { data: data1, error: error1 } = await supabase
-        .from("players")
-        .select(`
-          id,
-          first_name,
-          last_name,
-          date_of_birth,
-          gender
-        `)
-        .eq("guardian1_email", emailLower)
-        .eq("is_active", true);
-
-      // Query for guardian2_email matches
-      const { data: data2, error: error2 } = await supabase
-        .from("players")
-        .select(`
-          id,
-          first_name,
-          last_name,
-          date_of_birth,
-          gender
-        `)
-        .eq("guardian2_email", emailLower)
-        .eq("is_active", true);
-
-      console.log("Guardian1 query result:", { data: data1, error: error1 });
-      console.log("Guardian2 query result:", { data: data2, error: error2 });
-
-      if (error1 || error2) {
-        console.error("Napaka pri nalaganju otrok:", error1 || error2);
-        toast({
-          variant: "destructive",
-          title: "Napaka",
-          description: "Ni mogoče naložiti podatkov o otrocih",
-        });
-        throw error1 || error2;
-      }
-
-      // Combine results and remove duplicates by ID
-      const combined = [...(data1 || []), ...(data2 || [])];
-      const unique = combined.filter((child, index, self) =>
-        index === self.findIndex((c) => c.id === child.id)
-      );
-
-      // Sort by last name, then first name
-      unique.sort((a, b) => {
-        const lastNameCompare = a.last_name.localeCompare(b.last_name);
-        if (lastNameCompare !== 0) return lastNameCompare;
-        return a.first_name.localeCompare(b.first_name);
+      // Call API route that uses service role key to bypass RLS
+      const response = await fetch("/api/parent/get-children", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parentEmail }),
       });
 
-      console.log("Combined children:", unique);
+      const data = await response.json();
 
-      setChildren(unique as Player[]);
-      if (unique.length > 0) {
-        console.log("Setting selected child to:", unique[0].id);
-        setSelectedChild(unique[0].id);
+      if (!response.ok) {
+        throw new Error(data.error || "Napaka pri nalaganju otrok");
+      }
+
+      console.log("Children from API:", data.children);
+
+      setChildren(data.children as Player[]);
+      if (data.children && data.children.length > 0) {
+        console.log("Setting selected child to:", data.children[0].id);
+        setSelectedChild(data.children[0].id);
       } else {
         console.log("No children found!");
       }
     } catch (error: any) {
       console.error("Napaka pri nalaganju otrok:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Ni mogoče naložiti podatkov o otrocih",
+      });
     } finally {
       setLoading(false);
     }
