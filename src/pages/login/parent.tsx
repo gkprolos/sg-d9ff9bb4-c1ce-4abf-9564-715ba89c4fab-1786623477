@@ -155,13 +155,6 @@ export default function ParentLogin() {
         });
       }
 
-      // Store parent session in localStorage
-      localStorage.setItem("parentSession", JSON.stringify({
-        email: email.toLowerCase().trim(),
-        children: data.children || [],
-        loginAt: new Date().toISOString()
-      }));
-
       // Check if parent already has password
       if (data.hasPassword) {
         // Redirect to parent dashboard
@@ -169,7 +162,7 @@ export default function ParentLogin() {
           title: "Uspešna prijava",
           description: "Dobrodošli nazaj!",
         });
-        router.push("/my-players");
+        router.push("/attendance/monthly");
       } else {
         // Offer password setup
         setStep("password");
@@ -190,11 +183,11 @@ export default function ParentLogin() {
   async function handleSetPassword(e: React.FormEvent) {
     e.preventDefault();
 
-    if (password.length < 8) {
+    if (password.length < 6) {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Geslo mora imeti vsaj 8 znakov",
+        description: "Geslo mora imeti vsaj 6 znakov",
       });
       return;
     }
@@ -227,16 +220,6 @@ export default function ParentLogin() {
         description: "Naslednjič se lahko prijavite z geslom",
       });
 
-      // Ensure parent session is stored
-      const parentSession = localStorage.getItem("parentSession");
-      if (!parentSession) {
-        localStorage.setItem("parentSession", JSON.stringify({
-          email: email.toLowerCase().trim(),
-          children: [],
-          loginAt: new Date().toISOString()
-        }));
-      }
-
       setStep("complete");
       setTimeout(() => router.push("/my-players"), 2000);
     } catch (error: any) {
@@ -251,16 +234,6 @@ export default function ParentLogin() {
   }
 
   function handleSkipPassword() {
-    // Ensure parent session is stored
-    const parentSession = localStorage.getItem("parentSession");
-    if (!parentSession) {
-      localStorage.setItem("parentSession", JSON.stringify({
-        email,
-        children: [],
-        loginAt: new Date().toISOString()
-      }));
-    }
-
     toast({
       title: "Prijava uspešna",
       description: "Pri naslednji prijavi boste ponovno prejeli OTP kodo",
@@ -396,7 +369,7 @@ export default function ParentLogin() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Najmanj 8 znakov"
+                    placeholder="Najmanj 6 znakov"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
