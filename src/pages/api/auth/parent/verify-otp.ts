@@ -88,36 +88,21 @@ export default async function handler(
 
     const hasPassword = credential && credential.password_hash !== null;
 
-    // Get guardian info
-    const { data: guardian, error: guardianError } = await supabase
-      .from("guardians")
-      .select("id, email, name")
-      .eq("email", email.toLowerCase().trim())
-      .single();
+    // Find players where this email is guardian1_email or guardian2_email
+    const { data: players, error: playersError } = await supabase
+      .from("players")
+      .select("id, first_name, last_name, date_of_birth, guardian1_email, guardian2_email")
+      .or(`guardian1_email.eq.${email.toLowerCase().trim()},guardian2_email.eq.${email.toLowerCase().trim()}`)
+      .eq("is_active", true);
 
-    if (guardianError || !guardian) {
-      return res.status(404).json({ error: "Guardian ne obstaja" });
+    if (playersError) {
+      console.error("Players lookup error:", playersError);
+      return res.status(500).json({ error: "Napaka pri iskanju igralcev" });
     }
 
-    // Get children for this parent
-    const { data: playerGuardians, error: pgError } = await supabase
-      .from("player_guardians")
-      .select(`
-        player_id,
-        players:player_id (
-          id,
-          first_name,
-          last_name,
-          date_of_birth
-        )
-      `)
-      .eq("guardian_id", guardian.id);
-
-    if (pgError) {
-      console.error("Player guardians error:", pgError);
+    if (!players || players.length === 0) {
+      return res.status(404).json({ error: "Skrbnik ne obstaja" });
     }
-
-    const children = playerGuardians?.map(pg => pg.players).filter(Boolean) || [];
 
     // Update last login timestamp if credential exists
     if (credential) {
@@ -130,12 +115,10 @@ export default async function handler(
     return res.status(200).json({
       success: true,
       hasPassword,
-      guardian: {
-        id: guardian.id,
-        email: guardian.email,
-        name: guardian.name,
+      parent: {
+        email: email.toLowerCase().trim(),
       },
-      children,
+      children: players,
     });
 
   } catch (error: any) {
