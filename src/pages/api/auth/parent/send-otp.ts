@@ -41,11 +41,11 @@ export default async function handler(
   }
 
   try {
-    // Check if email exists in players table (guardian_1_email or guardian_2_email)
+    // Check if email exists in players table (guardian1_email or guardian2_email)
     const { data: players, error: playerError } = await supabase
       .from("players")
-      .select("id, first_name, last_name, guardian_1_email, guardian_2_email")
-      .or(`guardian_1_email.eq.${email},guardian_2_email.eq.${email}`)
+      .select("id, first_name, last_name, guardian1_email, guardian2_email")
+      .or(`guardian1_email.eq.${email},guardian2_email.eq.${email}`)
       .limit(1);
 
     if (playerError) {
