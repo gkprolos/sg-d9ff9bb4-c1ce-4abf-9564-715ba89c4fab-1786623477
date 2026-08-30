@@ -57,6 +57,7 @@ interface ScheduleTemplate {
   venues: {
     id: string;
     name: string;
+    city?: string;
   } | null;
 }
 
