@@ -565,28 +565,60 @@ export default function MessagingPage() {
   async function createConversation() {
     if (!newSubject.trim() || !newContent.trim() || selectedContacts.length === 0) {
       toast({
-        title: "Manjkajoči podatki",
+        variant: "destructive",
+        title: "Napaka",
         description: "Prosim izpolnite naslov, sporočilo in izberite vsaj enega prejemnika.",
-        variant: "destructive"
       });
       return;
     }
 
+    console.log("Creating conversation - user:", user, "user?.id:", user?.id, "effectiveRole:", effectiveRole);
+    
+    setSendingMessage(true);
+
     try {
-      // For parents, we need a system user to create the conversation
-      // Get first admin user as system creator for parent conversations
-      let creatorId = user?.id || null;
-      
-      console.log("Creating conversation - user:", user, "user?.id:", user?.id, "effectiveRole:", effectiveRole);
-      
-      if (isParent && !creatorId) {
-        console.log("Parent conversation - fetching admin as creator...");
+      if (isParent && parentEmail) {
+        // Parent: Use API route to bypass RLS
+        console.log("Parent creating conversation via API route...");
         
-        // Use RPC function that doesn't require auth
-        const { data: adminId, error: adminError } = await supabase.rpc('get_first_admin_id');
+        const response = await fetch("/api/parent/create-conversation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            parentEmail,
+            subject: newSubject,
+            teamId: selectedTeam || null,
+            participantIds: selectedContacts,
+            initialMessage: newContent
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Napaka pri ustvarjanju pogovora");
+        }
+
+        console.log("Parent conversation created successfully:", data.conversationId);
+
+        toast({
+          title: "Uspešno",
+          description: "Pogovor ustvarjen",
+        });
+
+        setShowNewDialog(false);
+        setNewSubject("");
+        setNewContent("");
+        setSelectedContacts([]);
+        setSelectedTeam(null);
+
+        // Reload conversations
+        await loadConversations();
+      } else {
+        // Coach/Admin: Use Supabase client directly
+        const creatorId = user?.id || null;
         
-        if (adminError) {
-          console.error("Failed to get admin ID:", adminError);
+        if (!creatorId) {
           toast({
             variant: "destructive",
             title: "Napaka",
@@ -594,105 +626,92 @@ export default function MessagingPage() {
           });
           return;
         }
-        
-        console.log("Parent conversation - using admin as creator:", adminId);
-        creatorId = adminId;
-      }
-      
-      if (!creatorId) {
-        toast({
-          variant: "destructive",
-          title: "Napaka",
-          description: "Ni mogoče določiti ustvarjalca pogovora. Prosim poskusite znova.",
-        });
-        return;
-      }
 
-      console.log("INSERT payload:", {
-        subject: newSubject.trim(),
-        team_id: selectedTeam || null,
-        created_by: creatorId,
-        status: "active"
-      });
+        console.log("Coach/Admin creating conversation - creator:", creatorId);
 
-      const { data: conversation, error: convError } = await supabase
-        .from("conversations")
-        .insert({
-          subject: newSubject.trim(),
-          team_id: selectedTeam || null,
-          created_by: creatorId,
-          status: "active"
-        })
-        .select()
-        .single();
+        // Create conversation
+        const { data: conversation, error: convError } = await supabase
+          .from("conversations")
+          .insert({
+            subject: newSubject,
+            team_id: selectedTeam || null,
+            created_by: creatorId,
+            is_archived: false
+          })
+          .select()
+          .single();
 
-      if (convError) {
-        console.error("Conversation insert error:", convError);
-        throw convError;
-      }
+        if (convError || !conversation) {
+          console.error("Conversation insert error:", convError);
+          throw new Error("Napaka pri ustvarjanju pogovora");
+        }
 
-      console.log("Conversation created:", conversation);
+        console.log("Conversation created:", conversation.id);
 
-      const participants = [
-        ...(isParent 
-          ? [{ conversation_id: conversation.id, user_id: null, parent_email: parentEmail }]
-          : [{ conversation_id: conversation.id, user_id: user?.id, parent_email: null }]
-        ),
-        ...selectedContacts.map(contactId => {
-          const contact = availableContacts.find(c => 
-            (c.id && c.id === contactId) || (c.email && c.email === contactId)
-          );
-          return {
-            conversation_id: conversation.id,
-            user_id: contact?.type === "coach" ? contact.id : null,
-            parent_email: contact?.type === "parent" ? contact.email : null
-          };
-        })
-      ];
-
-      console.log("INSERT participants:", participants);
-
-      const { error: partError } = await supabase
-        .from("conversation_participants")
-        .insert(participants);
-
-      if (partError) {
-        console.error("Participants insert error:", partError);
-        throw partError;
-      }
-
-      const { error: msgError } = await supabase
-        .from("messages")
-        .insert({
+        // Add participants
+        const participants = selectedContacts.map(id => ({
           conversation_id: conversation.id,
-          content: newContent.trim(),
-          sender_id: isParent ? null : user?.id,
-          sender_parent_email: isParent ? parentEmail : null
+          user_id: id.includes('@') ? null : id,
+          parent_email: id.includes('@') ? id : null
+        }));
+
+        // Always add creator as participant
+        participants.push({
+          conversation_id: conversation.id,
+          user_id: creatorId,
+          parent_email: null
         });
 
-      if (msgError) {
-        console.error("Message insert error:", msgError);
-        throw msgError;
+        const { error: participantsError } = await supabase
+          .from("conversation_participants")
+          .insert(participants);
+
+        if (participantsError) {
+          console.error("Participants insert error:", participantsError);
+          throw new Error("Napaka pri dodajanju prejemnikov");
+        }
+
+        console.log("Participants added");
+
+        // Create initial message
+        const { error: messageError } = await supabase
+          .from("messages")
+          .insert({
+            conversation_id: conversation.id,
+            sender_id: creatorId,
+            sender_parent_email: null,
+            content: newContent
+          });
+
+        if (messageError) {
+          console.error("Message insert error:", messageError);
+          throw new Error("Napaka pri ustvarjanju prvega sporočila");
+        }
+
+        console.log("Initial message created");
+
+        toast({
+          title: "Uspešno",
+          description: "Pogovor ustvarjen",
+        });
+
+        setShowNewDialog(false);
+        setNewSubject("");
+        setNewContent("");
+        setSelectedContacts([]);
+        setSelectedTeam(null);
+
+        await loadConversations();
       }
-
-      toast({
-        title: "Pogovor ustvarjen",
-        description: "Nov pogovor je bil uspešno ustvarjen."
-      });
-
-      setShowNewDialog(false);
-      setNewSubject("");
-      setNewContent("");
-      setSelectedContacts([]);
-      setSelectedTeam("");
-      loadConversations();
     } catch (error: any) {
       console.error("Create conversation failed:", error);
       toast({
+        variant: "destructive",
         title: "Napaka",
-        description: error.message,
-        variant: "destructive"
+        description: error.message || "Ni mogoče ustvariti pogovora",
       });
+    } finally {
+      setSendingMessage(false);
     }
   }
 
