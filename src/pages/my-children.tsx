@@ -123,7 +123,7 @@ export default function MyChildrenPage() {
         throw error;
       }
 
-      setChildren(data || []);
+      setChildren((data || []) as Player[]);
       if (data && data.length > 0) {
         setSelectedChild(data[0].id);
       }
@@ -144,7 +144,7 @@ export default function MyChildrenPage() {
       const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
 
       const { data, error } = await supabase
-        .from("attendance")
+        .from("attendance_records")
         .select(`
           id,
           player_id,
@@ -170,7 +170,7 @@ export default function MyChildrenPage() {
         throw error;
       }
 
-      setAttendance(data || []);
+      setAttendance((data || []) as AttendanceRecord[]);
     } catch (error: any) {
       console.error("Napaka pri nalaganju prisotnosti:", error);
     } finally {
