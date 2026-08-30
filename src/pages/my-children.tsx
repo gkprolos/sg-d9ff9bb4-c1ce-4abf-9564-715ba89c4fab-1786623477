@@ -87,7 +87,8 @@ export default function MyChildrenPage() {
       const emailLower = parentEmail.toLowerCase().trim();
       console.log("Loading children for email:", emailLower);
 
-      const { data, error } = await supabase
+      // Query for guardian1_email matches
+      const { data: data1, error: error1 } = await supabase
         .from("players")
         .select(`
           id,
@@ -96,27 +97,54 @@ export default function MyChildrenPage() {
           date_of_birth,
           gender
         `)
-        .or(`guardian1_email.eq.${emailLower},guardian2_email.eq.${emailLower}`)
-        .eq("is_active", true)
-        .order("last_name", { ascending: true })
-        .order("first_name", { ascending: true });
+        .eq("guardian1_email", emailLower)
+        .eq("is_active", true);
 
-      console.log("Children query result:", { data, error });
+      // Query for guardian2_email matches
+      const { data: data2, error: error2 } = await supabase
+        .from("players")
+        .select(`
+          id,
+          first_name,
+          last_name,
+          date_of_birth,
+          gender
+        `)
+        .eq("guardian2_email", emailLower)
+        .eq("is_active", true);
 
-      if (error) {
-        console.error("Napaka pri nalaganju otrok:", error);
+      console.log("Guardian1 query result:", { data: data1, error: error1 });
+      console.log("Guardian2 query result:", { data: data2, error: error2 });
+
+      if (error1 || error2) {
+        console.error("Napaka pri nalaganju otrok:", error1 || error2);
         toast({
           variant: "destructive",
           title: "Napaka",
           description: "Ni mogoče naložiti podatkov o otrocih",
         });
-        throw error;
+        throw error1 || error2;
       }
 
-      setChildren((data || []) as Player[]);
-      if (data && data.length > 0) {
-        console.log("Setting selected child to:", data[0].id);
-        setSelectedChild(data[0].id);
+      // Combine results and remove duplicates by ID
+      const combined = [...(data1 || []), ...(data2 || [])];
+      const unique = combined.filter((child, index, self) =>
+        index === self.findIndex((c) => c.id === child.id)
+      );
+
+      // Sort by last name, then first name
+      unique.sort((a, b) => {
+        const lastNameCompare = a.last_name.localeCompare(b.last_name);
+        if (lastNameCompare !== 0) return lastNameCompare;
+        return a.first_name.localeCompare(b.first_name);
+      });
+
+      console.log("Combined children:", unique);
+
+      setChildren(unique as Player[]);
+      if (unique.length > 0) {
+        console.log("Setting selected child to:", unique[0].id);
+        setSelectedChild(unique[0].id);
       } else {
         console.log("No children found!");
       }
