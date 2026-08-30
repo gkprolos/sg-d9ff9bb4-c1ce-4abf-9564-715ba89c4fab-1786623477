@@ -812,6 +812,16 @@ export default function MessagingPage() {
                         )}
 
                         <div>
+                          <label className="text-sm font-medium mb-2 block">Prvo Sporočilo</label>
+                          <Textarea
+                            value={newContent}
+                            onChange={(e) => setNewContent(e.target.value)}
+                            placeholder="Napišite svoje sporočilo..."
+                            rows={3}
+                          />
+                        </div>
+
+                        <div>
                           <label className="text-sm font-medium mb-2 block">Prejemniki</label>
                           <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
                             {availableContacts.map(contact => {
@@ -847,7 +857,7 @@ export default function MessagingPage() {
 
                         <Button
                           onClick={createConversation}
-                          disabled={!newSubject || selectedContacts.length === 0 || sendingMessage}
+                          disabled={!newSubject || !newContent || selectedContacts.length === 0 || sendingMessage}
                           className="w-full"
                         >
                           {sendingMessage ? "Ustvarjam..." : "Ustvari Pogovor"}
