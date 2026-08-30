@@ -26,7 +26,7 @@ interface AttendanceRecord {
     start_time: string;
     end_time: string;
     activity_type_id: number;
-    home_game: boolean | null;
+    is_home_game: boolean | null;
     venue_id: string;
     venues: {
       id: string;
@@ -236,7 +236,7 @@ export default function MyChildren() {
     if (typeId === 1) return "Trening";
     if (typeId === 2) return "Trening zunaj";
     if (typeId === 3) {
-      return record.activities.home_game 
+      return record.activities.is_home_game 
         ? "🏆 Tekma (doma)" 
         : "🏆 Tekma (gost)";
     }
