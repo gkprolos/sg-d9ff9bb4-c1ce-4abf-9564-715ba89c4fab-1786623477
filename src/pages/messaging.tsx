@@ -341,22 +341,28 @@ export default function MessagingPage() {
       }
       
       if (parents) {
+        // De-duplicate parents by email
+        const parentMap = new Map<string, Contact>();
+        
         parents.forEach(p => {
-          if (p.guardian1_email) {
-            contacts.push({
+          if (p.guardian1_email && !parentMap.has(p.guardian1_email)) {
+            parentMap.set(p.guardian1_email, {
               email: p.guardian1_email,
               name: p.guardian1_name || p.guardian1_email,
               type: "parent"
             });
           }
-          if (p.guardian2_email) {
-            contacts.push({
+          if (p.guardian2_email && !parentMap.has(p.guardian2_email)) {
+            parentMap.set(p.guardian2_email, {
               email: p.guardian2_email,
               name: p.guardian2_name || p.guardian2_email,
               type: "parent"
             });
           }
         });
+        
+        // Add unique parents to contacts
+        parentMap.forEach(contact => contacts.push(contact));
       }
       
       setAvailableContacts(contacts);
@@ -374,12 +380,27 @@ export default function MessagingPage() {
     }
 
     try {
+      // For parents, we need a system user to create the conversation
+      // Get first admin user as system creator for parent conversations
+      let creatorId = user?.id;
+      
+      if (isParent) {
+        const { data: admins } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "admin")
+          .limit(1)
+          .single();
+        
+        creatorId = admins?.user_id || null;
+      }
+
       const { data: conversation, error: convError } = await supabase
         .from("conversations")
         .insert({
           subject: newSubject.trim(),
           team_id: selectedTeam || null,
-          created_by: isParent ? null : user?.id,
+          created_by: creatorId,
           status: "active"
         })
         .select()
