@@ -56,6 +56,7 @@ interface Contact {
 }
 
 export default function MessagingPage() {
+  const router = useRouter();
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
