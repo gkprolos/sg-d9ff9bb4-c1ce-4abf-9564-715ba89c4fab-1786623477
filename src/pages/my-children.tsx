@@ -30,13 +30,6 @@ interface Player {
   last_name: string;
   date_of_birth: string;
   gender: "male" | "female";
-  team_players: {
-    team_id: string;
-    teams: {
-      id: string;
-      name: string;
-    } | null;
-  }[];
 }
 
 interface AttendanceRecord {
@@ -92,6 +85,7 @@ export default function MyChildrenPage() {
       setLoading(true);
 
       const emailLower = parentEmail.toLowerCase().trim();
+      console.log("Loading children for email:", emailLower);
 
       const { data, error } = await supabase
         .from("players")
@@ -100,19 +94,14 @@ export default function MyChildrenPage() {
           first_name,
           last_name,
           date_of_birth,
-          gender,
-          team_players(
-            team_id,
-            teams(
-              id,
-              name
-            )
-          )
+          gender
         `)
         .or(`guardian1_email.eq."${emailLower}",guardian2_email.eq."${emailLower}"`)
         .eq("is_active", true)
         .order("last_name", { ascending: true })
         .order("first_name", { ascending: true });
+
+      console.log("Children query result:", { data, error });
 
       if (error) {
         console.error("Napaka pri nalaganju otrok:", error);
@@ -126,7 +115,10 @@ export default function MyChildrenPage() {
 
       setChildren((data || []) as Player[]);
       if (data && data.length > 0) {
+        console.log("Setting selected child to:", data[0].id);
         setSelectedChild(data[0].id);
+      } else {
+        console.log("No children found!");
       }
     } catch (error: any) {
       console.error("Napaka pri nalaganju otrok:", error);
@@ -242,11 +234,6 @@ export default function MyChildrenPage() {
                   {children.map((child) => (
                     <SelectItem key={child.id} value={child.id}>
                       {child.first_name} {child.last_name}
-                      {child.team_players && child.team_players.length > 0 && (
-                        <span className="text-muted-foreground ml-2">
-                          ({child.team_players.map(tp => tp.teams?.name).join(", ")})
-                        </span>
-                      )}
                     </SelectItem>
                   ))}
                 </SelectContent>
