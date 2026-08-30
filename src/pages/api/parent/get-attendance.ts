@@ -23,16 +23,23 @@ export default async function handler(
     }
 
     // Query attendance records with activities JOIN
-    const { data, error } = await supabase
+    const { data: attendance, error } = await supabase
       .from("attendance_records")
       .select(`
         id,
         player_id,
         status,
-        activity_id,
-        activities!inner(
+        activities (
           id,
-          activity_date
+          activity_date,
+          activity_type_id,
+          home_game,
+          venue_id,
+          venues (
+            id,
+            name,
+            city
+          )
         )
       `)
       .eq("player_id", playerId)
@@ -47,7 +54,7 @@ export default async function handler(
 
     return res.status(200).json({
       success: true,
-      attendance: data || [],
+      attendance: attendance || [],
     });
 
   } catch (error: any) {

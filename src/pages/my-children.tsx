@@ -23,6 +23,14 @@ interface AttendanceRecord {
   activities: {
     id: string;
     activity_date: string;
+    activity_type_id: number;
+    home_game: boolean | null;
+    venue_id: string;
+    venues: {
+      id: string;
+      name: string;
+      city?: string;
+    } | null;
   } | null;
 }
 
@@ -216,6 +224,35 @@ export default function MyChildren() {
     const dbDay = jsDay === 0 ? 7 : jsDay;
 
     return schedules.find(s => s.day_of_week === dbDay) || null;
+  }
+
+  function getActivityTypeLabel(record: AttendanceRecord | null): string | null {
+    if (!record?.activities) return null;
+
+    const typeId = record.activities.activity_type_id;
+
+    if (typeId === 1) return "Trening";
+    if (typeId === 2) return "Trening zunaj";
+    if (typeId === 3) {
+      return record.activities.home_game 
+        ? "🏆 Tekma (doma)" 
+        : "🏆 Tekma (gost)";
+    }
+
+    return null;
+  }
+
+  function getActivityVenue(record: AttendanceRecord | null): string | null {
+    if (!record?.activities?.venues) return null;
+
+    const venue = record.activities.venues;
+    const city = venue.city ? ` (${venue.city})` : "";
+    return `${venue.name}${city}`;
+  }
+
+  function isOffSchedule(record: AttendanceRecord | null, schedule: ScheduleTemplate | null): boolean {
+    if (!record?.activities || !schedule) return false;
+    return record.activities.venue_id !== schedule.venue_id;
   }
 
   function formatScheduleInfo(schedule: ScheduleTemplate | null): string | null {
@@ -420,8 +457,12 @@ export default function MyChildren() {
                     const day = i + 1;
                     const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                     const status = getStatusForDate(dateStr);
+                    const attendanceRecord = attendance.find(a => a.activities?.activity_date === dateStr);
                     const schedule = getScheduleForDate(dateStr);
                     const scheduleInfo = formatScheduleInfo(schedule);
+                    const activityType = getActivityTypeLabel(attendanceRecord);
+                    const activityVenue = getActivityVenue(attendanceRecord);
+                    const offSchedule = isOffSchedule(attendanceRecord, schedule);
                     const isToday =
                       day === new Date().getDate() &&
                       selectedMonth === new Date().getMonth() &&
@@ -431,7 +472,7 @@ export default function MyChildren() {
                       <div
                         key={day}
                         className={`
-                          relative p-3 rounded-lg border transition-colors min-h-[100px]
+                          relative p-3 rounded-lg border transition-colors min-h-[120px]
                           ${isToday ? "border-primary bg-primary/5" : "border-border"}
                           ${status !== null || schedule ? "bg-muted/50" : ""}
                         `}
@@ -445,13 +486,24 @@ export default function MyChildren() {
                             </div>
                           )}
                           
-                          {scheduleInfo && (
+                          {activityType && (
+                            <div className="mb-1 text-xs font-semibold text-center text-primary">
+                              {activityType}
+                            </div>
+                          )}
+                          
+                          {(attendanceRecord || schedule) && (
                             <div className="text-xs text-muted-foreground text-center space-y-1 mt-auto">
                               <div className="font-medium">
-                                {schedule!.start_time.slice(0, 5)}-{schedule!.end_time.slice(0, 5)}
+                                {attendanceRecord?.activities?.activity_type_id 
+                                  ? `${attendanceRecord.activities.activity_date}` 
+                                  : schedule 
+                                    ? `${schedule.start_time.slice(0, 5)}-${schedule.end_time.slice(0, 5)}`
+                                    : ""}
                               </div>
-                              <div className="line-clamp-2">
-                                {schedule!.venues?.name || "N/A"}
+                              <div className={`line-clamp-2 ${offSchedule ? "text-orange-600 font-medium" : ""}`}>
+                                {offSchedule && "⚠️ "}
+                                {activityVenue || (schedule?.venues?.name || "N/A")}
                               </div>
                             </div>
                           )}
