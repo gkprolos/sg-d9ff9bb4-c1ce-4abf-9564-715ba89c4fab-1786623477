@@ -394,18 +394,19 @@ export default function MessagingPage() {
         })));
       }
     } else if (isCoach && user?.id) {
-      // Coach: Get admin + other coaches only (NO parents)
-      const { data: allCoaches } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .eq("is_active", true);
+      // Coach: Get admin + other coaches + parents from selected team
+      const contacts: Contact[] = [];
       
+      // Always get admins and coaches
       const { data: adminUsers } = await supabase
         .from("user_roles")
         .select("user_id, profiles(id, full_name, email)")
         .eq("role", "admin");
       
-      const contacts: Contact[] = [];
+      const { data: allCoaches } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("is_active", true);
       
       // Add admins
       if (adminUsers) {
@@ -433,6 +434,62 @@ export default function MessagingPage() {
         });
       }
       
+      // If team is selected, add parents from that team's players
+      if (teamId) {
+        console.log("Coach selected team:", teamId, "- loading parents...");
+        
+        const { data: teamPlayers, error: playersError } = await supabase
+          .from("team_players")
+          .select(`
+            player_id,
+            players!inner(
+              id,
+              guardian1_email,
+              guardian1_name,
+              guardian2_email,
+              guardian2_name,
+              is_active
+            )
+          `)
+          .eq("team_id", teamId)
+          .eq("players.is_active", true);
+        
+        if (playersError) {
+          console.error("Error loading team players:", playersError);
+        } else {
+          console.log("Team players loaded:", teamPlayers?.length, teamPlayers);
+        }
+        
+        if (teamPlayers) {
+          // De-duplicate parents by email
+          const parentMap = new Map<string, Contact>();
+          
+          teamPlayers.forEach((tp: any) => {
+            const player = tp.players;
+            if (player.guardian1_email && !parentMap.has(player.guardian1_email)) {
+              parentMap.set(player.guardian1_email, {
+                email: player.guardian1_email,
+                name: player.guardian1_name || player.guardian1_email,
+                type: "parent"
+              });
+            }
+            if (player.guardian2_email && !parentMap.has(player.guardian2_email)) {
+              parentMap.set(player.guardian2_email, {
+                email: player.guardian2_email,
+                name: player.guardian2_name || player.guardian2_email,
+                type: "parent"
+              });
+            }
+          });
+          
+          console.log("Unique parents from team:", parentMap.size);
+          
+          // Add unique parents to contacts
+          parentMap.forEach(contact => contacts.push(contact));
+        }
+      }
+      
+      console.log("Total contacts for coach:", contacts.length, contacts);
       setAvailableContacts(contacts);
     } else if (isAdmin) {
       // Admin: Get coaches + parents
@@ -714,93 +771,85 @@ export default function MessagingPage() {
                         Nov Pogovor
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-md">
                       <DialogHeader>
                         <DialogTitle>Nov Pogovor</DialogTitle>
                       </DialogHeader>
+                      
                       <div className="space-y-4">
-                        {(isCoach || isAdmin) && teams.length > 0 && (
-                          <div>
-                            <label className="text-sm font-medium">Selekcija (opcijsko)</label>
-                            <Select value={selectedTeam} onValueChange={(val) => {
-                              setSelectedTeam(val);
-                              loadAvailableContacts(val);
-                            }}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Izberi selekcijo..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {teams.map(team => (
-                                  <SelectItem key={team.id} value={team.id}>
-                                    {team.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                        
                         <div>
-                          <label className="text-sm font-medium">Naslov</label>
+                          <label className="text-sm font-medium mb-2 block">Naslov</label>
                           <Input
                             value={newSubject}
                             onChange={(e) => setNewSubject(e.target.value)}
-                            placeholder="Naslov pogovora..."
+                            placeholder="Vnesi naslov pogovora"
                           />
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium">Prejemniki</label>
-                          <ScrollArea className="h-48 border rounded-md p-4">
-                            <div className="space-y-2">
-                              {availableContacts.map(contact => {
-                                const contactId = contact.id || contact.email || "";
-                                return (
-                                  <div key={contactId} className="flex items-center gap-2">
-                                    <Checkbox
-                                      checked={selectedContacts.includes(contactId)}
-                                      onCheckedChange={(checked) => {
-                                        if (checked) {
-                                          setSelectedContacts([...selectedContacts, contactId]);
-                                        } else {
-                                          setSelectedContacts(selectedContacts.filter(id => id !== contactId));
-                                        }
-                                      }}
-                                    />
-                                    <label className="text-sm">
-                                      {contact.name}
-                                      <Badge variant="outline" className="ml-2 text-xs">
-                                        {contact.type === "coach" ? "Trener" : "Starš"}
-                                      </Badge>
-                                    </label>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </ScrollArea>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Izbrano: {selectedContacts.length}
-                          </p>
+                          <label className="text-sm font-medium mb-2 block">Selekcija (Opcijsko)</label>
+                          <Select 
+                            value={selectedTeam || ""} 
+                            onValueChange={(value) => {
+                              setSelectedTeam(value);
+                              loadAvailableContacts(value || undefined);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Izberi selekcijo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Brez selekcije</SelectItem>
+                              {teams.map(team => (
+                                <SelectItem key={team.id} value={team.id}>
+                                  {team.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium">Sporočilo</label>
-                          <Textarea
-                            value={newContent}
-                            onChange={(e) => setNewContent(e.target.value)}
-                            placeholder="Napišite sporočilo..."
-                            rows={4}
-                          />
+                          <label className="text-sm font-medium mb-2 block">Prejemniki</label>
+                          <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
+                            {availableContacts.map(contact => {
+                              const contactId = contact.id || contact.email || "";
+                              return (
+                                <div key={contactId} className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={selectedContacts.includes(contactId)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setSelectedContacts([...selectedContacts, contactId]);
+                                      } else {
+                                        setSelectedContacts(selectedContacts.filter(id => id !== contactId));
+                                      }
+                                    }}
+                                  />
+                                  <label className="text-sm cursor-pointer flex-1">
+                                    {contact.name}
+                                    {contact.type === "parent" && " (Starš)"}
+                                    {contact.type === "coach" && " (Trener)"}
+                                    {contact.type === "admin" && " (Admin)"}
+                                  </label>
+                                </div>
+                              );
+                            })}
+                            {availableContacts.length === 0 && (
+                              <p className="text-sm text-muted-foreground">
+                                {isCoach ? "Izberite selekcijo za prikaz staršev igralcev" : "Ni kontaktov"}
+                              </p>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" onClick={() => setShowNewDialog(false)}>
-                            Prekliči
-                          </Button>
-                          <Button onClick={createConversation}>
-                            Ustvari Pogovor
-                          </Button>
-                        </div>
+                        <Button
+                          onClick={createConversation}
+                          disabled={!newSubject || selectedContacts.length === 0 || sendingMessage}
+                          className="w-full"
+                        >
+                          {sendingMessage ? "Ustvarjam..." : "Ustvari Pogovor"}
+                        </Button>
                       </div>
                     </DialogContent>
                   </Dialog>
