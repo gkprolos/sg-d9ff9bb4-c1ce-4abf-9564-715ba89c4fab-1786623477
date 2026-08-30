@@ -23,6 +23,8 @@ interface AttendanceRecord {
   activities: {
     id: string;
     activity_date: string;
+    start_time: string;
+    end_time: string;
     activity_type_id: number;
     home_game: boolean | null;
     venue_id: string;
@@ -495,8 +497,8 @@ export default function MyChildren() {
                           {(attendanceRecord || schedule) && (
                             <div className="text-xs text-muted-foreground text-center space-y-1 mt-auto">
                               <div className="font-medium">
-                                {attendanceRecord?.activities?.activity_type_id 
-                                  ? `${attendanceRecord.activities.activity_date}` 
+                                {attendanceRecord?.activities 
+                                  ? `${attendanceRecord.activities.start_time.slice(0, 5)}-${attendanceRecord.activities.end_time.slice(0, 5)}`
                                   : schedule 
                                     ? `${schedule.start_time.slice(0, 5)}-${schedule.end_time.slice(0, 5)}`
                                     : ""}

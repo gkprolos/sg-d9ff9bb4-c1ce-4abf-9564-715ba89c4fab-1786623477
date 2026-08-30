@@ -32,6 +32,8 @@ export default async function handler(
         activities (
           id,
           activity_date,
+          start_time,
+          end_time,
           activity_type_id,
           home_game,
           venue_id,
