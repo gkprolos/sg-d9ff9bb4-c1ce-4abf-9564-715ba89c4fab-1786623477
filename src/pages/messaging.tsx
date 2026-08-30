@@ -635,8 +635,7 @@ export default function MessagingPage() {
           .insert({
             subject: newSubject,
             team_id: selectedTeam || null,
-            created_by: creatorId,
-            is_archived: false
+            created_by: creatorId
           })
           .select()
           .single();
