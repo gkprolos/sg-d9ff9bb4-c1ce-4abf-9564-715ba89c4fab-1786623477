@@ -48,6 +48,8 @@ import {
   FileText,
   Shield,
   Mail,
+  Archive,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
