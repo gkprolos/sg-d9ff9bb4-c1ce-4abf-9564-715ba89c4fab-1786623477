@@ -53,7 +53,7 @@ interface Contact {
 }
 
 export default function MessagingPage() {
-  const { user, userRole, parentEmail } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -75,16 +75,40 @@ export default function MessagingPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const isAdmin = userRole === "admin";
-  const isCoach = userRole === "coach";
-  const isParent = userRole === "parent";
+  // Check if parent is logged in via session storage
+  const [parentEmail, setParentEmail] = useState<string | null>(null);
+  const [effectiveRole, setEffectiveRole] = useState<"admin" | "coach" | "parent" | null>(null);
 
   useEffect(() => {
-    loadConversations();
-    if (isCoach) {
-      loadCoachTeams();
+    // Check parent session
+    if (typeof window !== "undefined") {
+      const parentSession = sessionStorage.getItem("parentSession");
+      if (parentSession) {
+        try {
+          const session = JSON.parse(parentSession);
+          setParentEmail(session.email);
+          setEffectiveRole("parent");
+        } catch (e) {
+          console.error("Invalid parent session", e);
+        }
+      } else if (userRole) {
+        setEffectiveRole(userRole);
+      }
     }
-  }, [user, userRole, parentEmail, statusFilter]);
+  }, [userRole]);
+
+  const isAdmin = effectiveRole === "admin";
+  const isCoach = effectiveRole === "coach";
+  const isParent = effectiveRole === "parent";
+
+  useEffect(() => {
+    if (effectiveRole) {
+      loadConversations();
+      if (isCoach) {
+        loadCoachTeams();
+      }
+    }
+  }, [user, effectiveRole, parentEmail, statusFilter]);
 
   useEffect(() => {
     if (selectedConversation) {
