@@ -42,7 +42,7 @@ interface Player {
 interface AttendanceRecord {
   id: string;
   player_id: string;
-  activity_date: string;
+  date: string;
   status: "present" | "absent" | "excused";
   activities: {
     id: string;
@@ -148,7 +148,7 @@ export default function MyChildrenPage() {
         .select(`
           id,
           player_id,
-          activity_date,
+          date,
           status,
           activities(
             id,
@@ -156,9 +156,9 @@ export default function MyChildrenPage() {
           )
         `)
         .eq("player_id", selectedChild)
-        .gte("activity_date", startOfMonth.toISOString().split("T")[0])
-        .lte("activity_date", endOfMonth.toISOString().split("T")[0])
-        .order("activity_date", { ascending: true });
+        .gte("date", startOfMonth.toISOString().split("T")[0])
+        .lte("date", endOfMonth.toISOString().split("T")[0])
+        .order("date", { ascending: true });
 
       if (error) {
         console.error("Napaka pri nalaganju prisotnosti:", error);
@@ -345,7 +345,7 @@ export default function MyChildrenPage() {
                         {attendance.map((record) => (
                           <TableRow key={record.id}>
                             <TableCell>
-                              {new Date(record.activity_date).toLocaleDateString("sl-SI", {
+                              {new Date(record.date).toLocaleDateString("sl-SI", {
                                 weekday: "short",
                                 day: "2-digit",
                                 month: "2-digit",
