@@ -762,7 +762,16 @@ export default function AttendancePage() {
                             inputMode="numeric"
                             className="w-16 text-center"
                             maxLength={1}
-                            defaultValue={player.attendance_status ?? ""}
+                            value={player.attendance_status !== null ? String(player.attendance_status) : ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "" || ["0", "1", "2"].includes(val)) {
+                                const numVal = val === "" ? null : parseInt(val);
+                                if (numVal !== null) {
+                                  handleAttendanceChange(player.id, numVal);
+                                }
+                              }
+                            }}
                             onKeyDown={(e) => handleKeyDown(e, index, player.id)}
                             autoFocus={index === 0}
                           />
