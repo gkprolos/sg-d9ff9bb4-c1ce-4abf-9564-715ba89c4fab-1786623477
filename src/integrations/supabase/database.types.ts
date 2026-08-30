@@ -1447,6 +1447,10 @@ export type Database = {
           total_activities: number
         }[]
       }
+      user_can_access_conversation: {
+        Args: { conversation_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
