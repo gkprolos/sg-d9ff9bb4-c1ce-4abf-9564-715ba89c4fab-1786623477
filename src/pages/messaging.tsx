@@ -384,6 +384,8 @@ export default function MessagingPage() {
       // Get first admin user as system creator for parent conversations
       let creatorId = user?.id;
       
+      console.log("Creating conversation - user:", user, "user?.id:", user?.id, "effectiveRole:", effectiveRole);
+      
       if (isParent) {
         const { data: admins } = await supabase
           .from("user_roles")
@@ -393,7 +395,19 @@ export default function MessagingPage() {
           .single();
         
         creatorId = admins?.user_id || null;
+        console.log("Parent conversation - using admin as creator:", creatorId);
       }
+
+      if (!creatorId) {
+        throw new Error("Ni mogoče določiti ustvarjalca pogovora. Prosim poskusite znova.");
+      }
+
+      console.log("INSERT payload:", {
+        subject: newSubject.trim(),
+        team_id: selectedTeam || null,
+        created_by: creatorId,
+        status: "active"
+      });
 
       const { data: conversation, error: convError } = await supabase
         .from("conversations")
@@ -406,7 +420,12 @@ export default function MessagingPage() {
         .select()
         .single();
 
-      if (convError) throw convError;
+      if (convError) {
+        console.error("Conversation insert error:", convError);
+        throw convError;
+      }
+
+      console.log("Conversation created:", conversation);
 
       const participants = [
         ...(isParent 
@@ -425,11 +444,16 @@ export default function MessagingPage() {
         })
       ];
 
+      console.log("INSERT participants:", participants);
+
       const { error: partError } = await supabase
         .from("conversation_participants")
         .insert(participants);
 
-      if (partError) throw partError;
+      if (partError) {
+        console.error("Participants insert error:", partError);
+        throw partError;
+      }
 
       const { error: msgError } = await supabase
         .from("messages")
@@ -440,7 +464,10 @@ export default function MessagingPage() {
           sender_parent_email: isParent ? parentEmail : null
         });
 
-      if (msgError) throw msgError;
+      if (msgError) {
+        console.error("Message insert error:", msgError);
+        throw msgError;
+      }
 
       toast({
         title: "Pogovor ustvarjen",
@@ -454,6 +481,7 @@ export default function MessagingPage() {
       setSelectedTeam("");
       loadConversations();
     } catch (error: any) {
+      console.error("Create conversation failed:", error);
       toast({
         title: "Napaka",
         description: error.message,
