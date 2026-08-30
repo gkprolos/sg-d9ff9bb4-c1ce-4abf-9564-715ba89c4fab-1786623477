@@ -838,7 +838,7 @@ export default function MessagingPage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
                     <Users className="h-4 w-4" />
                     <span>
-                      {selectedConversation.participants?.map(p => 
+                      {selectedConversation.conversation_participants?.map(p => 
                         p.profiles?.full_name || p.parent_email
                       ).join(", ")}
                     </span>
