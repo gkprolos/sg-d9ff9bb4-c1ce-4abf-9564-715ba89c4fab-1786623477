@@ -44,7 +44,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit, Users, X, Loader2, Search, Trash2, UserCog } from "lucide-react";
+import { Plus, Edit, Users, X, Loader2, Search } from "lucide-react";
 
 interface Player {
   id: string;
@@ -336,7 +336,7 @@ export default function MyPlayersPage() {
       guardian2_name: "",
       guardian2_phone: "",
       guardian2_email: "",
-      gender: "male",
+      gender: "",
     });
   }
 
@@ -903,14 +903,14 @@ export default function MyPlayersPage() {
                   <Label htmlFor="gender">Spol *</Label>
                   <Select
                     value={playerForm.gender}
-                    onValueChange={(value: "male" | "female") => setPlayerForm({ ...playerForm, gender: value })}
+                    onValueChange={(value) => setPlayerForm({ ...playerForm, gender: value })}
                   >
                     <SelectTrigger id="gender">
                       <SelectValue placeholder="Izberi spol" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="male">Moški</SelectItem>
-                      <SelectItem value="female">Ženski</SelectItem>
+                      <SelectItem value="M">Moški</SelectItem>
+                      <SelectItem value="F">Ženski</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
