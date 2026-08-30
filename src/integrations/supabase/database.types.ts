@@ -1425,6 +1425,7 @@ export type Database = {
           type3_count: number
         }[]
       }
+      get_first_admin_id: { Args: never; Returns: string }
       get_parent_children: {
         Args: { parent_email_param: string }
         Returns: {
