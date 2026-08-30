@@ -153,63 +153,74 @@ export default function MessagingPage() {
   async function loadConversations() {
     setLoading(true);
     try {
-      const query = supabase
-        .from("conversations")
-        .select(`
-          id,
-          subject,
-          team_id,
-          status,
-          created_at,
-          updated_at,
-          teams(name),
-          conversation_participants(
-            user_id,
-            parent_email,
-            last_read_at,
-            profiles(full_name)
-          ),
-          messages(
-            content,
+      if (isParent && parentEmail) {
+        // Parent: Use API route (service role key, no RLS)
+        const response = await fetch(`/api/parent/get-conversations?parent_email=${encodeURIComponent(parentEmail)}&status=${statusFilter}`);
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.error || "Failed to load conversations");
+        
+        setConversations(data);
+      } else {
+        // Admin/Coach: Use Supabase client (RLS policies)
+        const query = supabase
+          .from("conversations")
+          .select(`
+            id,
+            subject,
+            team_id,
+            status,
             created_at,
-            sender_id,
-            sender_parent_email,
-            profiles(full_name)
-          )
-        `)
-        .eq("status", statusFilter)
-        .order("updated_at", { ascending: false });
+            updated_at,
+            teams(name),
+            conversation_participants(
+              user_id,
+              parent_email,
+              last_read_at,
+              profiles(full_name)
+            ),
+            messages(
+              content,
+              created_at,
+              sender_id,
+              sender_parent_email,
+              profiles(full_name)
+            )
+          `)
+          .eq("status", statusFilter)
+          .order("updated_at", { ascending: false });
 
-      const { data, error } = await query;
+        const { data, error } = await query;
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data) {
-        const conversationsWithUnread = data.map((conv: any) => {
-          const myParticipant = conv.conversation_participants.find((p: any) =>
-            isParent ? p.parent_email === parentEmail : p.user_id === user?.id
-          );
-          
-          const lastReadAt = myParticipant?.last_read_at;
-          const unreadCount = lastReadAt
-            ? conv.messages.filter((m: any) => new Date(m.created_at) > new Date(lastReadAt)).length
-            : conv.messages.length;
+        if (data) {
+          const conversationsWithUnread = data.map((conv: any) => {
+            const myParticipant = conv.conversation_participants.find((p: any) =>
+              p.user_id === user?.id
+            );
+            
+            const lastReadAt = myParticipant?.last_read_at;
+            const unreadCount = lastReadAt
+              ? conv.messages.filter((m: any) => new Date(m.created_at) > new Date(lastReadAt)).length
+              : conv.messages.length;
 
-          const lastMessage = conv.messages[conv.messages.length - 1];
-          const senderName = lastMessage?.sender_parent_email || lastMessage?.profiles?.full_name || "Sistem";
+            const lastMessage = conv.messages[conv.messages.length - 1];
+            const senderName = lastMessage?.sender_parent_email || lastMessage?.profiles?.full_name || "Sistem";
 
-          return {
-            ...conv,
-            unread_count: unreadCount,
-            last_message: lastMessage ? {
-              content: lastMessage.content,
-              created_at: lastMessage.created_at,
-              sender_name: senderName
-            } : undefined
-          };
-        });
+            return {
+              ...conv,
+              unread_count: unreadCount,
+              last_message: lastMessage ? {
+                content: lastMessage.content,
+                created_at: lastMessage.created_at,
+                sender_name: senderName
+              } : undefined
+            };
+          });
 
-        setConversations(conversationsWithUnread);
+          setConversations(conversationsWithUnread);
+        }
       }
     } catch (error: any) {
       toast({
@@ -223,39 +234,68 @@ export default function MessagingPage() {
   }
 
   async function loadMessages(conversationId: string) {
-    const { data, error } = await supabase
-      .from("messages")
-      .select(`
-        id,
-        content,
-        created_at,
-        sender_id,
-        sender_parent_email,
-        profiles(full_name)
-      `)
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true });
+    try {
+      if (isParent && parentEmail) {
+        // Parent: Use API route
+        const response = await fetch(`/api/parent/get-messages?conversation_id=${conversationId}&parent_email=${encodeURIComponent(parentEmail)}`);
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.error || "Failed to load messages");
+        
+        setMessages(data);
+      } else {
+        // Admin/Coach: Use Supabase client
+        const { data, error } = await supabase
+          .from("messages")
+          .select(`
+            id,
+            content,
+            created_at,
+            sender_id,
+            sender_parent_email,
+            profiles(full_name)
+          `)
+          .eq("conversation_id", conversationId)
+          .order("created_at", { ascending: true });
 
-    if (error) {
+        if (error) throw error;
+
+        setMessages(data || []);
+      }
+    } catch (error: any) {
       toast({
         title: "Napaka",
         description: error.message,
         variant: "destructive"
       });
-      return;
     }
-
-    setMessages(data || []);
   }
 
   async function markAsRead(conversationId: string) {
-    await supabase
-      .from("conversation_participants")
-      .update({ last_read_at: new Date().toISOString() })
-      .eq("conversation_id", conversationId)
-      .eq(isParent ? "parent_email" : "user_id", isParent ? parentEmail : user?.id);
-    
-    loadConversations();
+    try {
+      if (isParent && parentEmail) {
+        // Parent: Use API route
+        await fetch("/api/parent/mark-read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            parent_email: parentEmail
+          })
+        });
+      } else {
+        // Admin/Coach: Use Supabase client
+        await supabase
+          .from("conversation_participants")
+          .update({ last_read_at: new Date().toISOString() })
+          .eq("conversation_id", conversationId)
+          .eq("user_id", user?.id);
+      }
+      
+      loadConversations();
+    } catch (error: any) {
+      console.error("Mark read error:", error);
+    }
   }
 
   async function sendMessage() {
@@ -263,14 +303,31 @@ export default function MessagingPage() {
 
     setSendingMessage(true);
     try {
-      const { error } = await supabase.from("messages").insert({
-        conversation_id: selectedConversation.id,
-        content: newMessage.trim(),
-        sender_id: isParent ? null : user?.id,
-        sender_parent_email: isParent ? parentEmail : null
-      });
+      if (isParent && parentEmail) {
+        // Parent: Use API route
+        const response = await fetch("/api/parent/send-message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: selectedConversation.id,
+            parent_email: parentEmail,
+            content: newMessage.trim()
+          })
+        });
 
-      if (error) throw error;
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to send message");
+      } else {
+        // Admin/Coach: Use Supabase client
+        const { error } = await supabase.from("messages").insert({
+          conversation_id: selectedConversation.id,
+          content: newMessage.trim(),
+          sender_id: user?.id,
+          sender_parent_email: null
+        });
+
+        if (error) throw error;
+      }
 
       setNewMessage("");
       await loadMessages(selectedConversation.id);
