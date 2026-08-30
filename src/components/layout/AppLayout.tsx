@@ -57,9 +57,33 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, userRole, signOut } = useAuth();
   const [open, setOpen] = useState(false);
 
+  // Check for parent session (localStorage-based, not Supabase Auth)
+  const [isParent, setIsParent] = useState(false);
+  const [parentEmail, setParentEmail] = useState<string>("");
+
+  useEffect(() => {
+    const parentSession = localStorage.getItem("parentSession");
+    if (parentSession) {
+      try {
+        const session = JSON.parse(parentSession);
+        setIsParent(true);
+        setParentEmail(session.email || "");
+      } catch (e) {
+        setIsParent(false);
+      }
+    }
+  }, []);
+
   const handleLogout = async () => {
     try {
-      await signOut();
+      if (isParent) {
+        // Parent logout
+        localStorage.removeItem("parentSession");
+        router.push("/login/parent");
+      } else {
+        // Coach/Admin logout
+        await signOut();
+      }
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -67,6 +91,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isAdmin = userRole === "admin";
   const isCoach = userRole === "coach";
+
+  // Parent Navigation (only My Children)
+  const parentNavigation = [
+    { name: "Moji Otroci", href: "/my-children", icon: UserCircle },
+  ];
 
   // Admin Navigation
   const adminNavigation = [
@@ -376,7 +405,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarGroup>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {userRole === "admin" ? (
+                      {isParent ? (
+                        // Parent Menu
+                        <>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/my-children">
+                                <UserCircle className="h-4 w-4" />
+                                <span>Moji Otroci</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        </>
+                      ) : userRole === "admin" ? (
+                        // Admin Menu (unchanged)
                         <>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
@@ -386,7 +428,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
-                          
                           <SidebarGroupLabel className="mt-4">Upravljanje</SidebarGroupLabel>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
@@ -621,7 +662,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <ScrollArea className="flex-1 px-3 py-4">
                   <nav className="space-y-1">
                     <>
-                      {userRole === "admin" ? (
+                      {isParent ? (
+                        // Parent Mobile Menu
+                        <>
+                          <Link
+                            href="/my-children"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/my-children"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <UserCircle className="h-4 w-4" />
+                            Moji Otroci
+                          </Link>
+                        </>
+                      ) : userRole === "admin" ? (
+                        // Admin Mobile Menu (unchanged)
                         <>
                           <Link
                             href="/dashboard"
@@ -915,19 +973,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {user?.user_metadata?.full_name || user?.email}
+                      {isParent
+                        ? parentEmail
+                        : user?.user_metadata?.full_name || user?.email}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email}
+                      {isParent ? "Starš" : (isAdmin ? "Administrator" : "Trener")}
                     </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/settings")}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Nastavitve
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                {!isParent && (
+                  <>
+                    <DropdownMenuItem onClick={() => router.push("/settings")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Nastavitve
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Odjava
