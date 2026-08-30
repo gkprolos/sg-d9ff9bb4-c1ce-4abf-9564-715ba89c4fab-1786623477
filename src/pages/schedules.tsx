@@ -521,7 +521,6 @@ export default function SchedulesPage() {
                       <SelectValue placeholder="Izberite selekcijo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Vse</SelectItem>
                       {teams.map((team) => (
                         <SelectItem key={team.id} value={team.id}>
                           {team.name}
