@@ -575,24 +575,37 @@ export default function MessagingPage() {
     try {
       // For parents, we need a system user to create the conversation
       // Get first admin user as system creator for parent conversations
-      let creatorId = user?.id;
+      let creatorId = user?.id || null;
       
       console.log("Creating conversation - user:", user, "user?.id:", user?.id, "effectiveRole:", effectiveRole);
       
-      if (isParent) {
-        const { data: admins } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin")
-          .limit(1)
-          .single();
+      if (isParent && !creatorId) {
+        console.log("Parent conversation - fetching admin as creator...");
         
-        creatorId = admins?.user_id || null;
-        console.log("Parent conversation - using admin as creator:", creatorId);
+        // Use RPC function that doesn't require auth
+        const { data: adminId, error: adminError } = await supabase.rpc('get_first_admin_id');
+        
+        if (adminError) {
+          console.error("Failed to get admin ID:", adminError);
+          toast({
+            variant: "destructive",
+            title: "Napaka",
+            description: "Ni mogoče določiti ustvarjalca pogovora. Prosim poskusite znova.",
+          });
+          return;
+        }
+        
+        console.log("Parent conversation - using admin as creator:", adminId);
+        creatorId = adminId;
       }
-
+      
       if (!creatorId) {
-        throw new Error("Ni mogoče določiti ustvarjalca pogovora. Prosim poskusite znova.");
+        toast({
+          variant: "destructive",
+          title: "Napaka",
+          description: "Ni mogoče določiti ustvarjalca pogovora. Prosim poskusite znova.",
+        });
+        return;
       }
 
       console.log("INSERT payload:", {
