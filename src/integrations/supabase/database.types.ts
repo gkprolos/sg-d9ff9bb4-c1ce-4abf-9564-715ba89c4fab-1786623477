@@ -344,24 +344,27 @@ export type Database = {
       conversation_participants: {
         Row: {
           conversation_id: string
+          id: string
           joined_at: string
           last_read_at: string | null
-          parent_email: string
-          user_id: string
+          parent_email: string | null
+          user_id: string | null
         }
         Insert: {
           conversation_id: string
+          id?: string
           joined_at?: string
           last_read_at?: string | null
-          parent_email: string
-          user_id: string
+          parent_email?: string | null
+          user_id?: string | null
         }
         Update: {
           conversation_id?: string
+          id?: string
           joined_at?: string
           last_read_at?: string | null
-          parent_email?: string
-          user_id?: string
+          parent_email?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
