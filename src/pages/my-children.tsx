@@ -1,28 +1,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, ChevronLeft, ChevronRight, Users, LogOut } from "lucide-react";
+import { Calendar, LogOut, User } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Player {
   id: string;
@@ -42,43 +26,43 @@ interface AttendanceRecord {
   } | null;
 }
 
-// Check for parent session
-function getParentSession() {
-  if (typeof window === "undefined") return null;
-  try {
-    const session = localStorage.getItem("parentSession");
-    return session ? JSON.parse(session) : null;
-  } catch (error) {
-    console.error("Invalid parent session:", error);
-    return null;
-  }
-}
-
-export default function MyChildrenPage() {
+export default function MyChildren() {
   const router = useRouter();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+
+  const [loading, setLoading] = useState(true);
   const [children, setChildren] = useState<Player[]>([]);
   const [selectedChild, setSelectedChild] = useState<string>("");
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-  
-  const parentSession = getParentSession();
-  const parentEmail = parentSession?.email || "";
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [parentEmail, setParentEmail] = useState<string>("");
 
   useEffect(() => {
-    if (!parentSession) {
+    const session = getParentSession();
+    if (!session) {
       router.push("/login/parent");
       return;
     }
-    loadChildren();
-  }, []);
+    setParentEmail(session.email);
+  }, [router]);
+
+  useEffect(() => {
+    if (parentEmail) {
+      loadChildren();
+    }
+  }, [parentEmail]);
 
   useEffect(() => {
     if (selectedChild) {
       loadAttendance();
     }
-  }, [selectedChild, currentMonth]);
+  }, [selectedChild, selectedMonth, selectedYear]);
+
+  function getParentSession() {
+    const session = localStorage.getItem("parentSession");
+    return session ? JSON.parse(session) : null;
+  }
 
   async function loadChildren() {
     try {
@@ -86,7 +70,6 @@ export default function MyChildrenPage() {
 
       console.log("Loading children for email:", parentEmail);
 
-      // Call API route that uses service role key to bypass RLS
       const response = await fetch("/api/parent/get-children", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -126,8 +109,8 @@ export default function MyChildrenPage() {
     try {
       setLoading(true);
 
-      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+      const startOfMonth = new Date(selectedYear, selectedMonth, 1);
+      const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
 
       const startDate = startOfMonth.toISOString().split("T")[0];
       const endDate = endOfMonth.toISOString().split("T")[0];
@@ -138,7 +121,6 @@ export default function MyChildrenPage() {
         endDate 
       });
 
-      // Call API route that uses service role key to bypass RLS
       const response = await fetch("/api/parent/get-attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -170,21 +152,25 @@ export default function MyChildrenPage() {
     }
   }
 
-  function handlePreviousMonth() {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
-  }
-
-  function handleNextMonth() {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
-  }
-
   function handleLogout() {
     localStorage.removeItem("parentSession");
     router.push("/login/parent");
   }
 
-  const selectedChildData = children.find(c => c.id === selectedChild);
-  const monthName = currentMonth.toLocaleDateString("sl-SI", { month: "long", year: "numeric" });
+  function getStatusForDate(date: string): number | null {
+    const record = attendance.find(
+      (a) => a.activities?.activity_date === date
+    );
+    return record ? record.status : null;
+  }
+
+  function getStatusBadge(status: number | null) {
+    if (status === null) return null;
+    if (status === 1) return <Badge className="bg-green-600 text-white">P</Badge>;
+    if (status === 0) return <Badge className="bg-red-600 text-white">O</Badge>;
+    if (status === 2) return <Badge className="bg-yellow-600 text-white">Op</Badge>;
+    return null;
+  }
 
   const stats = {
     present: attendance.filter(a => a.status === 1).length,
@@ -193,172 +179,209 @@ export default function MyChildrenPage() {
     total: attendance.length,
   };
 
-  if (!parentSession) {
-    return null;
-  }
+  const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
+  const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
+  const months = [
+    "Januar", "Februar", "Marec", "April", "Maj", "Junij",
+    "Julij", "Avgust", "September", "Oktober", "November", "December"
+  ];
+
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+
+  const selectedChildData = children.find(c => c.id === selectedChild);
 
   return (
-    <AppLayout>
+    <AppLayout userRole="parent">
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Prisotnost Otrok</h2>
-            <p className="text-muted-foreground">
-              Pregled mesečne prisotnosti na aktivnostih
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-6 w-6 text-primary" />
+            <h1 className="text-3xl font-bold">Prisotnost Otrok</h1>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
+          <Button onClick={handleLogout} variant="outline">
             <LogOut className="h-4 w-4 mr-2" />
             Odjava
           </Button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Izbira Otroka</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading && children.length === 0 ? (
-              <Skeleton className="h-10 w-full" />
-            ) : children.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                <p>Ni najdenih otrok</p>
-              </div>
-            ) : (
-              <Select value={selectedChild} onValueChange={setSelectedChild}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Izberi otroka" />
-                </SelectTrigger>
-                <SelectContent>
-                  {children.map((child) => (
-                    <SelectItem key={child.id} value={child.id}>
-                      {child.first_name} {child.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </CardContent>
-        </Card>
-
-        {selectedChild && (
+        {loading && children.length === 0 ? (
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-center text-muted-foreground">Nalagam podatke...</p>
+            </CardContent>
+          </Card>
+        ) : children.length === 0 ? (
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-center text-muted-foreground">Ni najdenih otrok</p>
+            </CardContent>
+          </Card>
+        ) : (
           <>
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      {monthName}
-                    </CardTitle>
-                    <CardDescription>
-                      {selectedChildData?.first_name} {selectedChildData?.last_name}
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentMonth(new Date())}
-                      disabled={
-                        currentMonth.getMonth() === new Date().getMonth() &&
-                        currentMonth.getFullYear() === new Date().getFullYear()
-                      }
-                    >
-                      Danes
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={handleNextMonth}>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <CardTitle>Izberi Otroka</CardTitle>
+                <CardDescription>Prikaz prisotnosti za izbranega otroka</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-2xl font-bold text-green-600">{stats.present}</div>
-                      <p className="text-xs text-muted-foreground">Prisoten</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-2xl font-bold text-red-600">{stats.absent}</div>
-                      <p className="text-xs text-muted-foreground">Odsoten</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-2xl font-bold text-yellow-600">{stats.excused}</div>
-                      <p className="text-xs text-muted-foreground">Opravičen</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-2xl font-bold">{stats.total}</div>
-                      <p className="text-xs text-muted-foreground">Skupaj aktivnosti</p>
-                    </CardContent>
-                  </Card>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Otrok</label>
+                    <Select value={selectedChild} onValueChange={setSelectedChild}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Izberi otroka" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {children.map((child) => (
+                          <SelectItem key={child.id} value={child.id}>
+                            {child.first_name} {child.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Mesec</label>
+                    <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {months.map((month, idx) => (
+                          <SelectItem key={idx} value={idx.toString()}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Leto</label>
+                    <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                {loading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-12 w-full" />
-                    ))}
-                  </div>
-                ) : attendance.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                    <p className="text-lg font-medium">Ni zapisov prisotnosti</p>
-                    <p className="text-sm mt-2">
-                      Za ta mesec ni evidentiranih aktivnosti
-                    </p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Datum</TableHead>
-                          <TableHead>Aktivnost</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {attendance.map((record) => (
-                          <TableRow key={record.id}>
-                            <TableCell>
-                              {record.activities?.activity_date ? new Date(record.activities.activity_date).toLocaleDateString("sl-SI", {
-                                weekday: "short",
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              }) : "N/A"}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {record.activities?.id || "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              {record.status === 1 && (
-                                <Badge className="bg-green-600">Prisoten</Badge>
-                              )}
-                              {record.status === 0 && (
-                                <Badge className="bg-red-600">Odsoten</Badge>
-                              )}
-                              {record.status === 2 && (
-                                <Badge className="bg-yellow-600">Opravičen</Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                {selectedChildData && (
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                    <User className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium">
+                        {selectedChildData.first_name} {selectedChildData.last_name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Datum rojstva: {new Date(selectedChildData.date_of_birth).toLocaleDateString("sl-SI")}
+                      </p>
+                    </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 sm:grid-cols-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Prisoten</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{stats.present}</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Odsoten</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">{stats.absent}</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Opravičen</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-yellow-600">{stats.excused}</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Skupaj Aktivnosti</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.total}</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Prisotnost - {months[selectedMonth]} {selectedYear}
+                </CardTitle>
+                <CardDescription>
+                  P = Prisoten, O = Odsoten, Op = Opravičen
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-7 gap-2">
+                  {["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"].map((day) => (
+                    <div
+                      key={day}
+                      className="text-center text-sm font-medium p-2 bg-muted rounded"
+                    >
+                      {day}
+                    </div>
+                  ))}
+
+                  {Array.from({ length: adjustedFirstDay }).map((_, i) => (
+                    <div key={`empty-${i}`} className="p-2" />
+                  ))}
+
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                    const status = getStatusForDate(dateStr);
+                    const isToday =
+                      day === new Date().getDate() &&
+                      selectedMonth === new Date().getMonth() &&
+                      selectedYear === new Date().getFullYear();
+
+                    return (
+                      <div
+                        key={day}
+                        className={`
+                          relative p-3 rounded-lg border transition-colors
+                          ${isToday ? "border-primary bg-primary/5" : "border-border"}
+                          ${status !== null ? "bg-muted/50" : ""}
+                        `}
+                      >
+                        <div className="text-center">
+                          <div className="text-sm font-medium mb-1">{day}</div>
+                          <div className="flex justify-center">
+                            {getStatusBadge(status)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           </>
