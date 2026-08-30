@@ -88,7 +88,7 @@ export default function MyChildren() {
   }, [selectedChild, selectedMonth, selectedYear]);
 
   function getParentSession() {
-    const session = localStorage.getItem("parentSession");
+    const session = sessionStorage.getItem("parentSession");
     return session ? JSON.parse(session) : null;
   }
 
@@ -207,7 +207,7 @@ export default function MyChildren() {
   }
 
   function handleLogout() {
-    localStorage.removeItem("parentSession");
+    sessionStorage.removeItem("parentSession");
     router.push("/login/parent");
   }
 
