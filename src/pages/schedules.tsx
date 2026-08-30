@@ -70,9 +70,11 @@ export default function SchedulesPage() {
   const [teams, setTeams] = useState<any[]>([]);
   const [venues, setVenues] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState<ScheduleTemplate | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [scheduleToDelete, setScheduleToDelete] = useState<Schedule | null>(null);
+  const [scheduleToDelete, setScheduleToDelete] = useState<ScheduleTemplate | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<string>("");
+  const [selectedDay, setSelectedDay] = useState<string>("");
   const [formData, setFormData] = useState({
     team_id: "",
     venue_id: "",
@@ -180,7 +182,7 @@ export default function SchedulesPage() {
     setDialogOpen(true);
   }
 
-  function handleEdit(schedule: Schedule) {
+  function handleEdit(schedule: ScheduleTemplate) {
     setSelectedSchedule(schedule);
     setFormData({
       team_id: schedule.team_id,
@@ -256,7 +258,7 @@ export default function SchedulesPage() {
     }
   }
 
-  function handleDeleteClick(schedule: Schedule) {
+  function handleDeleteClick(schedule: ScheduleTemplate) {
     setScheduleToDelete(schedule);
     setDeleteDialogOpen(true);
   }
@@ -451,11 +453,11 @@ export default function SchedulesPage() {
                       {schedules.map((schedule) => (
                         <TableRow key={schedule.id}>
                           <TableCell className="font-medium">
-                            {schedule.team?.name || "N/A"}
+                            {schedule.teams?.name || "N/A"}
                           </TableCell>
                           <TableCell>
-                            {schedule.venue?.name || "N/A"}
-                            {schedule.venue?.city && ` (${schedule.venue.city})`}
+                            {schedule.venues?.name || "N/A"}
+                            {schedule.venues?.city && ` (${schedule.venues.city})`}
                           </TableCell>
                           <TableCell>{getDayLabel(schedule.day_of_week)}</TableCell>
                           <TableCell>
@@ -630,7 +632,7 @@ export default function SchedulesPage() {
                 <AlertDialogDescription>
                   Nameravaš izbrisati redni termin{" "}
                   <strong>
-                    {scheduleToDelete?.team.name} ({getDayName(scheduleToDelete?.day_of_week || 0)} {scheduleToDelete?.start_time})
+                    {scheduleToDelete?.teams?.name} ({getDayName(scheduleToDelete?.day_of_week || 0)} {scheduleToDelete?.start_time})
                   </strong>
                   . Izbrišem?
                 </AlertDialogDescription>
