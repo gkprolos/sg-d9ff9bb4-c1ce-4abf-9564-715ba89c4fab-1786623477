@@ -1385,6 +1385,24 @@ export type Database = {
           role: string
         }[]
       }
+      get_allowed_contacts_for_coach: {
+        Args: { coach_id_param: string; team_id_param?: string }
+        Returns: {
+          contact_type: string
+          email: string
+          name: string
+          user_id: string
+        }[]
+      }
+      get_allowed_contacts_for_parent: {
+        Args: { parent_email_param: string }
+        Returns: {
+          contact_type: string
+          email: string
+          name: string
+          user_id: string
+        }[]
+      }
       get_coach_stats: {
         Args: { p_coach_id: string; p_end_date: string; p_start_date: string }
         Returns: {

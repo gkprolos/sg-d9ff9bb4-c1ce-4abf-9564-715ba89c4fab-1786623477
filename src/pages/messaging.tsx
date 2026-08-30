@@ -379,8 +379,8 @@ export default function MessagingPage() {
 
       const participants = [
         ...(isParent 
-          ? [{ conversation_id: conversation.id, parent_email: parentEmail }]
-          : [{ conversation_id: conversation.id, user_id: user?.id }]
+          ? [{ conversation_id: conversation.id, user_id: null, parent_email: parentEmail }]
+          : [{ conversation_id: conversation.id, user_id: user?.id, parent_email: null }]
         ),
         ...selectedContacts.map(contactId => {
           const contact = availableContacts.find(c => 
