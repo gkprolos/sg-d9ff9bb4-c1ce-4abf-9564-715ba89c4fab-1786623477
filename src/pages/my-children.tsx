@@ -96,7 +96,7 @@ export default function MyChildrenPage() {
           date_of_birth,
           gender
         `)
-        .or(`guardian1_email.eq."${emailLower}",guardian2_email.eq."${emailLower}"`)
+        .or(`guardian1_email.eq.${emailLower},guardian2_email.eq.${emailLower}`)
         .eq("is_active", true)
         .order("last_name", { ascending: true })
         .order("first_name", { ascending: true });
