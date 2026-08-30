@@ -129,35 +129,42 @@ export default function MyChildrenPage() {
       const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
 
-      const { data, error } = await supabase
-        .from("attendance_records")
-        .select(`
-          id,
-          player_id,
-          status,
-          activities(
-            id,
-            activity_date
-          )
-        `)
-        .eq("player_id", selectedChild)
-        .gte("activities.activity_date", startOfMonth.toISOString().split("T")[0])
-        .lte("activities.activity_date", endOfMonth.toISOString().split("T")[0])
-        .order("activities(activity_date)", { ascending: true });
+      const startDate = startOfMonth.toISOString().split("T")[0];
+      const endDate = endOfMonth.toISOString().split("T")[0];
 
-      if (error) {
-        console.error("Napaka pri nalaganju prisotnosti:", error);
-        toast({
-          variant: "destructive",
-          title: "Napaka",
-          description: "Ni mogoče naložiti prisotnosti",
-        });
-        throw error;
+      console.log("Loading attendance for:", { 
+        playerId: selectedChild, 
+        startDate, 
+        endDate 
+      });
+
+      // Call API route that uses service role key to bypass RLS
+      const response = await fetch("/api/parent/get-attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          playerId: selectedChild,
+          startDate,
+          endDate
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Napaka pri nalaganju prisotnosti");
       }
 
-      setAttendance((data || []) as AttendanceRecord[]);
+      console.log("Attendance from API:", data.attendance);
+
+      setAttendance((data.attendance || []) as AttendanceRecord[]);
     } catch (error: any) {
       console.error("Napaka pri nalaganju prisotnosti:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Ni mogoče naložiti prisotnosti",
+      });
     } finally {
       setLoading(false);
     }
