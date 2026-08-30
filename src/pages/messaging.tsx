@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { sl } from "date-fns/locale";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { cn } from "@/lib/utils";
 
 interface Conversation {
   id: string;
@@ -737,10 +738,14 @@ export default function MessagingPage() {
                 ) : filteredConversations.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Ni pogovorov</p>
                 ) : (
-                  filteredConversations.map(conv => (
+                  conversations.map(conv => (
                     <div
                       key={conv.id}
-                      onClick={() => handleSelectConversation(conv)}
+                      onClick={() => {
+                        setSelectedConversation(conv);
+                        loadMessages(conv.id);
+                        markAsRead(conv.id);
+                      }}
                       className={cn(
                         "p-3 rounded-lg cursor-pointer transition-colors border",
                         selectedConversation?.id === conv.id
