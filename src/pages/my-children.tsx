@@ -351,7 +351,7 @@ export default function MyChildrenPage() {
                               }) : "N/A"}
                             </TableCell>
                             <TableCell className="font-medium">
-                              {record.activities?.name || "N/A"}
+                              {record.activities?.id || "N/A"}
                             </TableCell>
                             <TableCell>
                               {record.status === 1 && (
