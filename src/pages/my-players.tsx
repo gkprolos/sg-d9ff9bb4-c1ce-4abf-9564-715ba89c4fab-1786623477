@@ -44,7 +44,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit, Users, X, Loader2, Search } from "lucide-react";
+import { Plus, Edit, Users, X, Loader2, Search, Trash2, UserCog } from "lucide-react";
 
 interface Player {
   id: string;
