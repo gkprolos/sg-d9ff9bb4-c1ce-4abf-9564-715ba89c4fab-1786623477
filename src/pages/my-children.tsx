@@ -26,6 +26,22 @@ interface AttendanceRecord {
   } | null;
 }
 
+interface ScheduleTemplate {
+  id: string;
+  team_id: string;
+  venue_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  default_activity_type_id: number;
+  is_active: boolean;
+  venues: {
+    id: string;
+    name: string;
+    city?: string;
+  } | null;
+}
+
 export default function MyChildren() {
   const router = useRouter();
   const { toast } = useToast();
@@ -34,6 +50,7 @@ export default function MyChildren() {
   const [children, setChildren] = useState<Player[]>([]);
   const [selectedChild, setSelectedChild] = useState<string>("");
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleTemplate[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [parentEmail, setParentEmail] = useState<string>("");
@@ -56,6 +73,7 @@ export default function MyChildren() {
   useEffect(() => {
     if (selectedChild) {
       loadAttendance();
+      loadSchedules();
     }
   }, [selectedChild, selectedMonth, selectedYear]);
 
@@ -152,6 +170,32 @@ export default function MyChildren() {
     }
   }
 
+  async function loadSchedules() {
+    if (!selectedChild) return;
+
+    try {
+      console.log("Loading schedules for:", selectedChild);
+
+      const response = await fetch("/api/parent/get-child-schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId: selectedChild }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Napaka pri nalaganju urnika");
+      }
+
+      console.log("Schedules from API:", data.schedules);
+
+      setSchedules((data.schedules || []) as ScheduleTemplate[]);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju urnika:", error);
+    }
+  }
+
   function handleLogout() {
     localStorage.removeItem("parentSession");
     router.push("/login/parent");
@@ -162,6 +206,24 @@ export default function MyChildren() {
       (a) => a.activities?.activity_date === date
     );
     return record ? record.status : null;
+  }
+
+  function getScheduleForDate(date: string): ScheduleTemplate | null {
+    const dateObj = new Date(date);
+    // JavaScript getDay(): 0=Sunday, 1=Monday, ..., 6=Saturday
+    // Database day_of_week: 1=Monday, 2=Tuesday, ..., 7=Sunday
+    const jsDay = dateObj.getDay();
+    const dbDay = jsDay === 0 ? 7 : jsDay;
+
+    return schedules.find(s => s.day_of_week === dbDay) || null;
+  }
+
+  function formatScheduleInfo(schedule: ScheduleTemplate | null): string | null {
+    if (!schedule) return null;
+    
+    const venue = schedule.venues?.name || "N/A";
+    const city = schedule.venues?.city ? ` (${schedule.venues.city})` : "";
+    return `${schedule.start_time.slice(0, 5)}-${schedule.end_time.slice(0, 5)}, ${venue}${city}`;
   }
 
   function getStatusBadge(status: number | null) {
@@ -358,6 +420,8 @@ export default function MyChildren() {
                     const day = i + 1;
                     const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                     const status = getStatusForDate(dateStr);
+                    const schedule = getScheduleForDate(dateStr);
+                    const scheduleInfo = formatScheduleInfo(schedule);
                     const isToday =
                       day === new Date().getDate() &&
                       selectedMonth === new Date().getMonth() &&
@@ -367,16 +431,30 @@ export default function MyChildren() {
                       <div
                         key={day}
                         className={`
-                          relative p-3 rounded-lg border transition-colors
+                          relative p-3 rounded-lg border transition-colors min-h-[100px]
                           ${isToday ? "border-primary bg-primary/5" : "border-border"}
-                          ${status !== null ? "bg-muted/50" : ""}
+                          ${status !== null || schedule ? "bg-muted/50" : ""}
                         `}
                       >
-                        <div className="text-center">
-                          <div className="text-sm font-medium mb-1">{day}</div>
-                          <div className="flex justify-center">
-                            {getStatusBadge(status)}
-                          </div>
+                        <div className="flex flex-col h-full">
+                          <div className="text-sm font-medium mb-2">{day}</div>
+                          
+                          {status !== null && (
+                            <div className="mb-2 flex justify-center">
+                              {getStatusBadge(status)}
+                            </div>
+                          )}
+                          
+                          {scheduleInfo && (
+                            <div className="text-xs text-muted-foreground text-center space-y-1 mt-auto">
+                              <div className="font-medium">
+                                {schedule!.start_time.slice(0, 5)}-{schedule!.end_time.slice(0, 5)}
+                              </div>
+                              <div className="line-clamp-2">
+                                {schedule!.venues?.name || "N/A"}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
