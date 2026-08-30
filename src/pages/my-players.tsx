@@ -1,29 +1,15 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,55 +20,34 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit, Users, X, Loader2, Search } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { UserCog, Plus, Edit, Trash2, Users } from "lucide-react";
 
 interface Player {
   id: string;
   first_name: string;
   last_name: string;
-  date_of_birth: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  postal_code?: string;
-  guardian1_name?: string;
-  guardian1_phone?: string;
-  guardian1_email?: string;
-  guardian2_name?: string;
-  guardian2_phone?: string;
-  guardian2_email?: string;
-  gender: "male" | "female";
+  date_of_birth: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  guardian1_name: string | null;
+  guardian1_phone: string | null;
+  guardian1_email: string | null;
+  guardian2_name: string | null;
+  guardian2_phone: string | null;
+  guardian2_email: string | null;
   is_active: boolean;
-  team_players: {
+  team_players: Array<{
     id: string;
     team_id: string;
     teams: {
       id: string;
       name: string;
-    } | null;
-  }[];
-}
-
-// Check for parent session immediately (synchronous, before render)
-function getParentSession() {
-  if (typeof window === "undefined") return null;
-  try {
-    const session = localStorage.getItem("parentSession");
-    return session ? JSON.parse(session) : null;
-  } catch (error) {
-    console.error("Invalid parent session:", error);
-    return null;
-  }
+    };
+  }>;
 }
 
 export default function MyPlayersPage() {
@@ -98,41 +63,37 @@ export default function MyPlayersPage() {
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [playerForm, setPlayerForm] = useState({
-    first_name: "",
-    last_name: "",
-    date_of_birth: "",
-    phone: "",
-    address: "",
-    city: "",
-    postal_code: "",
-    guardian1_name: "",
-    guardian1_phone: "",
-    guardian1_email: "",
-    guardian2_name: "",
-    guardian2_phone: "",
-    guardian2_email: "",
-    gender: "male" as "male" | "female",
-  });
   const [selectedTeamForAdd, setSelectedTeamForAdd] = useState("");
   const [teamPlayerToRemove, setTeamPlayerToRemove] = useState<{ playerId: string; teamPlayerId: string; teamName: string } | null>(null);
   
-  // Check parent session (synchronous)
-  const parentSession = getParentSession();
-  const isParentView = !!parentSession;
-  const parentEmail = parentSession?.email || "";
+  // Check if user is a parent (via localStorage)
+  const [isParent, setIsParent] = useState(false);
+  const [parentEmail, setParentEmail] = useState("");
+
+  useEffect(() => {
+    const parentSession = localStorage.getItem("parentSession");
+    if (parentSession) {
+      try {
+        const session = JSON.parse(parentSession);
+        setIsParent(true);
+        setParentEmail(session.email);
+      } catch (error) {
+        console.error("Invalid parent session:", error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     loadPlayers();
     loadTeams();
-  }, []);
+  }, [isParent, parentEmail]);
 
   async function loadPlayers() {
     try {
       setLoading(true);
 
       // Parent view: load their children
-      if (isParentView && parentEmail) {
+      if (isParent && parentEmail) {
         const { data, error } = await supabase
           .from("players")
           .select(`
@@ -620,120 +581,23 @@ export default function MyPlayersPage() {
     );
   });
 
-  // Parent view: no ProtectedRoute needed (uses localStorage session)
-  if (isParentView) {
-    return (
-      <AppLayout>
-        <div className="p-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight">Moji Otroci</h2>
-              <p className="text-muted-foreground">
-                Pregled podatkov in prisotnosti vaših otrok
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8 space-y-4">
-            <div className="flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Išči po imenu..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Seznam Otrok</CardTitle>
-                <CardDescription>
-                  {filteredPlayers.length} {filteredPlayers.length === 1 ? "otrok" : "otrok"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-16 w-full" />
-                    ))}
-                  </div>
-                ) : filteredPlayers.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                    <p>Ni najdenih otrok</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ime</TableHead>
-                        <TableHead>Datum rojstva</TableHead>
-                        <TableHead>Spol</TableHead>
-                        <TableHead>Selekcije</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredPlayers.map((player) => (
-                        <TableRow key={player.id}>
-                          <TableCell className="font-medium">
-                            {player.first_name} {player.last_name}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(player.date_of_birth).toLocaleDateString("sl-SI")}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={player.gender === "male" ? "default" : "secondary"}>
-                              {player.gender === "male" ? "Moški" : "Ženska"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1 flex-wrap">
-                              {player.team_players?.length > 0 ? (
-                                player.team_players.map((tp) => (
-                                  <Badge key={tp.id} variant="outline">
-                                    {tp.teams?.name || "N/A"}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-sm text-muted-foreground">Ni selekcij</span>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  // Coach/Admin view: use ProtectedRoute
   return (
-    <ProtectedRoute allowedRoles={["coach"]}>
+    <ProtectedRoute allowedRoles={isParent ? undefined : ["coach"]}>
       <AppLayout>
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">
-                {isParentView ? "Moji Otroci" : "Igralci"}
+                {isParent ? "Moji Otroci" : "Igralci"}
               </h2>
               <p className="text-muted-foreground">
-                {isParentView 
+                {isParent 
                   ? "Pregled podatkov in prisotnosti vaših otrok" 
                   : "Upravljanje igralcev in njihovih selekcij"
                 }
               </p>
             </div>
-            {!isParentView && (
+            {!isParent && (
               <Button onClick={handleAddClick} disabled={loading}>
                 <Plus className="h-4 w-4 mr-2" />
                 Dodaj igralca
@@ -829,7 +693,7 @@ export default function MyPlayersPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2 justify-end">
-                              {!isParentView && (
+                              {!isParent && (
                                 <>
                                   <Button
                                     size="sm"
