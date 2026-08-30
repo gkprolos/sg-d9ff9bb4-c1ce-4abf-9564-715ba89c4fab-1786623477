@@ -428,24 +428,41 @@ export default function MessagingPage() {
       setAvailableContacts(contacts);
     } else if (isAdmin) {
       // Admin: Get coaches + parents
-      const { data: coaches } = await supabase
+      console.log("Admin loadAvailableContacts - fetching coaches and parents...");
+      
+      const { data: coaches, error: coachError } = await supabase
         .from("profiles")
         .select("id, full_name, email")
         .eq("is_active", true);
       
-      const { data: parents } = await supabase
+      if (coachError) {
+        console.error("Error loading coaches:", coachError);
+      } else {
+        console.log("Coaches loaded:", coaches?.length, coaches);
+      }
+      
+      const { data: parents, error: parentError } = await supabase
         .from("players")
         .select("guardian1_email, guardian1_name, guardian2_email, guardian2_name")
         .eq("is_active", true);
       
+      if (parentError) {
+        console.error("Error loading parents:", parentError);
+      } else {
+        console.log("Parents loaded:", parents?.length, parents);
+      }
+      
       const contacts: Contact[] = [];
       
       if (coaches) {
-        coaches.forEach(c => contacts.push({
-          id: c.id,
-          name: c.full_name,
-          type: "coach"
-        }));
+        coaches.forEach(c => {
+          contacts.push({
+            id: c.id,
+            name: c.full_name,
+            type: "coach"
+          });
+        });
+        console.log("Added coaches to contacts:", coaches.length);
       }
       
       if (parents) {
@@ -469,10 +486,13 @@ export default function MessagingPage() {
           }
         });
         
+        console.log("Unique parents found:", parentMap.size);
+        
         // Add unique parents to contacts
         parentMap.forEach(contact => contacts.push(contact));
       }
       
+      console.log("Total contacts for admin:", contacts.length, contacts);
       setAvailableContacts(contacts);
     }
   }
