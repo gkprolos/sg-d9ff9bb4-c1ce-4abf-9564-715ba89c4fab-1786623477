@@ -26,17 +26,31 @@ interface Conversation {
   status: string;
   created_at: string;
   updated_at: string;
-  teams?: { name: string };
   unread_count?: number;
   last_message?: {
     content: string;
     created_at: string;
     sender_name: string;
   };
-  participants?: Array<{
+  teams?: {
+    name: string;
+  };
+  conversation_participants?: Array<{
     user_id: string | null;
     parent_email: string | null;
-    profiles?: { full_name: string };
+    last_read_at: string | null;
+    profiles?: {
+      full_name: string;
+    };
+  }>;
+  messages?: Array<{
+    content: string;
+    created_at: string;
+    sender_id: string | null;
+    sender_parent_email: string | null;
+    profiles?: {
+      full_name: string;
+    };
   }>;
 }
 
