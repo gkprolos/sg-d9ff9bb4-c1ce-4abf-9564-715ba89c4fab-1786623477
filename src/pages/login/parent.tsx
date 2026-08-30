@@ -221,7 +221,7 @@ export default function ParentLogin() {
       });
 
       setStep("complete");
-      setTimeout(() => router.push("/attendance/monthly"), 2000);
+      setTimeout(() => router.push("/my-players"), 2000);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -238,13 +238,8 @@ export default function ParentLogin() {
       title: "Prijava uspešna",
       description: "Pri naslednji prijavi boste ponovno prejeli OTP kodo",
     });
-    router.push("/attendance/monthly");
-  }
-
-  const handleSkip = () => {
-    // Skip password setup and go directly to parent dashboard
     router.push("/my-players");
-  };
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 p-4">
