@@ -184,7 +184,7 @@ export default function ParentLogin() {
                   />
                 </div>
                 <Button
-                  onClick={handleSendOtp}
+                  onClick={handleSendOTP}
                   disabled={loading || !email}
                   className="w-full"
                 >
