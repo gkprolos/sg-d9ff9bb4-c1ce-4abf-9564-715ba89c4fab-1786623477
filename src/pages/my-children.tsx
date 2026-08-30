@@ -193,7 +193,7 @@ export default function MyChildren() {
   const selectedChildData = children.find(c => c.id === selectedChild);
 
   return (
-    <AppLayout userRole="parent">
+    <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
