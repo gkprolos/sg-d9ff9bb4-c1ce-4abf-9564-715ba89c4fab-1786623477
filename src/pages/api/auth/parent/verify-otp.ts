@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
+import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
 // Initialize Supabase client with service role key (bypasses RLS)
@@ -28,19 +29,14 @@ export default async function handler(
       return res.status(400).json({ error: "Koda mora biti 4-mestna številka" });
     }
 
-    // Hash the submitted code
-    const codeHash = crypto.createHash("sha256").update(code).digest("hex");
-
-    // Find valid OTP code
+    // Find all valid OTP codes for this email (not used, not expired)
     const { data: otpCodes, error: otpError } = await supabase
       .from("parent_auth_codes")
       .select("*")
       .eq("parent_email", email.toLowerCase().trim())
-      .eq("code", codeHash)
       .eq("used", false)
       .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .limit(1);
+      .order("created_at", { ascending: false });
 
     if (otpError) {
       console.error("OTP verification error:", otpError);
@@ -53,13 +49,27 @@ export default async function handler(
       });
     }
 
-    const otpCode = otpCodes[0];
+    // Find matching code using bcrypt.compare()
+    let matchedCode = null;
+    for (const otpRecord of otpCodes) {
+      const isMatch = await bcrypt.compare(code, otpRecord.code);
+      if (isMatch) {
+        matchedCode = otpRecord;
+        break;
+      }
+    }
+
+    if (!matchedCode) {
+      return res.status(401).json({ 
+        error: "Neveljavna ali potekla koda" 
+      });
+    }
 
     // Mark code as used
     const { error: updateError } = await supabase
       .from("parent_auth_codes")
       .update({ used: true })
-      .eq("id", otpCode.id);
+      .eq("id", matchedCode.id);
 
     if (updateError) {
       console.error("OTP update error:", updateError);
