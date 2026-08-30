@@ -42,11 +42,11 @@ interface Player {
 interface AttendanceRecord {
   id: string;
   player_id: string;
-  date: string;
-  status: "present" | "absent" | "excused";
+  status: number;
   activities: {
     id: string;
     name: string;
+    activity_date: string;
   } | null;
 }
 
@@ -148,17 +148,17 @@ export default function MyChildrenPage() {
         .select(`
           id,
           player_id,
-          date,
           status,
           activities(
             id,
-            name
+            name,
+            activity_date
           )
         `)
         .eq("player_id", selectedChild)
-        .gte("date", startOfMonth.toISOString().split("T")[0])
-        .lte("date", endOfMonth.toISOString().split("T")[0])
-        .order("date", { ascending: true });
+        .gte("activities.activity_date", startOfMonth.toISOString().split("T")[0])
+        .lte("activities.activity_date", endOfMonth.toISOString().split("T")[0])
+        .order("activities(activity_date)", { ascending: true });
 
       if (error) {
         console.error("Napaka pri nalaganju prisotnosti:", error);
@@ -195,9 +195,9 @@ export default function MyChildrenPage() {
   const monthName = currentMonth.toLocaleDateString("sl-SI", { month: "long", year: "numeric" });
 
   const stats = {
-    present: attendance.filter(a => a.status === "present").length,
-    absent: attendance.filter(a => a.status === "absent").length,
-    excused: attendance.filter(a => a.status === "excused").length,
+    present: attendance.filter(a => a.status === 1).length,
+    absent: attendance.filter(a => a.status === 0).length,
+    excused: attendance.filter(a => a.status === 2).length,
     total: attendance.length,
   };
 
@@ -345,24 +345,24 @@ export default function MyChildrenPage() {
                         {attendance.map((record) => (
                           <TableRow key={record.id}>
                             <TableCell>
-                              {new Date(record.date).toLocaleDateString("sl-SI", {
+                              {record.activities?.activity_date ? new Date(record.activities.activity_date).toLocaleDateString("sl-SI", {
                                 weekday: "short",
                                 day: "2-digit",
                                 month: "2-digit",
                                 year: "numeric",
-                              })}
+                              }) : "N/A"}
                             </TableCell>
                             <TableCell className="font-medium">
                               {record.activities?.name || "N/A"}
                             </TableCell>
                             <TableCell>
-                              {record.status === "present" && (
+                              {record.status === 1 && (
                                 <Badge className="bg-green-600">Prisoten</Badge>
                               )}
-                              {record.status === "absent" && (
+                              {record.status === 0 && (
                                 <Badge className="bg-red-600">Odsoten</Badge>
                               )}
-                              {record.status === "excused" && (
+                              {record.status === 2 && (
                                 <Badge className="bg-yellow-600">Opravičen</Badge>
                               )}
                             </TableCell>
