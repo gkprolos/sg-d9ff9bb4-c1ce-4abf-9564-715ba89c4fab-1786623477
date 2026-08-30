@@ -45,7 +45,6 @@ interface AttendanceRecord {
   status: number;
   activities: {
     id: string;
-    name: string;
     activity_date: string;
   } | null;
 }
@@ -151,7 +150,6 @@ export default function MyChildrenPage() {
           status,
           activities(
             id,
-            name,
             activity_date
           )
         `)
