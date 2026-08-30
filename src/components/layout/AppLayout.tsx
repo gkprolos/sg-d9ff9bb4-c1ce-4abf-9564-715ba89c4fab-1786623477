@@ -64,7 +64,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [parentEmail, setParentEmail] = useState<string>("");
 
   useEffect(() => {
-    const parentSession = localStorage.getItem("parentSession");
+    const parentSession = sessionStorage.getItem("parentSession");
     if (parentSession) {
       try {
         const session = JSON.parse(parentSession);
@@ -80,7 +80,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     try {
       if (isParent) {
         // Parent logout
-        localStorage.removeItem("parentSession");
+        sessionStorage.removeItem("parentSession");
         router.push("/login/parent");
       } else {
         // Coach/Admin logout
