@@ -211,7 +211,7 @@ export default function ActivitiesPage() {
             mileage_km,
             hours_worked,
             total_amount,
-            profiles(full_name)
+            profiles(id, full_name)
           )
         `)
         .order("activity_date", { ascending: false });
