@@ -188,7 +188,7 @@ export default function MessagingPage() {
             created_at,
             updated_at,
             teams(name),
-            conversation_participants(
+            conversation_participants!inner(
               user_id,
               parent_email,
               last_read_at,
@@ -207,7 +207,10 @@ export default function MessagingPage() {
 
         const { data, error } = await query;
 
-        if (error) throw error;
+        if (error) {
+          console.error("Load conversations error:", error);
+          throw error;
+        }
 
         if (data) {
           const conversationsWithUnread = data.map((conv: any) => {
@@ -220,7 +223,10 @@ export default function MessagingPage() {
               ? conv.messages.filter((m: any) => new Date(m.created_at) > new Date(lastReadAt)).length
               : conv.messages.length;
 
-            const lastMessage = conv.messages[conv.messages.length - 1];
+            const lastMessage = conv.messages.sort((a: any, b: any) => 
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            )[0];
+            
             const senderName = lastMessage?.sender_parent_email || lastMessage?.profiles?.full_name || "Sistem";
 
             return {
@@ -238,6 +244,7 @@ export default function MessagingPage() {
         }
       }
     } catch (error: any) {
+      console.error("Load conversations error:", error);
       toast({
         title: "Napaka",
         description: error.message,
@@ -591,6 +598,55 @@ export default function MessagingPage() {
     }
   }
 
+  async function archiveConversation(conversationId: string) {
+    try {
+      const { error } = await supabase
+        .from("conversations")
+        .update({ status: "archived" })
+        .eq("id", conversationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Pogovor arhiviran",
+        description: "Pogovor je bil uspešno arhiviran."
+      });
+
+      setSelectedConversation(null);
+      loadConversations();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  }
+
+  async function unarchiveConversation(conversationId: string) {
+    try {
+      const { error } = await supabase
+        .from("conversations")
+        .update({ status: "active" })
+        .eq("id", conversationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Pogovor obnovljen",
+        description: "Pogovor je bil uspešno obnovljen."
+      });
+
+      loadConversations();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  }
+
   const filteredConversations = conversations.filter(conv =>
     conv.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
     conv.teams?.name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -847,27 +903,37 @@ export default function MessagingPage() {
 
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-4">
-                    {messages.map(msg => {
+                    {messages.map((message: any) => {
                       const isMine = isParent 
-                        ? msg.sender_parent_email === parentEmail
-                        : msg.sender_id === user?.id;
+                        ? message.sender_parent_email === parentEmail
+                        : message.sender_id === user?.id;
                       
-                      const senderName = msg.sender_parent_email || msg.profiles?.full_name || "Sistem";
+                      const senderName = message.sender_parent_email 
+                        ? message.sender_parent_email 
+                        : message.profiles?.full_name || "Sistem";
 
                       return (
                         <div
-                          key={msg.id}
-                          className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                          key={message.id}
+                          className={cn(
+                            "flex flex-col gap-1",
+                            isMine ? "items-end" : "items-start"
+                          )}
                         >
-                          <div className={`max-w-[70%] ${isMine ? "bg-primary text-primary-foreground" : "bg-muted"} rounded-lg p-3`}>
-                            {!isMine && (
-                              <p className="text-xs font-medium mb-1 opacity-70">
-                                {senderName}
-                              </p>
+                          <div className="text-xs text-muted-foreground px-1">
+                            {senderName}
+                          </div>
+                          <div
+                            className={cn(
+                              "max-w-[70%] rounded-lg p-3",
+                              isMine
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
                             )}
-                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                            <p className={`text-xs mt-1 ${isMine ? "opacity-70" : "text-muted-foreground"}`}>
-                              {format(new Date(msg.created_at), "d. M. yyyy HH:mm", { locale: sl })}
+                          >
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            <p className="text-xs mt-1 opacity-70">
+                              {format(new Date(message.created_at), "d. M. yyyy HH:mm", { locale: sl })}
                             </p>
                           </div>
                         </div>
