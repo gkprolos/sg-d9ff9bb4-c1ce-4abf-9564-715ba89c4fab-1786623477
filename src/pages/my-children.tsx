@@ -91,6 +91,8 @@ export default function MyChildrenPage() {
     try {
       setLoading(true);
 
+      const emailLower = parentEmail.toLowerCase().trim();
+
       const { data, error } = await supabase
         .from("players")
         .select(`
@@ -107,7 +109,7 @@ export default function MyChildrenPage() {
             )
           )
         `)
-        .or(`guardian1_email.eq.${parentEmail},guardian2_email.eq.${parentEmail}`)
+        .or(`guardian1_email.eq."${emailLower}",guardian2_email.eq."${emailLower}"`)
         .eq("is_active", true)
         .order("last_name", { ascending: true })
         .order("first_name", { ascending: true });
