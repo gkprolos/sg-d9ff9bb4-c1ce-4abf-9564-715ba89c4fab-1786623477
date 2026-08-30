@@ -14,9 +14,9 @@ export default function Document() {
         <meta name="msapplication-TileColor" content="#1e40af" />
         
         {/* Apple Touch Icons */}
-        <link rel="apple-touch-icon" href="/favicon.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/favicon.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png" />
+        <link rel="apple-touch-icon" href="/LOGO-2015-BARVE.jpg" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/LOGO-2015-BARVE.jpg" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/LOGO-2015-BARVE.jpg" />
         
         {/* Apple Mobile Web App */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -28,7 +28,7 @@ export default function Document() {
         <meta name="description" content="Aplikacija za upravljanje športnega kluba - prisotnost, urniki, finance" />
         
         {/* Favicon */}
-        <link rel="icon" type="image/png" href="/favicon.png" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
         <link rel="shortcut icon" href="/favicon.ico" />
 
         <SEOElements
