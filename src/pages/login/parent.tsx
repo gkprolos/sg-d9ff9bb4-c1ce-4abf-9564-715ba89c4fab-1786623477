@@ -130,8 +130,8 @@ export default function ParentLogin() {
         throw new Error(data.error || "Napaka pri preverjanju kode");
       }
 
-      // Store parent session in sessionStorage (not localStorage - more secure)
-      sessionStorage.setItem("parentSession", JSON.stringify({
+      // Store parent session in localStorage
+      localStorage.setItem("parentSession", JSON.stringify({
         email: email.toLowerCase().trim(),
         loginTime: new Date().toISOString()
       }));

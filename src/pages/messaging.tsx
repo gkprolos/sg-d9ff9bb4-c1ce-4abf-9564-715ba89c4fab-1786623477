@@ -57,7 +57,7 @@ interface Contact {
 
 export default function MessagingPage() {
   const router = useRouter();
-  const { user, userRole, parentEmail, effectiveRole } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -78,6 +78,36 @@ export default function MessagingPage() {
   const [teams, setTeams] = useState<Array<{ id: string; name: string }>>([]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check if parent is logged in via session storage
+  const [parentEmail, setParentEmail] = useState<string | null>(null);
+  const [effectiveRole, setEffectiveRole] = useState<"admin" | "coach" | "parent" | null>(null);
+
+  useEffect(() => {
+    // Check parent session
+    if (typeof window !== "undefined") {
+      const parentSession = sessionStorage.getItem("parentSession");
+      if (parentSession) {
+        try {
+          const session = JSON.parse(parentSession);
+          setParentEmail(session.email);
+          setEffectiveRole("parent");
+          console.log("Parent session detected:", session.email);
+        } catch (e) {
+          console.error("Invalid parent session", e);
+        }
+      } else if (userRole) {
+        setEffectiveRole(userRole);
+        console.log("User role detected:", userRole);
+      } else {
+        console.log("No role detected - user:", user, "userRole:", userRole);
+      }
+    }
+  }, [user, userRole]);
+
+  const isAdmin = effectiveRole === "admin";
+  const isCoach = effectiveRole === "coach";
+  const isParent = effectiveRole === "parent";
 
   console.log("Effective role:", effectiveRole, "isAdmin:", isAdmin, "isCoach:", isCoach, "isParent:", isParent);
 

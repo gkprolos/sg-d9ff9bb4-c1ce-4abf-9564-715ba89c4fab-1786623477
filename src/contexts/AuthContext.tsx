@@ -6,8 +6,6 @@ import { useRouter } from "next/router";
 interface AuthContextType {
   user: User | null;
   userRole: "admin" | "coach" | null;
-  parentEmail: string | null;
-  effectiveRole: "admin" | "coach" | "parent" | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -18,31 +16,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<"admin" | "coach" | null>(null);
-  const [parentEmail, setParentEmail] = useState<string | null>(null);
-  const [effectiveRole, setEffectiveRole] = useState<"admin" | "coach" | "parent" | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // Check parent session first
-    if (typeof window !== "undefined") {
-      const parentSession = sessionStorage.getItem("parentSession");
-      if (parentSession) {
-        try {
-          const session = JSON.parse(parentSession);
-          setParentEmail(session.email);
-          setEffectiveRole("parent");
-          setLoading(false);
-          console.log("Parent session detected:", session.email);
-          return; // Parent session found, skip Supabase auth check
-        } catch (e) {
-          console.error("Invalid parent session", e);
-          sessionStorage.removeItem("parentSession");
-        }
-      }
-    }
-
-    // Check active Supabase session
+    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -61,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchUserRole(session.user.id);
       } else {
         setUserRole(null);
-        setEffectiveRole(null);
         setLoading(false);
       }
     });
@@ -78,13 +55,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) throw error;
-      const role = data.role as "admin" | "coach";
-      setUserRole(role);
-      setEffectiveRole(role);
+      setUserRole(data.role as "admin" | "coach");
     } catch (error) {
       console.error("Error fetching user role:", error);
       setUserRole(null);
-      setEffectiveRole(null);
     } finally {
       setLoading(false);
     }
@@ -99,21 +73,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    // Clear parent session
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("parentSession");
-    }
-    
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-    
-    setParentEmail(null);
-    setEffectiveRole(null);
     router.push("/login");
   }
 
   return (
-    <AuthContext.Provider value={{ user, userRole, parentEmail, effectiveRole, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, userRole, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
