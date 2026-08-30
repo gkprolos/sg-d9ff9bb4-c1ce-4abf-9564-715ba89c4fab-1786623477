@@ -24,58 +24,65 @@ export default async function handler(
     }
 
     // Validate password strength
-    if (password.length < 6) {
-      return res.status(400).json({ 
-        error: "Geslo mora imeti najmanj 6 znakov" 
-      });
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Geslo mora imeti vsaj 8 znakov" });
     }
 
-    // Verify that email belongs to a guardian
-    const { data: guardian, error: guardianError } = await supabase
-      .from("guardians")
-      .select("id, email")
-      .eq("email", email.toLowerCase().trim())
-      .maybeSingle();
-
-    if (guardianError || !guardian) {
-      return res.status(404).json({ 
-        error: "Email naslov ni registriran v sistemu" 
-      });
-    }
-
-    // Hash password with bcrypt
+    // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Upsert parent credential (insert or update)
-    const { data: credential, error: upsertError } = await supabase
+    // Check if parent credential already exists
+    const { data: existing, error: checkError } = await supabase
       .from("parent_credentials")
-      .upsert(
-        {
+      .select("parent_email")
+      .eq("parent_email", email.toLowerCase().trim())
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("Check credential error:", checkError);
+      return res.status(500).json({ error: "Napaka pri preverjanju obstoječega računa" });
+    }
+
+    if (existing) {
+      // Update existing credential
+      const { error: updateError } = await supabase
+        .from("parent_credentials")
+        .update({ 
+          password_hash: passwordHash,
+          updated_at: new Date().toISOString()
+        })
+        .eq("parent_email", email.toLowerCase().trim());
+
+      if (updateError) {
+        console.error("Update password error:", updateError);
+        return res.status(500).json({ error: "Napaka pri posodabljanju gesla" });
+      }
+    } else {
+      // Create new credential
+      const { error: insertError } = await supabase
+        .from("parent_credentials")
+        .insert({
           parent_email: email.toLowerCase().trim(),
           password_hash: passwordHash,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "parent_email",
-        }
-      )
-      .select()
-      .single();
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
 
-    if (upsertError) {
-      console.error("Password upsert error:", upsertError);
-      return res.status(500).json({ error: "Napaka pri shranjevanju gesla" });
+      if (insertError) {
+        console.error("Insert credential error:", insertError);
+        return res.status(500).json({ error: "Napaka pri ustvarjanju računa" });
+      }
     }
 
     return res.status(200).json({
       success: true,
-      message: "Geslo je bilo uspešno nastavljeno",
+      message: "Geslo uspešno nastavljeno"
     });
 
   } catch (error: any) {
     console.error("Set password error:", error);
     return res.status(500).json({ 
-      error: error.message || "Napaka pri nastavljanju gesla" 
+      error: error.message || "Napaka pri nastavitvi gesla" 
     });
   }
 }

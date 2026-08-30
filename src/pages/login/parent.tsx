@@ -241,6 +241,11 @@ export default function ParentLogin() {
     router.push("/attendance/monthly");
   }
 
+  const handleSkip = () => {
+    // Skip password setup and go directly to parent dashboard
+    router.push("/my-players");
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 p-4">
       <div className="w-full max-w-md">
