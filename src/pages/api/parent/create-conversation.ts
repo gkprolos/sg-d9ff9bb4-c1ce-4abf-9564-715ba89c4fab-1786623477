@@ -50,8 +50,7 @@ export default async function handler(
       .insert({
         subject,
         team_id: teamId || null,
-        created_by: creatorId,
-        is_archived: false
+        created_by: creatorId
       })
       .select()
       .single();
