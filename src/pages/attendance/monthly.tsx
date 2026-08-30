@@ -193,6 +193,19 @@ export default function MonthlyAttendance() {
         return;
       }
 
+      // Fetch player names for these specific playerIds
+      const { data: playerData, error: playerError } = await supabase
+        .from("players")
+        .select("id, first_name, last_name")
+        .in("id", playerIds);
+
+      if (playerError) throw playerError;
+
+      // Create a map for quick player name lookup
+      const playersMap = new Map(
+        playerData?.map(p => [p.id, `${p.first_name} ${p.last_name}`]) || []
+      );
+
       // Fetch all activities in date range
       const { data: activities, error: activitiesError } = await supabase
         .from("activities")
@@ -207,10 +220,9 @@ export default function MonthlyAttendance() {
       if (activityIds.length === 0) {
         // No activities in this month - show players with zero attendance
         const emptyData: MonthlyAttendance[] = playerIds.map(pid => {
-          const player = players.find(p => p.id === pid);
           return {
             player_id: pid,
-            player_name: player ? `${player.first_name} ${player.last_name}` : "?",
+            player_name: playersMap.get(pid) || "?",
             daily_attendance: {},
             total_activities: 0,
             total_present: 0,
@@ -238,10 +250,9 @@ export default function MonthlyAttendance() {
       const dataMap: { [playerId: string]: MonthlyAttendance } = {};
 
       playerIds.forEach(pid => {
-        const player = players.find(p => p.id === pid);
         dataMap[pid] = {
           player_id: pid,
-          player_name: player ? `${player.first_name} ${player.last_name}` : "?",
+          player_name: playersMap.get(pid) || "?",
           daily_attendance: {},
           total_activities: 0,
           total_present: 0,
