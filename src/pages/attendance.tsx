@@ -380,8 +380,8 @@ export default function AttendancePage() {
     }
   }
 
-  async function handleAttendanceChange(playerId: string, status: number) {
-    if (![0, 1, 2].includes(status)) return;
+  async function handleAttendanceChange(playerId: string, status: number | null) {
+    if (![0, 1, 2].includes(status ?? 0)) return;
 
     try {
       // Upsert attendance record
@@ -390,7 +390,7 @@ export default function AttendancePage() {
         .upsert({
           activity_id: selectedActivity,
           player_id: playerId,
-          status: status,
+          status: status ?? 0,
           recorded_by: user?.id,
         }, {
           onConflict: "activity_id,player_id"
@@ -413,24 +413,34 @@ export default function AttendancePage() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>, index: number, playerId: string) {
-    const value = e.key;
-    
-    if (value === "Enter") {
+    if (e.key === "Enter") {
       e.preventDefault();
-      const input = e.currentTarget;
-      const numValue = parseInt(input.value);
-      
-      if ([0, 1, 2].includes(numValue)) {
-        handleAttendanceChange(playerId, numValue);
-      }
       
       // Move to next player
       if (index < players.length - 1) {
-        inputRefs.current[index + 1]?.focus();
-        inputRefs.current[index + 1]?.select();
+        const nextInput = inputRefs.current[index + 1];
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();  // Select text for immediate replacement
+        }
+      } else {
+        // Last player - focus save button or blur
+        const saveButton = document.querySelector('button[type="submit"]') as HTMLElement;
+        if (saveButton) {
+          saveButton.focus();
+        }
       }
-    } else if (!["0", "1", "2", "Tab", "Shift", "Backspace", "Delete", "ArrowUp", "ArrowDown"].includes(value)) {
+    } else if (e.key === "Backspace") {
       e.preventDefault();
+      
+      // Clear the input
+      const currentPlayer = players.find(p => p.id === playerId);
+      if (currentPlayer && currentPlayer.attendance_status !== null) {
+        handleAttendanceChange(playerId, null);
+      }
+    } else if (e.key === "Tab") {
+      // Let default Tab behavior work
+      return;
     }
   }
 
@@ -771,6 +781,10 @@ export default function AttendancePage() {
                                   handleAttendanceChange(player.id, numVal);
                                 }
                               }
+                            }}
+                            onFocus={(e) => {
+                              // Select text when input is focused for immediate replacement
+                              e.target.select();
                             }}
                             onKeyDown={(e) => handleKeyDown(e, index, player.id)}
                             autoFocus={index === 0}
