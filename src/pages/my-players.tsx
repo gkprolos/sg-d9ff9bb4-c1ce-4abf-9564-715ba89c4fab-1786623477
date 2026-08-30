@@ -63,6 +63,22 @@ export default function MyPlayersPage() {
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [playerForm, setPlayerForm] = useState({
+    first_name: "",
+    last_name: "",
+    date_of_birth: "",
+    phone: "",
+    address: "",
+    city: "",
+    postal_code: "",
+    guardian1_name: "",
+    guardian1_phone: "",
+    guardian1_email: "",
+    guardian2_name: "",
+    guardian2_phone: "",
+    guardian2_email: "",
+    gender: "male" as "male" | "female",
+  });
   const [selectedTeamForAdd, setSelectedTeamForAdd] = useState("");
   const [teamPlayerToRemove, setTeamPlayerToRemove] = useState<{ playerId: string; teamPlayerId: string; teamName: string } | null>(null);
   
