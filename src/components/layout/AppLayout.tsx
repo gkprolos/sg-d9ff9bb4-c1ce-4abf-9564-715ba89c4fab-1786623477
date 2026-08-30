@@ -418,6 +418,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/messaging">
+                                <MessageSquare className="h-4 w-4" />
+                                <span>Sporočila</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
                         </>
                       ) : userRole === "admin" ? (
                         // Admin Menu (unchanged)
@@ -508,6 +516,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               <Link href="/reports">
                                 <FileText className="h-4 w-4" />
                                 <span>Poročila</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                              <Link href="/messaging">
+                                <MessageSquare className="h-4 w-4" />
+                                <span>Sporočila</span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
@@ -628,6 +644,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             <Clock className="h-4 w-4" />
                             Urniki
                           </Link>
+                          <Link
+                            href="/messaging"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/messaging"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            Moja Sporočila
+                          </Link>
                         </>
                       )}
                     </SidebarMenu>
@@ -678,6 +706,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           >
                             <UserCircle className="h-4 w-4" />
                             Moji Otroci
+                          </Link>
+                          <Link
+                            href="/messaging"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/messaging"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            Sporočila
                           </Link>
                         </>
                       ) : userRole === "admin" ? (
@@ -819,6 +859,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             <FileText className="h-4 w-4" />
                             Poročila
                           </Link>
+                          <Link
+                            href="/messaging"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/messaging"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            Sporočila
+                          </Link>
                           
                           <div className="px-3 py-2 text-xs font-semibold text-muted-foreground mt-4">
                             Nastavitve
@@ -945,6 +997,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           >
                             <Clock className="h-4 w-4" />
                             Urniki
+                          </Link>
+                          <Link
+                            href="/messaging"
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              router.pathname === "/messaging"
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-muted"
+                            )}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            Moja Sporočila
                           </Link>
                         </>
                       )}
