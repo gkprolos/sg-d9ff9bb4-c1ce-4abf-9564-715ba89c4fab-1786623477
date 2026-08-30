@@ -350,6 +350,7 @@ export default function MessagingPage() {
 
   async function loadAvailableContacts(teamId?: string) {
     if (isParent) {
+      // Parent: Get coaches from their children's teams via API
       const { data } = await supabase.rpc("get_allowed_contacts_for_parent", {
         parent_email_param: parentEmail
       });
@@ -363,20 +364,48 @@ export default function MessagingPage() {
         })));
       }
     } else if (isCoach && user?.id) {
-      const { data } = await supabase.rpc("get_allowed_contacts_for_coach", {
-        coach_id_param: user.id,
-        team_id_param: teamId || null
-      });
+      // Coach: Get admin + other coaches only (NO parents)
+      const { data: allCoaches } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("is_active", true);
       
-      if (data) {
-        setAvailableContacts(data.map((c: any) => ({
-          id: c.user_id,
-          email: c.email,
-          name: c.name,
-          type: c.contact_type
-        })));
+      const { data: adminUsers } = await supabase
+        .from("user_roles")
+        .select("user_id, profiles(id, full_name, email)")
+        .eq("role", "admin");
+      
+      const contacts: Contact[] = [];
+      
+      // Add admins
+      if (adminUsers) {
+        adminUsers.forEach((admin: any) => {
+          if (admin.profiles && admin.user_id !== user?.id) {
+            contacts.push({
+              id: admin.profiles.id,
+              name: admin.profiles.full_name,
+              type: "admin"
+            });
+          }
+        });
       }
+      
+      // Add coaches (exclude self)
+      if (allCoaches) {
+        allCoaches.forEach(coach => {
+          if (coach.id !== user?.id && !contacts.find(c => c.id === coach.id)) {
+            contacts.push({
+              id: coach.id,
+              name: coach.full_name,
+              type: "coach"
+            });
+          }
+        });
+      }
+      
+      setAvailableContacts(contacts);
     } else if (isAdmin) {
+      // Admin: Get coaches + parents
       const { data: coaches } = await supabase
         .from("profiles")
         .select("id, full_name, email")
@@ -709,48 +738,47 @@ export default function MessagingPage() {
                   <p className="text-center text-muted-foreground py-8">Ni pogovorov</p>
                 ) : (
                   filteredConversations.map(conv => (
-                    <Card
+                    <div
                       key={conv.id}
-                      className={`cursor-pointer transition-colors ${
-                        selectedConversation?.id === conv.id ? "bg-accent" : "hover:bg-accent/50"
-                      }`}
-                      onClick={() => setSelectedConversation(conv)}
+                      onClick={() => handleSelectConversation(conv)}
+                      className={cn(
+                        "p-3 rounded-lg cursor-pointer transition-colors border",
+                        selectedConversation?.id === conv.id
+                          ? "bg-primary/10 border-primary"
+                          : "hover:bg-muted border-transparent"
+                      )}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-medium">{conv.subject}</h3>
-                          {conv.unread_count! > 0 && (
-                            <Badge variant="destructive" className="ml-2">
-                              {conv.unread_count}
-                            </Badge>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium truncate">{conv.subject}</h3>
+                          {conv.team_id && conv.teams && (
+                            <p className="text-xs text-muted-foreground">{conv.teams.name}</p>
                           )}
                         </div>
-                        
-                        {conv.teams && (
-                          <p className="text-xs text-muted-foreground mb-2">
-                            {conv.teams.name}
+                        {conv.unread_count > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            {conv.unread_count}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <Users className="h-3 w-3" />
+                        <span>{conv.conversation_participants?.length || 0} prejemnikov</span>
+                      </div>
+                      
+                      {conv.last_message && (
+                        <div className="text-sm text-muted-foreground">
+                          <p className="truncate">
+                            <span className="font-medium">{conv.last_message.sender_name}:</span>{" "}
+                            {conv.last_message.content}
                           </p>
-                        )}
-
-                        {conv.last_message && (
-                          <>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {conv.last_message.sender_name}: {conv.last_message.content}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {format(new Date(conv.last_message.created_at), "d. M. yyyy HH:mm", { locale: sl })}
-                            </p>
-                          </>
-                        )}
-
-                        <div className="flex items-center gap-2 mt-2">
-                          <Users className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            {conv.participants?.length || 0} udeležencev
-                          </span>
+                          <p className="text-xs mt-1">
+                            {format(new Date(conv.last_message.created_at), "d. M. yyyy HH:mm", { locale: sl })}
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
+                      )}
+                    </div>
                   ))
                 )}
               </div>
