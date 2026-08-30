@@ -221,7 +221,7 @@ export default function ParentLogin() {
       });
 
       setStep("complete");
-      setTimeout(() => router.push("/my-players"), 2000);
+      setTimeout(() => router.push("/my-children"), 2000);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -238,7 +238,7 @@ export default function ParentLogin() {
       title: "Prijava uspešna",
       description: "Pri naslednji prijavi boste ponovno prejeli OTP kodo",
     });
-    router.push("/my-players");
+    router.push("/my-children");
   }
 
   return (
