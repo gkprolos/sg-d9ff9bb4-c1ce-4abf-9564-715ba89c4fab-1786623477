@@ -66,33 +66,83 @@ export default function MyPlayersPage() {
   const [selectedTeamForAdd, setSelectedTeamForAdd] = useState("");
   const [teamPlayerToRemove, setTeamPlayerToRemove] = useState<{ playerId: string; teamPlayerId: string; teamName: string } | null>(null);
   
-  const [playerForm, setPlayerForm] = useState({
-    first_name: "",
-    last_name: "",
-    date_of_birth: "",
-    phone: "",
-    address: "",
-    city: "",
-    postal_code: "",
-    guardian1_name: "",
-    guardian1_phone: "",
-    guardian1_email: "",
-    guardian2_name: "",
-    guardian2_phone: "",
-    guardian2_email: "",
-    gender: "",
-  });
+  // Check if user is a parent (via localStorage)
+  const [isParent, setIsParent] = useState(false);
+  const [parentEmail, setParentEmail] = useState("");
+
+  useEffect(() => {
+    const parentSession = localStorage.getItem("parentSession");
+    if (parentSession) {
+      try {
+        const session = JSON.parse(parentSession);
+        setIsParent(true);
+        setParentEmail(session.email);
+      } catch (error) {
+        console.error("Invalid parent session:", error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     loadPlayers();
     loadTeams();
-  }, []);
+  }, [isParent, parentEmail]);
 
   async function loadPlayers() {
     try {
       setLoading(true);
 
-      // First, get coach's teams if not admin
+      // Parent view: load their children
+      if (isParent && parentEmail) {
+        const { data, error } = await supabase
+          .from("players")
+          .select(`
+            id,
+            first_name,
+            last_name,
+            date_of_birth,
+            phone,
+            address,
+            city,
+            postal_code,
+            guardian1_name,
+            guardian1_phone,
+            guardian1_email,
+            guardian2_name,
+            guardian2_phone,
+            guardian2_email,
+            gender,
+            is_active,
+            team_players(
+              id,
+              team_id,
+              teams(
+                id,
+                name
+              )
+            )
+          `)
+          .or(`guardian1_email.eq.${parentEmail},guardian2_email.eq.${parentEmail}`)
+          .eq("is_active", true)
+          .order("last_name", { ascending: true })
+          .order("first_name", { ascending: true });
+
+        if (error) {
+          console.error("Napaka pri nalaganju otrok:", error);
+          toast({
+            variant: "destructive",
+            title: "Napaka",
+            description: error.message || "Ni mogoče naložiti podatkov o otrocih",
+          });
+          throw error;
+        }
+
+        setPlayers(data || []);
+        setLoading(false);
+        return;
+      }
+
+      // Coach view: load their team's players
       let playerIds: string[] = [];
       if (user?.id && userRole === "coach") {
         const { data: coachTeams } = await supabase
@@ -532,18 +582,27 @@ export default function MyPlayersPage() {
   });
 
   return (
-    <ProtectedRoute allowedRoles={["coach"]}>
+    <ProtectedRoute allowedRoles={isParent ? undefined : ["coach"]}>
       <AppLayout>
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight">Igralci</h2>
-              <p className="text-muted-foreground">Upravljanje igralcev in njihovih selekcij</p>
+              <h2 className="text-3xl font-bold tracking-tight">
+                {isParent ? "Moji Otroci" : "Igralci"}
+              </h2>
+              <p className="text-muted-foreground">
+                {isParent 
+                  ? "Pregled podatkov in prisotnosti vaših otrok" 
+                  : "Upravljanje igralcev in njihovih selekcij"
+                }
+              </p>
             </div>
-            <Button onClick={handleAddClick} disabled={loading}>
-              <Plus className="h-4 w-4 mr-2" />
-              Dodaj igralca
-            </Button>
+            {!isParent && (
+              <Button onClick={handleAddClick} disabled={loading}>
+                <Plus className="h-4 w-4 mr-2" />
+                Dodaj igralca
+              </Button>
+            )}
           </div>
 
           <Card>
@@ -634,22 +693,26 @@ export default function MyPlayersPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2 justify-end">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditClick(player)}
-                                title="Uredi igralca"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAddToTeamClick(player)}
-                                title="Dodaj v selekcijo"
-                              >
-                                <Users className="h-4 w-4" />
-                              </Button>
+                              {!isParent && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditClick(player)}
+                                    title="Uredi igralca"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleAddToTeamClick(player)}
+                                    title="Dodaj v selekcijo"
+                                  >
+                                    <Users className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
