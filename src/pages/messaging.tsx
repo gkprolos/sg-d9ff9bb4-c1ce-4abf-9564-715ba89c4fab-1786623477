@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Send, Plus, Users, Search, Archive } from "lucide-react";
+import { MessageSquare, Send, Plus, Users, Search, Archive, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { sl } from "date-fns/locale";
+import Link from "next/link";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 interface Conversation {
   id: string;
@@ -443,298 +446,317 @@ export default function MessagingPage() {
   );
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex gap-4 p-4">
-      <div className="w-1/3 flex flex-col gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                {isAdmin ? "Sporočila" : isCoach ? "Moja Sporočila" : "Sporočila"}
-              </CardTitle>
-              <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
-                <DialogTrigger asChild>
-                  <Button size="sm" onClick={() => loadAvailableContacts()}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nov Pogovor
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Nov Pogovor</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    {(isCoach || isAdmin) && teams.length > 0 && (
-                      <div>
-                        <label className="text-sm font-medium">Selekcija (opcijsko)</label>
-                        <Select value={selectedTeam} onValueChange={(val) => {
-                          setSelectedTeam(val);
-                          loadAvailableContacts(val);
-                        }}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Izberi selekcijo..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {teams.map(team => (
-                              <SelectItem key={team.id} value={team.id}>
-                                {team.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                    
-                    <div>
-                      <label className="text-sm font-medium">Naslov</label>
-                      <Input
-                        value={newSubject}
-                        onChange={(e) => setNewSubject(e.target.value)}
-                        placeholder="Naslov pogovora..."
-                      />
-                    </div>
+    <AppLayout>
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Nazaj
+          </Button>
+          <h1 className="text-2xl font-bold">
+            {isAdmin ? "Sporočila" : isCoach ? "Moja Sporočila" : "Sporočila"}
+          </h1>
+        </div>
 
-                    <div>
-                      <label className="text-sm font-medium">Prejemniki</label>
-                      <ScrollArea className="h-48 border rounded-md p-4">
-                        <div className="space-y-2">
-                          {availableContacts.map(contact => {
-                            const contactId = contact.id || contact.email || "";
-                            return (
-                              <div key={contactId} className="flex items-center gap-2">
-                                <Checkbox
-                                  checked={selectedContacts.includes(contactId)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setSelectedContacts([...selectedContacts, contactId]);
-                                    } else {
-                                      setSelectedContacts(selectedContacts.filter(id => id !== contactId));
-                                    }
-                                  }}
-                                />
-                                <label className="text-sm">
-                                  {contact.name}
-                                  <Badge variant="outline" className="ml-2 text-xs">
-                                    {contact.type === "coach" ? "Trener" : "Starš"}
-                                  </Badge>
-                                </label>
-                              </div>
-                            );
-                          })}
+        <div className="h-[calc(100vh-12rem)] flex gap-4">
+          <div className="w-1/3 flex flex-col gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    {isAdmin ? "Sporočila" : isCoach ? "Moja Sporočila" : "Sporočila"}
+                  </CardTitle>
+                  <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" onClick={() => loadAvailableContacts()}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nov Pogovor
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Nov Pogovor</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        {(isCoach || isAdmin) && teams.length > 0 && (
+                          <div>
+                            <label className="text-sm font-medium">Selekcija (opcijsko)</label>
+                            <Select value={selectedTeam} onValueChange={(val) => {
+                              setSelectedTeam(val);
+                              loadAvailableContacts(val);
+                            }}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Izberi selekcijo..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {teams.map(team => (
+                                  <SelectItem key={team.id} value={team.id}>
+                                    {team.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        
+                        <div>
+                          <label className="text-sm font-medium">Naslov</label>
+                          <Input
+                            value={newSubject}
+                            onChange={(e) => setNewSubject(e.target.value)}
+                            placeholder="Naslov pogovora..."
+                          />
                         </div>
-                      </ScrollArea>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Izbrano: {selectedContacts.length}
-                      </p>
-                    </div>
 
-                    <div>
-                      <label className="text-sm font-medium">Sporočilo</label>
-                      <Textarea
-                        value={newContent}
-                        onChange={(e) => setNewContent(e.target.value)}
-                        placeholder="Napišite sporočilo..."
-                        rows={4}
-                      />
-                    </div>
+                        <div>
+                          <label className="text-sm font-medium">Prejemniki</label>
+                          <ScrollArea className="h-48 border rounded-md p-4">
+                            <div className="space-y-2">
+                              {availableContacts.map(contact => {
+                                const contactId = contact.id || contact.email || "";
+                                return (
+                                  <div key={contactId} className="flex items-center gap-2">
+                                    <Checkbox
+                                      checked={selectedContacts.includes(contactId)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setSelectedContacts([...selectedContacts, contactId]);
+                                        } else {
+                                          setSelectedContacts(selectedContacts.filter(id => id !== contactId));
+                                        }
+                                      }}
+                                    />
+                                    <label className="text-sm">
+                                      {contact.name}
+                                      <Badge variant="outline" className="ml-2 text-xs">
+                                        {contact.type === "coach" ? "Trener" : "Starš"}
+                                      </Badge>
+                                    </label>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </ScrollArea>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Izbrano: {selectedContacts.length}
+                          </p>
+                        </div>
 
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setShowNewDialog(false)}>
-                        Prekliči
-                      </Button>
-                      <Button onClick={createConversation}>
-                        Ustvari Pogovor
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Iskanje..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+                        <div>
+                          <label className="text-sm font-medium">Sporočilo</label>
+                          <Textarea
+                            value={newContent}
+                            onChange={(e) => setNewContent(e.target.value)}
+                            placeholder="Napišite sporočilo..."
+                            rows={4}
+                          />
+                        </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Aktivni</SelectItem>
-                <SelectItem value="archived">Arhivirani</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
-        <ScrollArea className="flex-1">
-          <div className="space-y-2">
-            {loading ? (
-              <p className="text-center text-muted-foreground py-8">Nalaganje...</p>
-            ) : filteredConversations.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Ni pogovorov</p>
-            ) : (
-              filteredConversations.map(conv => (
-                <Card
-                  key={conv.id}
-                  className={`cursor-pointer transition-colors ${
-                    selectedConversation?.id === conv.id ? "bg-accent" : "hover:bg-accent/50"
-                  }`}
-                  onClick={() => setSelectedConversation(conv)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-medium">{conv.subject}</h3>
-                      {conv.unread_count! > 0 && (
-                        <Badge variant="destructive" className="ml-2">
-                          {conv.unread_count}
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    {conv.teams && (
-                      <p className="text-xs text-muted-foreground mb-2">
-                        {conv.teams.name}
-                      </p>
-                    )}
-
-                    {conv.last_message && (
-                      <>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {conv.last_message.sender_name}: {conv.last_message.content}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(conv.last_message.created_at), "d. M. yyyy HH:mm", { locale: sl })}
-                        </p>
-                      </>
-                    )}
-
-                    <div className="flex items-center gap-2 mt-2">
-                      <Users className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {conv.participants?.length || 0} udeležencev
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </ScrollArea>
-      </div>
-
-      <Card className="flex-1 flex flex-col">
-        {selectedConversation ? (
-          <>
-            <CardHeader className="border-b">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle>{selectedConversation.subject}</CardTitle>
-                  {selectedConversation.teams && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {selectedConversation.teams.name}
-                    </p>
-                  )}
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" onClick={() => setShowNewDialog(false)}>
+                            Prekliči
+                          </Button>
+                          <Button onClick={createConversation}>
+                            Ustvari Pogovor
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-                {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={async () => {
-                      await supabase
-                        .from("conversations")
-                        .update({ status: selectedConversation.status === "active" ? "archived" : "active" })
-                        .eq("id", selectedConversation.id);
-                      loadConversations();
-                      setSelectedConversation(null);
-                    }}
-                  >
-                    <Archive className="h-4 w-4 mr-2" />
-                    {selectedConversation.status === "active" ? "Arhiviraj" : "Aktiviraj"}
-                  </Button>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                <Users className="h-4 w-4" />
-                <span>
-                  {selectedConversation.participants?.map(p => 
-                    p.profiles?.full_name || p.parent_email
-                  ).join(", ")}
-                </span>
-              </div>
-            </CardHeader>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder="Iskanje..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
 
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {messages.map(msg => {
-                  const isMine = isParent 
-                    ? msg.sender_parent_email === parentEmail
-                    : msg.sender_id === user?.id;
-                  
-                  const senderName = msg.sender_parent_email || msg.profiles?.full_name || "Sistem";
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktivni</SelectItem>
+                    <SelectItem value="archived">Arhivirani</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
 
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+            <ScrollArea className="flex-1">
+              <div className="space-y-2">
+                {loading ? (
+                  <p className="text-center text-muted-foreground py-8">Nalaganje...</p>
+                ) : filteredConversations.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Ni pogovorov</p>
+                ) : (
+                  filteredConversations.map(conv => (
+                    <Card
+                      key={conv.id}
+                      className={`cursor-pointer transition-colors ${
+                        selectedConversation?.id === conv.id ? "bg-accent" : "hover:bg-accent/50"
+                      }`}
+                      onClick={() => setSelectedConversation(conv)}
                     >
-                      <div className={`max-w-[70%] ${isMine ? "bg-primary text-primary-foreground" : "bg-muted"} rounded-lg p-3`}>
-                        {!isMine && (
-                          <p className="text-xs font-medium mb-1 opacity-70">
-                            {senderName}
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-medium">{conv.subject}</h3>
+                          {conv.unread_count! > 0 && (
+                            <Badge variant="destructive" className="ml-2">
+                              {conv.unread_count}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {conv.teams && (
+                          <p className="text-xs text-muted-foreground mb-2">
+                            {conv.teams.name}
                           </p>
                         )}
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                        <p className={`text-xs mt-1 ${isMine ? "opacity-70" : "text-muted-foreground"}`}>
-                          {format(new Date(msg.created_at), "d. M. yyyy HH:mm", { locale: sl })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
+
+                        {conv.last_message && (
+                          <>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {conv.last_message.sender_name}: {conv.last_message.content}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {format(new Date(conv.last_message.created_at), "d. M. yyyy HH:mm", { locale: sl })}
+                            </p>
+                          </>
+                        )}
+
+                        <div className="flex items-center gap-2 mt-2">
+                          <Users className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
+                            {conv.participants?.length || 0} udeležencev
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </ScrollArea>
-
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Textarea
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Napišite sporočilo..."
-                  rows={2}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                />
-                <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Pritisnite Enter za pošiljanje, Shift + Enter za novo vrstico
-              </p>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Izberite pogovor za prikaz sporočil</p>
-            </div>
           </div>
-        )}
-      </Card>
-    </div>
+
+          <Card className="flex-1 flex flex-col">
+            {selectedConversation ? (
+              <>
+                <CardHeader className="border-b">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle>{selectedConversation.subject}</CardTitle>
+                      {selectedConversation.teams && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {selectedConversation.teams.name}
+                        </p>
+                      )}
+                    </div>
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          await supabase
+                            .from("conversations")
+                            .update({ status: selectedConversation.status === "active" ? "archived" : "active" })
+                            .eq("id", selectedConversation.id);
+                          loadConversations();
+                          setSelectedConversation(null);
+                        }}
+                      >
+                        <Archive className="h-4 w-4 mr-2" />
+                        {selectedConversation.status === "active" ? "Arhiviraj" : "Aktiviraj"}
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                    <Users className="h-4 w-4" />
+                    <span>
+                      {selectedConversation.participants?.map(p => 
+                        p.profiles?.full_name || p.parent_email
+                      ).join(", ")}
+                    </span>
+                  </div>
+                </CardHeader>
+
+                <ScrollArea className="flex-1 p-4">
+                  <div className="space-y-4">
+                    {messages.map(msg => {
+                      const isMine = isParent 
+                        ? msg.sender_parent_email === parentEmail
+                        : msg.sender_id === user?.id;
+                      
+                      const senderName = msg.sender_parent_email || msg.profiles?.full_name || "Sistem";
+
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                        >
+                          <div className={`max-w-[70%] ${isMine ? "bg-primary text-primary-foreground" : "bg-muted"} rounded-lg p-3`}>
+                            {!isMine && (
+                              <p className="text-xs font-medium mb-1 opacity-70">
+                                {senderName}
+                              </p>
+                            )}
+                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                            <p className={`text-xs mt-1 ${isMine ? "opacity-70" : "text-muted-foreground"}`}>
+                              {format(new Date(msg.created_at), "d. M. yyyy HH:mm", { locale: sl })}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </ScrollArea>
+
+                <div className="p-4 border-t">
+                  <div className="flex gap-2">
+                    <Textarea
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Napišite sporočilo..."
+                      rows={2}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          sendMessage();
+                        }
+                      }}
+                    />
+                    <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Pritisnite Enter za pošiljanje, Shift + Enter za novo vrstico
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Izberite pogovor za prikaz sporočil</p>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+    </AppLayout>
   );
 }
