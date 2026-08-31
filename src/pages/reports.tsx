@@ -182,8 +182,8 @@ export default function ReportsPage() {
       setTeamsList(processedTeams.map(t => ({ id: t.team_id, name: t.team_name })));
 
       // Get all activities for selected year
-      const yearStart = `${selectedYear}-01-01`;
-      const yearEnd = `${selectedYear}-12-31`;
+      const yearStart = `${selectedYear}-01-01T00:00:00.000`;
+      const yearEnd = `${selectedYear}-12-31T23:59:59.999`;
 
       const { data: activities, error: activitiesError } = await supabase
         .from("activities")
