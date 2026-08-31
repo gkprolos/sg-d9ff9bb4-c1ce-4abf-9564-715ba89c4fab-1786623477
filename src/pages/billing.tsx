@@ -192,37 +192,57 @@ export default function BillingPage() {
           return diffMonths;
         })();
 
-      // Load coach profiles with rates
-      let coachProfilesQuery = supabase
-        .from("profiles")
-        .select("id, full_name, hourly_rate, km_rate");
+      // Load coach profiles with rates FROM COACH_RATES TABLE
+      let coachRatesQuery = supabase
+        .from("coach_rates")
+        .select(`
+          coach_id,
+          head_type1_per_hour,
+          head_type2_per_hour,
+          head_type3_fixed,
+          assistant_type1_per_hour,
+          assistant_type2_per_hour,
+          assistant_type3_fixed,
+          rate_per_km,
+          profiles!coach_rates_coach_id_fkey(
+            id,
+            full_name
+          ),
+          seasons!coach_rates_season_id_fkey(
+            id,
+            name,
+            is_active
+          )
+        `)
+        .eq("seasons.is_active", true);
 
       if (coachIds.length > 0) {
-        coachProfilesQuery = coachProfilesQuery.in("id", coachIds);
+        coachRatesQuery = coachRatesQuery.in("coach_id", coachIds);
       }
 
-      const { data: coachProfiles, error: profilesError } = await coachProfilesQuery;
+      const { data: coachRates, error: ratesError } = await coachRatesQuery;
       
-      if (profilesError) {
-        console.error("Error loading coach profiles:", profilesError);
-        throw profilesError;
+      if (ratesError) {
+        console.error("Error loading coach rates:", ratesError);
+        throw ratesError;
       }
 
-      console.log(`Loaded ${(coachProfiles || []).length} coach profiles with rates`);
+      console.log(`Loaded ${(coachRates || []).length} coach rates for active season`);
       
-      // Debug: Show loaded profiles
-      if (coachProfiles && coachProfiles.length > 0) {
-        console.log("Coach profiles loaded:");
-        coachProfiles.forEach(cp => {
-          console.log(`  ${cp.full_name} (${cp.id}): hourly_rate=${cp.hourly_rate}, km_rate=${cp.km_rate}`);
+      // Debug: Show loaded rates
+      if (coachRates && coachRates.length > 0) {
+        console.log("Coach rates loaded:");
+        coachRates.forEach(cr => {
+          const coachName = cr.profiles?.full_name || "Unknown";
+          console.log(`  ${coachName}: type1=${cr.head_type1_per_hour}, type2=${cr.head_type2_per_hour}, type3=${cr.head_type3_fixed}, km=${cr.rate_per_km}`);
         });
       } else {
-        console.warn("⚠️ NO COACH PROFILES FOUND!");
+        console.warn("⚠️ NO COACH RATES FOUND FOR ACTIVE SEASON!");
       }
 
-      // Create coach map: coach_id -> profile
-      const coachProfileMap = new Map(
-        (coachProfiles || []).map(cp => [cp.id, cp])
+      // Create coach rates map: coach_id -> rates
+      const coachRatesMap = new Map(
+        (coachRates || []).map(cr => [cr.coach_id, cr])
       );
 
       // Load months
@@ -359,19 +379,37 @@ export default function BillingPage() {
 
             console.log(`  Coach ${ac.coach_id}: role=${ac.role}, hours=${hours.toFixed(2)}`);
 
-            // Get coach profile with rates
-            const coachProfile = coachProfileMap.get(ac.coach_id);
+            // Get coach rates (NOT profile hourly_rate!)
+            const coachRates = coachRatesMap.get(ac.coach_id);
 
-            if (!coachProfile) {
-              console.warn(`⚠️ No profile found for coach ${ac.coach_id} - using default rates (0)`);
+            if (!coachRates) {
+              console.warn(`⚠️ No coach_rates found for coach ${ac.coach_id} - skipping`);
+              continue;
             }
 
-            const hourlyRate = coachProfile?.hourly_rate || 0;
-            const kmRate = coachProfile?.km_rate || 0;
+            const kmRate = coachRates.rate_per_km || 0;
 
-            console.log(`    Using rates: hourly=${hourlyRate}, km=${kmRate}`);
-
+            // Select correct rate based on activity_type_id and role
+            let hourlyRate = 0;
+            const isHead = ac.role === "head";
+            
             if (isTraining) {
+              // Type 1 or Type 2
+              if (activity.activity_type_id === 1) {
+                hourlyRate = isHead ? (coachRates.head_type1_per_hour || 0) : (coachRates.assistant_type1_per_hour || 0);
+              } else if (activity.activity_type_id === 2) {
+                // Use type2 rate, fallback to type1 if NULL
+                const type2Rate = isHead ? coachRates.head_type2_per_hour : coachRates.assistant_type2_per_hour;
+                const type1Fallback = isHead ? coachRates.head_type1_per_hour : coachRates.assistant_type1_per_hour;
+                hourlyRate = type2Rate !== null ? type2Rate : (type1Fallback || 0);
+                
+                if (type2Rate === null) {
+                  console.log(`    ⚠️ Type2 rate NULL, using type1 fallback: ${type1Fallback}`);
+                }
+              }
+              
+              console.log(`    Using rates: hourly=${hourlyRate} (type${activity.activity_type_id}), km=${kmRate}`);
+              
               entry.training_count += 1;
               entry.training_hours += hours;
               
@@ -380,13 +418,17 @@ export default function BillingPage() {
               entry.hourly_amount += amount;
               console.log(`    Training: ${hours.toFixed(2)}h × ${hourlyRate} = ${amount.toFixed(2)} €`);
             } else if (isMatch) {
-              entry.match_count += 1;
-              entry.match_hours += 4; // Official match always counts as 4 hours (regardless of actual duration)
+              // Type 3 - use fixed match rate (NOT hourly!)
+              const matchRate = isHead ? (coachRates.head_type3_fixed || 0) : (coachRates.assistant_type3_fixed || 0);
               
-              // For matches, always use 4 hours × hourly rate
-              const amount = 4 * hourlyRate;
-              entry.hourly_amount += amount;
-              console.log(`    Match: 4h (fixed) × ${hourlyRate} = ${amount.toFixed(2)} €`);
+              console.log(`    Using rates: match=${matchRate} (fixed), km=${kmRate}`);
+              
+              entry.match_count += 1;
+              entry.match_hours += 4; // Official match always counts as 4 hours for display
+              
+              // For matches, use FIXED rate (not hourly × 4!)
+              entry.hourly_amount += matchRate;
+              console.log(`    Match: ${matchRate.toFixed(2)} € (fixed)`);
             }
 
             // Calculate kilometer amount
@@ -404,12 +446,12 @@ export default function BillingPage() {
 
         // Create billing records
         for (const [coachId, billing] of coachBillingMap) {
-          const coachProfile = coachProfileMap.get(coachId);
+          const coachRates = coachRatesMap.get(coachId);
           const totalHours = billing.training_hours + billing.match_hours;
           const totalAmount = billing.hourly_amount + billing.kilometer_amount;
 
-          const coachName = coachProfile?.full_name 
-            ? coachProfile.full_name
+          const coachName = coachRates?.profiles?.full_name 
+            ? coachRates.profiles.full_name
             : `⚠️ Neznan trener (${coachId.substring(0, 8)}...)`;
 
           console.log(`Coach ${coachName}: training_hours=${billing.training_hours.toFixed(1)}, hourly_amount=${billing.hourly_amount.toFixed(2)}, km_amount=${billing.kilometer_amount.toFixed(2)}, total=${totalAmount.toFixed(2)}`);
