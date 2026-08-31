@@ -231,8 +231,13 @@ export default function BillingPage() {
         const year = date.getFullYear();
         const month = date.getMonth() + 1;
         const monthStr = `${year}-${String(month).padStart(2, "0")}`;
-        const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-        const endDate = new Date(year, month, 0).toISOString().split("T")[0];
+        
+        // Calculate last day of month
+        const lastDay = new Date(year, month, 0).getDate();
+        
+        // Use full timestamp range to ensure we catch all activities on last day of month
+        const startDate = `${year}-${String(month).padStart(2, "0")}-01T00:00:00.000`;
+        const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999`;
 
         console.log(`Loading billing for ${monthStr}...`);
         console.log(`  Date range: ${startDate} to ${endDate}`);
