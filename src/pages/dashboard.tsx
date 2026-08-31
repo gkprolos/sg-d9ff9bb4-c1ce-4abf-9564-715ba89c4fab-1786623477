@@ -353,6 +353,33 @@ export default function DashboardPage() {
       const { count: totalActivitiesCount, error: totalActivitiesError } = await totalActivitiesQuery;
       console.log("totalActivitiesCount:", totalActivitiesCount, "error:", totalActivitiesError);
 
+      // Load coach_rates for active season (same as billing.tsx)
+      const { data: coachRatesData, error: ratesLoadError } = await supabase
+        .from("coach_rates")
+        .select(`
+          coach_id,
+          head_type1_per_hour,
+          head_type2_per_hour,
+          head_type3_fixed,
+          assistant_type1_per_hour,
+          assistant_type2_per_hour,
+          assistant_type3_fixed,
+          rate_per_km,
+          seasons!coach_rates_season_id_fkey(is_active)
+        `)
+        .eq("seasons.is_active", true);
+
+      if (ratesLoadError) {
+        console.error("Error loading coach rates for dashboard:", ratesLoadError);
+      }
+
+      // Create coach rates map
+      const dashboardCoachRatesMap = new Map(
+        (coachRatesData || []).map(cr => [cr.coach_id, cr])
+      );
+
+      console.log(`Dashboard: Loaded ${dashboardCoachRatesMap.size} coach rates for calculation`);
+
       // Get monthly activities with detailed data
       let monthlyActivitiesQuery = supabase
         .from("activities")
@@ -361,6 +388,7 @@ export default function DashboardPage() {
           teams!inner (name),
           activity_coaches (
             coach_id,
+            role,
             hours_worked,
             mileage_km,
             total_amount
@@ -396,7 +424,7 @@ export default function DashboardPage() {
         console.error("Error loading monthly activities:", monthlyActivitiesError);
       }
 
-      // Calculate monthly totals
+      // Calculate monthly totals using coach_rates (same as billing.tsx)
       let totalHours = 0;
       let totalKilometers = 0;
       let totalAmount = 0;
@@ -408,9 +436,43 @@ export default function DashboardPage() {
             const isAdminView = isAdmin;
 
             if (isMyActivity || isAdminView) {
-              totalHours += ac.hours_worked || 0;
-              totalKilometers += ac.mileage_km || 0;
-              totalAmount += ac.total_amount || 0;
+              const hours = ac.hours_worked || 0;
+              totalHours += hours;
+              
+              const kilometers = ac.mileage_km || 0;
+              totalKilometers += kilometers;
+
+              // Calculate amount from coach_rates (NOT ac.total_amount!)
+              const coachRate = dashboardCoachRatesMap.get(ac.coach_id);
+              if (coachRate) {
+                const isHead = ac.role === "head";
+                const kmRate = coachRate.rate_per_km || 0;
+                
+                let amount = 0;
+                
+                if (activity.activity_type_id === 1) {
+                  // Type 1: Training
+                  const hourlyRate = isHead ? (coachRate.head_type1_per_hour || 0) : (coachRate.assistant_type1_per_hour || 0);
+                  amount = hours * hourlyRate;
+                } else if (activity.activity_type_id === 2) {
+                  // Type 2: Training outside (fallback to type1 if NULL)
+                  const type2Rate = isHead ? coachRate.head_type2_per_hour : coachRate.assistant_type2_per_hour;
+                  const type1Fallback = isHead ? coachRate.head_type1_per_hour : coachRate.assistant_type1_per_hour;
+                  const hourlyRate = type2Rate !== null ? type2Rate : (type1Fallback || 0);
+                  amount = hours * hourlyRate;
+                } else if (activity.activity_type_id === 3) {
+                  // Type 3: Match - use FIXED rate (not hourly!)
+                  const matchRate = isHead ? (coachRate.head_type3_fixed || 0) : (coachRate.assistant_type3_fixed || 0);
+                  amount = matchRate;
+                }
+                
+                // Add kilometer amount
+                amount += kilometers * kmRate;
+                
+                totalAmount += amount;
+              } else {
+                console.warn(`No coach_rates for coach ${ac.coach_id} - amount not calculated`);
+              }
             }
           });
         }
