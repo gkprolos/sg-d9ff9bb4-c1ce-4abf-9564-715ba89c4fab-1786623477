@@ -685,7 +685,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold leading-tight">OK Lubnik</span>
-                      <span className="text-xs text-muted-foreground leading-tight">Odbojarski klub</span>
+                      <span className="text-xs text-muted-foreground leading-tight">Odbojkarski klub</span>
                     </div>
                   </Link>
                 </div>
