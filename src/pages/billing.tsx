@@ -235,6 +235,9 @@ export default function BillingPage() {
         const endDate = new Date(year, month, 0).toISOString().split("T")[0];
 
         console.log(`Loading billing for ${monthStr}...`);
+        console.log(`  Date range: ${startDate} to ${endDate}`);
+        console.log(`  Team filter: ${teamIds.length > 0 ? teamIds.join(", ") : "all teams"}`);
+        console.log(`  Coach filter: ${coachIds.length > 0 ? coachIds.join(", ") : "all coaches"}`);
 
         // Get activities for this month with full details
         let activitiesQuery = supabase
@@ -264,6 +267,16 @@ export default function BillingPage() {
         if (activitiesError) {
           console.error("Error loading activities:", activitiesError);
           throw activitiesError;
+        }
+
+        console.log(`  Raw query returned ${activities?.length || 0} activities (before any filtering)`);
+        
+        if (activities && activities.length > 0) {
+          console.log("  Activity details:");
+          activities.forEach(a => {
+            const coaches = (a.activity_coaches || []).map(ac => ac.coach_id.substring(0, 8)).join(", ");
+            console.log(`    - Activity ${a.id.substring(0, 8)}: team=${a.team_id.substring(0, 8)}, coaches=[${coaches}]`);
+          });
         }
 
         if (!activities || activities.length === 0) {
