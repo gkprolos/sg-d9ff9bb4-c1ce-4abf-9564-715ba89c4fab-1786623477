@@ -101,7 +101,7 @@ export default function MyChildren() {
       const response = await fetch("/api/parent/get-children", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ parentEmail }),
+        body: JSON.stringify({ parentEmail })
       });
 
       const data = await response.json();
@@ -124,7 +124,7 @@ export default function MyChildren() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti podatkov o otrocih",
+        description: error.message || "Ni mogoče naložiti podatkov o otrocih"
       });
     } finally {
       setLoading(false);
@@ -143,20 +143,20 @@ export default function MyChildren() {
       const startDate = startOfMonth.toISOString().split("T")[0];
       const endDate = endOfMonth.toISOString().split("T")[0];
 
-      console.log("Loading attendance for:", { 
-        playerId: selectedChild, 
-        startDate, 
-        endDate 
+      console.log("Loading attendance for:", {
+        playerId: selectedChild,
+        startDate,
+        endDate
       });
 
       const response = await fetch("/api/parent/get-attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           playerId: selectedChild,
           startDate,
           endDate
-        }),
+        })
       });
 
       const data = await response.json();
@@ -173,7 +173,7 @@ export default function MyChildren() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti prisotnosti",
+        description: error.message || "Ni mogoče naložiti prisotnosti"
       });
     } finally {
       setLoading(false);
@@ -189,7 +189,7 @@ export default function MyChildren() {
       const response = await fetch("/api/parent/get-child-schedules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId: selectedChild }),
+        body: JSON.stringify({ playerId: selectedChild })
       });
 
       const data = await response.json();
@@ -225,7 +225,7 @@ export default function MyChildren() {
     const jsDay = dateObj.getDay();
     const dbDay = jsDay === 0 ? 7 : jsDay;
 
-    return schedules.find(s => s.day_of_week === dbDay) || null;
+    return schedules.find((s) => s.day_of_week === dbDay) || null;
   }
 
   function getActivityTypeLabel(record: AttendanceRecord | null): string | null {
@@ -236,9 +236,9 @@ export default function MyChildren() {
     if (typeId === 1) return "Trening";
     if (typeId === 2) return "Trening zunaj";
     if (typeId === 3) {
-      return record.activities.home_game 
-        ? "🏆 Tekma (doma)" 
-        : "🏆 Tekma (gost)";
+      return record.activities.home_game ?
+      "🏆 Tekma (doma)" :
+      "🏆 Tekma (gost)";
     }
 
     return null;
@@ -259,7 +259,7 @@ export default function MyChildren() {
 
   function formatScheduleInfo(schedule: ScheduleTemplate | null): string | null {
     if (!schedule) return null;
-    
+
     const venue = schedule.venues?.name || "N/A";
     const city = schedule.venues?.city ? ` (${schedule.venues.city})` : "";
     return `${schedule.start_time.slice(0, 5)}-${schedule.end_time.slice(0, 5)}, ${venue}${city}`;
@@ -274,10 +274,10 @@ export default function MyChildren() {
   }
 
   const stats = {
-    present: attendance.filter(a => a.status === 1).length,
-    absent: attendance.filter(a => a.status === 0).length,
-    excused: attendance.filter(a => a.status === 2).length,
-    total: attendance.length,
+    present: attendance.filter((a) => a.status === 1).length,
+    absent: attendance.filter((a) => a.status === 0).length,
+    excused: attendance.filter((a) => a.status === 2).length,
+    total: attendance.length
   };
 
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
@@ -285,13 +285,13 @@ export default function MyChildren() {
   const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
   const months = [
-    "Januar", "Februar", "Marec", "April", "Maj", "Junij",
-    "Julij", "Avgust", "September", "Oktober", "November", "December"
-  ];
+  "Januar", "Februar", "Marec", "April", "Maj", "Junij",
+  "Julij", "Avgust", "September", "Oktober", "November", "December"];
+
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
-  const selectedChildData = children.find(c => c.id === selectedChild);
+  const selectedChildData = children.find((c) => c.id === selectedChild);
 
   return (
     <AppLayout>
@@ -299,7 +299,7 @@ export default function MyChildren() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="h-6 w-6 text-primary" />
-            <h1 className="text-3xl font-bold">Prisotnost Otrok</h1>
+            <h1 className="text-3xl font-bold">Prisotnost otrok</h1>
           </div>
           <Button onClick={handleLogout} variant="outline">
             <LogOut className="h-4 w-4 mr-2" />
@@ -307,23 +307,23 @@ export default function MyChildren() {
           </Button>
         </div>
 
-        {loading && children.length === 0 ? (
-          <Card>
+        {loading && children.length === 0 ?
+        <Card>
             <CardContent className="p-6">
               <p className="text-center text-muted-foreground">Nalagam podatke...</p>
             </CardContent>
-          </Card>
-        ) : children.length === 0 ? (
-          <Card>
+          </Card> :
+        children.length === 0 ?
+        <Card>
             <CardContent className="p-6">
               <p className="text-center text-muted-foreground">Ni najdenih otrok</p>
             </CardContent>
-          </Card>
-        ) : (
-          <>
+          </Card> :
+
+        <>
             <Card>
               <CardHeader>
-                <CardTitle>Izberi Otroka</CardTitle>
+                <CardTitle>Izberi otroka</CardTitle>
                 <CardDescription>Prikaz prisotnosti za izbranega otroka</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -335,11 +335,11 @@ export default function MyChildren() {
                         <SelectValue placeholder="Izberi otroka" />
                       </SelectTrigger>
                       <SelectContent>
-                        {children.map((child) => (
-                          <SelectItem key={child.id} value={child.id}>
+                        {children.map((child) =>
+                      <SelectItem key={child.id} value={child.id}>
                             {child.first_name} {child.last_name}
                           </SelectItem>
-                        ))}
+                      )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -351,11 +351,11 @@ export default function MyChildren() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {months.map((month, idx) => (
-                          <SelectItem key={idx} value={idx.toString()}>
+                        {months.map((month, idx) =>
+                      <SelectItem key={idx} value={idx.toString()}>
                             {month}
                           </SelectItem>
-                        ))}
+                      )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -367,18 +367,18 @@ export default function MyChildren() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {years.map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
+                        {years.map((year) =>
+                      <SelectItem key={year} value={year.toString()}>
                             {year}
                           </SelectItem>
-                        ))}
+                      )}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
-                {selectedChildData && (
-                  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                {selectedChildData &&
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                     <User className="h-5 w-5 text-primary" />
                     <div>
                       <p className="font-medium">
@@ -389,7 +389,7 @@ export default function MyChildren() {
                       </p>
                     </div>
                   </div>
-                )}
+              }
               </CardContent>
             </Card>
 
@@ -442,83 +442,83 @@ export default function MyChildren() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-7 gap-2">
-                  {["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"].map((day) => (
-                    <div
-                      key={day}
-                      className="text-center text-sm font-medium p-2 bg-muted rounded"
-                    >
+                  {["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"].map((day) =>
+                <div
+                  key={day}
+                  className="text-center text-sm font-medium p-2 bg-muted rounded">
+                  
                       {day}
                     </div>
-                  ))}
+                )}
 
-                  {Array.from({ length: adjustedFirstDay }).map((_, i) => (
-                    <div key={`empty-${i}`} className="p-2" />
-                  ))}
+                  {Array.from({ length: adjustedFirstDay }).map((_, i) =>
+                <div key={`empty-${i}`} className="p-2" />
+                )}
 
                   {Array.from({ length: daysInMonth }).map((_, i) => {
-                    const day = i + 1;
-                    const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                    const status = getStatusForDate(dateStr);
-                    const attendanceRecord = attendance.find(a => a.activities?.activity_date === dateStr);
-                    const schedule = getScheduleForDate(dateStr);
-                    const scheduleInfo = formatScheduleInfo(schedule);
-                    const activityType = getActivityTypeLabel(attendanceRecord);
-                    const activityVenue = getActivityVenue(attendanceRecord);
-                    const offSchedule = isOffSchedule(attendanceRecord, schedule);
-                    const isToday =
-                      day === new Date().getDate() &&
-                      selectedMonth === new Date().getMonth() &&
-                      selectedYear === new Date().getFullYear();
+                  const day = i + 1;
+                  const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                  const status = getStatusForDate(dateStr);
+                  const attendanceRecord = attendance.find((a) => a.activities?.activity_date === dateStr);
+                  const schedule = getScheduleForDate(dateStr);
+                  const scheduleInfo = formatScheduleInfo(schedule);
+                  const activityType = getActivityTypeLabel(attendanceRecord);
+                  const activityVenue = getActivityVenue(attendanceRecord);
+                  const offSchedule = isOffSchedule(attendanceRecord, schedule);
+                  const isToday =
+                  day === new Date().getDate() &&
+                  selectedMonth === new Date().getMonth() &&
+                  selectedYear === new Date().getFullYear();
 
-                    return (
-                      <div
-                        key={day}
-                        className={`
+                  return (
+                    <div
+                      key={day}
+                      className={`
                           relative p-3 rounded-lg border transition-colors min-h-[120px]
                           ${isToday ? "border-primary bg-primary/5" : "border-border"}
                           ${status !== null || schedule ? "bg-muted/50" : ""}
-                        `}
-                      >
+                        `}>
+                      
                         <div className="flex flex-col h-full">
                           <div className="text-sm font-medium mb-2">{day}</div>
                           
-                          {status !== null && (
-                            <div className="mb-2 flex justify-center">
+                          {status !== null &&
+                        <div className="mb-2 flex justify-center">
                               {getStatusBadge(status)}
                             </div>
-                          )}
+                        }
                           
-                          {activityType && (
-                            <div className="mb-1 text-xs font-semibold text-center text-primary">
+                          {activityType &&
+                        <div className="mb-1 text-xs font-semibold text-center text-primary">
                               {activityType}
                             </div>
-                          )}
+                        }
                           
-                          {(attendanceRecord || schedule) && (
-                            <div className="text-xs text-muted-foreground text-center space-y-1 mt-auto">
+                          {(attendanceRecord || schedule) &&
+                        <div className="text-xs text-muted-foreground text-center space-y-1 mt-auto">
                               <div className="font-medium">
-                                {attendanceRecord?.activities 
-                                  ? `${attendanceRecord.activities.start_time.slice(0, 5)}-${attendanceRecord.activities.end_time.slice(0, 5)}`
-                                  : schedule 
-                                    ? `${schedule.start_time.slice(0, 5)}-${schedule.end_time.slice(0, 5)}`
-                                    : ""}
+                                {attendanceRecord?.activities ?
+                            `${attendanceRecord.activities.start_time.slice(0, 5)}-${attendanceRecord.activities.end_time.slice(0, 5)}` :
+                            schedule ?
+                            `${schedule.start_time.slice(0, 5)}-${schedule.end_time.slice(0, 5)}` :
+                            ""}
                               </div>
                               <div className={`line-clamp-2 ${offSchedule ? "text-orange-600 font-medium" : ""}`}>
                                 {offSchedule && "⚠️ "}
-                                {activityVenue || (schedule?.venues?.name || "N/A")}
+                                {activityVenue || schedule?.venues?.name || "N/A"}
                               </div>
                             </div>
-                          )}
+                        }
                         </div>
-                      </div>
-                    );
-                  })}
+                      </div>);
+
+                })}
                 </div>
               </CardContent>
             </Card>
           </>
-        )}
+        }
       </div>
-    </AppLayout>
-  );
+    </AppLayout>);
+
 }
