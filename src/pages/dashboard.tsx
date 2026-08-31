@@ -324,10 +324,12 @@ export default function DashboardPage() {
         .eq("is_active", true);
       console.log("venuesCount:", venuesCount, "error:", venuesError);
 
-      // Get total activities count
+      // Get total activities count FOR SELECTED MONTH
       let totalActivitiesQuery = supabase
         .from("activities")
-        .select("id", { count: "exact", head: true });
+        .select("id", { count: "exact", head: true })
+        .gte("activity_date", statsMonthStart)
+        .lte("activity_date", statsMonthEnd);
 
       if (selectedSeason && selectedSeason.length > 0) {
         totalActivitiesQuery = totalActivitiesQuery.eq("season_id", selectedSeason);
