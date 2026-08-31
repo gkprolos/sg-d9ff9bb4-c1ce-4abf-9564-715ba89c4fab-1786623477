@@ -228,10 +228,12 @@ export default function DashboardPage() {
       console.log("user?.id:", user?.id);
 
       const now = new Date();
-      const statsMonthStart = new Date(now.getFullYear(), parseInt(selectedMonth.split('-')[1]) - 1, 1)
-        .toISOString().split('T')[0];
-      const statsMonthEnd = new Date(now.getFullYear(), parseInt(selectedMonth.split('-')[1]), 0)
-        .toISOString().split('T')[0];
+      const [year, month] = selectedMonth.split('-');
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      
+      // Use full timestamp range to ensure we catch all activities on last day of month
+      const statsMonthStart = `${year}-${month}-01T00:00:00.000`;
+      const statsMonthEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}T23:59:59.999`;
 
       // Get active players count
       let playersQuery = supabase
@@ -452,8 +454,11 @@ export default function DashboardPage() {
   async function loadPlayerAttendance() {
     try {
       const [year, month] = selectedMonth.split("-");
-      const startDate = `${year}-${month}-01`;
-      const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split("T")[0];
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      
+      // Use full timestamp range to ensure we catch all activities on last day of month
+      const startDate = `${year}-${month}-01T00:00:00.000`;
+      const endDate = `${year}-${month}-${String(lastDay).padStart(2, "0")}T23:59:59.999`;
 
       let teamIds: string[] = [];
 
@@ -703,8 +708,11 @@ export default function DashboardPage() {
   async function loadCoachHours() {
     try {
       const [year, month] = selectedMonth.split("-");
-      const startDate = `${year}-${month}-01`;
-      const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split("T")[0];
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      
+      // Use full timestamp range to ensure we catch all activities on last day of month
+      const startDate = `${year}-${month}-01T00:00:00.000`;
+      const endDate = `${year}-${month}-${String(lastDay).padStart(2, "0")}T23:59:59.999`;
 
       let coachIds: string[] = [];
       let teamIds: string[] = [];
@@ -813,8 +821,11 @@ export default function DashboardPage() {
   async function loadCoachKilometers() {
     try {
       const [year, month] = selectedMonth.split("-");
-      const startDate = `${year}-${month}-01`;
-      const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split("T")[0];
+      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      
+      // Use full timestamp range to ensure we catch all activities on last day of month
+      const startDate = `${year}-${month}-01T00:00:00.000`;
+      const endDate = `${year}-${month}-${String(lastDay).padStart(2, "0")}T23:59:59.999`;
 
       let coachIds: string[] = [];
       let teamIds: string[] = [];
@@ -922,10 +933,11 @@ export default function DashboardPage() {
   async function loadTeamStats() {
     try {
       const [selectedYear, selectedMonthNum] = selectedMonth.split('-');
-      const monthStart = new Date(parseInt(selectedYear), parseInt(selectedMonthNum) - 1, 1)
-        .toISOString().split('T')[0];
-      const monthEnd = new Date(parseInt(selectedYear), parseInt(selectedMonthNum), 0)
-        .toISOString().split('T')[0];
+      const lastDay = new Date(parseInt(selectedYear), parseInt(selectedMonthNum), 0).getDate();
+      
+      // Use full timestamp range to ensure we catch all activities on last day of month
+      const monthStart = `${selectedYear}-${selectedMonthNum}-01T00:00:00.000`;
+      const monthEnd = `${selectedYear}-${selectedMonthNum}-${String(lastDay).padStart(2, "0")}T23:59:59.999`;
 
       let query = supabase
         .from("activities")
@@ -1031,9 +1043,11 @@ export default function DashboardPage() {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const detailYear = date.getFullYear();
         const detailMonth = date.getMonth() + 1;
-        const detailMonthStart = `${detailYear}-${String(detailMonth).padStart(2, "0")}-01`;
         const daysInDetailMonth = new Date(detailYear, detailMonth, 0).getDate();
-        const detailMonthEnd = `${detailYear}-${String(detailMonth).padStart(2, "0")}-${String(daysInDetailMonth).padStart(2, "0")}`;
+        
+        // Use full timestamp range to ensure we catch all activities on last day of month
+        const detailMonthStart = `${detailYear}-${String(detailMonth).padStart(2, "0")}-01T00:00:00.000`;
+        const detailMonthEnd = `${detailYear}-${String(detailMonth).padStart(2, "0")}-${String(daysInDetailMonth).padStart(2, "0")}T23:59:59.999`;
 
         const { data: activities } = await supabase
           .from("activities")
