@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Edit, Trash2, Plus, ClipboardCheck } from "lucide-react";
+import { Calendar, Edit, Trash2, Plus, ClipboardCheck, ArrowUpDown } from "lucide-react";
 import { useRouter } from "next/router";
 
 interface Activity {
@@ -80,6 +80,7 @@ export default function ActivitiesPage() {
     activity_type_id: 1,
     is_home_game: null as boolean | null,
   });
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const isAdmin = userRole === "admin";
 
@@ -92,7 +93,7 @@ export default function ActivitiesPage() {
 
   useEffect(() => {
     loadActivities();
-  }, [selectedSeason, selectedTeam, selectedCoach, dateFrom, dateTo]);
+  }, [selectedSeason, selectedTeam, selectedCoach, dateFrom, dateTo, sortOrder]);
 
   async function loadSeasons() {
     try {
@@ -214,7 +215,7 @@ export default function ActivitiesPage() {
             profiles(id, full_name)
           )
         `)
-        .order("activity_date", { ascending: false });
+        .order("activity_date", { ascending: sortOrder === "asc" });
 
       // Apply filters
       if (selectedSeason) {
@@ -588,13 +589,24 @@ export default function ActivitiesPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Datum</TableHead>
+                        <TableHead>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 lg:px-3"
+                            onClick={() => {
+                              setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                            }}
+                          >
+                            Datum
+                            <ArrowUpDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </TableHead>
                         <TableHead>Selekcija</TableHead>
                         <TableHead>Čas</TableHead>
                         <TableHead>Dvorana</TableHead>
                         <TableHead>Trenerji</TableHead>
                         <TableHead>Tip</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -641,11 +653,6 @@ export default function ActivitiesPage() {
                                   {activity.is_home_game ? "Doma" : "Gostovanje"}
                                 </Badge>
                               )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={activity.is_completed ? "default" : "secondary"}>
-                                {activity.is_completed ? "Zaključena" : "Odprta"}
-                              </Badge>
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2 justify-end">
