@@ -681,7 +681,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
                 <div className="flex h-16 items-center border-b px-6">
                   <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground" style={{ backgroundColor: "transparent", backgroundImage: "url(\"/LOGO-2015-C_B.gif\")", backgroundSize: "cover" }}>
-                      <span className="text-lg font-bold" style={{ backgroundImage: "url(\"/LOGO-2015-C_B.gif\")", backgroundColor: "transparent", backgroundSize: "contain" }}>OK</span>
+                      <span className="text-lg font-bold" style={{ backgroundImage: "url(\"/LOGO-2015-C_B.gif\")", backgroundColor: "transparent", backgroundSize: "contain", color: "#00000000", lineHeight: "", backgroundRepeat: "no-repeat", fontWeight: "100" }}>.</span>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold leading-tight">OK Lubnik</span>
