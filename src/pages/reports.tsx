@@ -200,7 +200,8 @@ export default function ReportsPage() {
           )
         `)
         .gte("activity_date", yearStart)
-        .lte("activity_date", yearEnd);
+        .lte("activity_date", yearEnd)
+        .eq("is_completed", true);
 
       if (activitiesError) throw activitiesError;
 
