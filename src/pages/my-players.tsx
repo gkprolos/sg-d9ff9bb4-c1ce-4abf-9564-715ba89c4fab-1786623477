@@ -627,7 +627,7 @@ export default function MyPlayersPage() {
                           <TableCell>{player.phone || "-"}</TableCell>
                           <TableCell>
                             {player.is_active ?
-                        <Badge className="bg-green-600">Aktiven</Badge> :
+                        <Badge className="" style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>Aktiven</Badge> :
 
                         <Badge variant="outline">Neaktiven</Badge>
                         }
