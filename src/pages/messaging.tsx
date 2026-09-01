@@ -1077,7 +1077,7 @@ export default function MessagingPage() {
                       }
                     }} />
                   
-                    <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()}>
+                    <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
