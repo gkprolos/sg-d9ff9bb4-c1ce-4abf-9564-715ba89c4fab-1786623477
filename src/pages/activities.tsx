@@ -713,7 +713,7 @@ export default function ActivitiesPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2 justify-end">
-                                {isCoachOnActivity && (
+                                {(isAdmin || isCoachOnActivity) && (
                                   <>
                                     <Button
                                       variant="outline"
