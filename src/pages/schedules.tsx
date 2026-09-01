@@ -617,7 +617,7 @@ export default function SchedulesPage() {
                     
                     Prekliči
                   </Button>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
                     {loading ? "Shranjujem..." : selectedSchedule ? "Posodobi" : "Dodaj"}
                   </Button>
                 </DialogFooter>
