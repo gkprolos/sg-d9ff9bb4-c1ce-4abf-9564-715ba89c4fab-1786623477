@@ -367,9 +367,9 @@ export default function MonthlyAttendance() {
           </div>
           <Button
             onClick={() => router.push("/attendance")}
-            variant="outline">
-            
-            Nazaj na Prisotnost
+            variant="outline">Nazaj na prisotnost
+
+
           </Button>
         </div>
 
