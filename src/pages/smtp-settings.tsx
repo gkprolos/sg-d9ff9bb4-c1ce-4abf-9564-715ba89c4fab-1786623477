@@ -38,7 +38,7 @@ export default function SMTPSettings() {
     smtp_from_email: "",
     smtp_from_name: "OK Lubnik",
     smtp_secure: false,
-    is_active: true,
+    is_active: true
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -59,11 +59,11 @@ export default function SMTPSettings() {
   async function loadSMTPSettings() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("smtp_settings")
-        .select("*")
-        .eq("is_active", true)
-        .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 results
+      const { data, error } = await supabase.
+      from("smtp_settings").
+      select("*").
+      eq("is_active", true).
+      maybeSingle(); // Use maybeSingle() instead of single() to handle 0 results
 
       if (error) {
         throw error;
@@ -77,7 +77,7 @@ export default function SMTPSettings() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Napaka pri nalaganju SMTP nastavitev",
+        description: "Napaka pri nalaganju SMTP nastavitev"
       });
     } finally {
       setLoading(false);
@@ -91,12 +91,12 @@ export default function SMTPSettings() {
       setSaving(true);
 
       // Validate required fields
-      if (!smtpSettings.smtp_host || !smtpSettings.smtp_username || 
-          !smtpSettings.smtp_password || !smtpSettings.smtp_from_email) {
+      if (!smtpSettings.smtp_host || !smtpSettings.smtp_username ||
+      !smtpSettings.smtp_password || !smtpSettings.smtp_from_email) {
         toast({
           variant: "destructive",
           title: "Manjkajoči podatki",
-          description: "Izpolnite vsa obvezna polja",
+          description: "Izpolnite vsa obvezna polja"
         });
         return;
       }
@@ -107,7 +107,7 @@ export default function SMTPSettings() {
         toast({
           variant: "destructive",
           title: "Neveljaven email",
-          description: "Email naslov mora biti v pravilnem formatu",
+          description: "Email naslov mora biti v pravilnem formatu"
         });
         return;
       }
@@ -121,24 +121,24 @@ export default function SMTPSettings() {
         smtp_from_name: smtpSettings.smtp_from_name.trim() || "OK Lubnik",
         smtp_secure: smtpSettings.smtp_secure,
         is_active: true,
-        updated_by: user?.id,
+        updated_by: user?.id
       };
 
       if (smtpSettings.id) {
         // Update existing
-        const { error } = await supabase
-          .from("smtp_settings")
-          .update(settingsData)
-          .eq("id", smtpSettings.id);
+        const { error } = await supabase.
+        from("smtp_settings").
+        update(settingsData).
+        eq("id", smtpSettings.id);
 
         if (error) throw error;
       } else {
         // Insert new
-        const { data, error } = await supabase
-          .from("smtp_settings")
-          .insert([settingsData])
-          .select()
-          .single();
+        const { data, error } = await supabase.
+        from("smtp_settings").
+        insert([settingsData]).
+        select().
+        single();
 
         if (error) throw error;
         if (data) {
@@ -148,14 +148,14 @@ export default function SMTPSettings() {
 
       toast({
         title: "Uspešno",
-        description: "SMTP nastavitve shranjene",
+        description: "SMTP nastavitve shranjene"
       });
     } catch (error: any) {
       console.error("Napaka pri shranjevanju SMTP nastavitev:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju",
+        description: error.message || "Napaka pri shranjevanju"
       });
     } finally {
       setSaving(false);
@@ -172,8 +172,8 @@ export default function SMTPSettings() {
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </AppLayout>
-    );
+      </AppLayout>);
+
   }
 
   return (
@@ -215,10 +215,10 @@ export default function SMTPSettings() {
                     placeholder="smtp.gmail.com"
                     value={smtpSettings.smtp_host}
                     onChange={(e) =>
-                      setSMTPSettings({ ...smtpSettings, smtp_host: e.target.value })
+                    setSMTPSettings({ ...smtpSettings, smtp_host: e.target.value })
                     }
-                    required
-                  />
+                    required />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -231,13 +231,13 @@ export default function SMTPSettings() {
                     placeholder="587"
                     value={smtpSettings.smtp_port}
                     onChange={(e) =>
-                      setSMTPSettings({
-                        ...smtpSettings,
-                        smtp_port: parseInt(e.target.value) || 587,
-                      })
+                    setSMTPSettings({
+                      ...smtpSettings,
+                      smtp_port: parseInt(e.target.value) || 587
+                    })
                     }
-                    required
-                  />
+                    required />
+                  
                   <p className="text-xs text-muted-foreground">
                     Običajno: 587 (TLS) ali 465 (SSL)
                   </p>
@@ -253,10 +253,10 @@ export default function SMTPSettings() {
                     placeholder="username@example.com"
                     value={smtpSettings.smtp_username}
                     onChange={(e) =>
-                      setSMTPSettings({ ...smtpSettings, smtp_username: e.target.value })
+                    setSMTPSettings({ ...smtpSettings, smtp_username: e.target.value })
                     }
-                    required
-                  />
+                    required />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -270,16 +270,16 @@ export default function SMTPSettings() {
                       placeholder="••••••••"
                       value={smtpSettings.smtp_password}
                       onChange={(e) =>
-                        setSMTPSettings({ ...smtpSettings, smtp_password: e.target.value })
+                      setSMTPSettings({ ...smtpSettings, smtp_password: e.target.value })
                       }
-                      required
-                    />
+                      required />
+                    
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
+                      onClick={() => setShowPassword(!showPassword)}>
+                      
                       {showPassword ? "Skrij" : "Prikaži"}
                     </Button>
                   </div>
@@ -295,10 +295,10 @@ export default function SMTPSettings() {
                     placeholder="obvestila@oklubnik.si"
                     value={smtpSettings.smtp_from_email}
                     onChange={(e) =>
-                      setSMTPSettings({ ...smtpSettings, smtp_from_email: e.target.value })
+                    setSMTPSettings({ ...smtpSettings, smtp_from_email: e.target.value })
                     }
-                    required
-                  />
+                    required />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -309,9 +309,9 @@ export default function SMTPSettings() {
                     placeholder="OK Lubnik"
                     value={smtpSettings.smtp_from_name}
                     onChange={(e) =>
-                      setSMTPSettings({ ...smtpSettings, smtp_from_name: e.target.value })
-                    }
-                  />
+                    setSMTPSettings({ ...smtpSettings, smtp_from_name: e.target.value })
+                    } />
+                  
                 </div>
               </div>
 
@@ -320,42 +320,42 @@ export default function SMTPSettings() {
                   id="smtp_secure"
                   checked={smtpSettings.smtp_secure}
                   onCheckedChange={(checked) =>
-                    setSMTPSettings({ ...smtpSettings, smtp_secure: checked })
-                  }
-                />
+                  setSMTPSettings({ ...smtpSettings, smtp_secure: checked })
+                  } />
+                
                 <Label htmlFor="smtp_secure" className="cursor-pointer">
                   SSL/TLS Šifriranje (uporabi za port 465)
                 </Label>
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button type="submit" disabled={saving}>
-                  {saving ? (
-                    <>
+                <Button type="submit" disabled={saving} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
+                  {saving ?
+                  <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Shranjevanje...
-                    </>
-                  ) : (
-                    <>
+                    </> :
+
+                  <>
                       <Save className="mr-2 h-4 w-4" />
                       Shrani SMTP Nastavitve
                     </>
-                  )}
+                  }
                 </Button>
               </div>
             </form>
 
-            {smtpSettings.id && (
-              <Alert className="mt-6">
+            {smtpSettings.id &&
+            <Alert className="mt-6">
                 <AlertDescription>
                   ✅ SMTP nastavitve so konfigurirane. Aplikacija bo uporabljala te nastavitve za 
                   pošiljanje vseh emailov.
                 </AlertDescription>
               </Alert>
-            )}
+            }
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
-  );
+    </AppLayout>);
+
 }
