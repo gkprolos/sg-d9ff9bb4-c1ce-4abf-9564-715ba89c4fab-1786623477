@@ -15,8 +15,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AlertDialogTitle } from
+"@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,7 +47,7 @@ export default function CoachesPage() {
     password: "",
     phone: "",
     hourly_rate: "",
-    km_rate: "",
+    km_rate: ""
   });
 
   useEffect(() => {
@@ -57,33 +57,33 @@ export default function CoachesPage() {
   async function loadCoaches() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, email, phone, hourly_rate, km_rate")
-        .order("full_name", { ascending: true });
+      const { data, error } = await supabase.
+      from("profiles").
+      select("id, full_name, email, phone, hourly_rate, km_rate").
+      order("full_name", { ascending: true });
 
       if (error) throw error;
-      
+
       // Split full_name into first_name and last_name for display
-      const coaches = (data || []).map(coach => {
+      const coaches = (data || []).map((coach) => {
         const nameParts = coach.full_name?.split(' ') || ['', ''];
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
-        
+
         return {
           ...coach,
           first_name: firstName,
-          last_name: lastName,
+          last_name: lastName
         };
       });
-      
+
       setCoaches(coaches);
     } catch (error: any) {
       console.error("Napaka pri nalaganju trenerjev:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti trenerjev",
+        description: error.message || "Ni mogoče naložiti trenerjev"
       });
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ export default function CoachesPage() {
       password: "",
       phone: "",
       hourly_rate: "",
-      km_rate: "",
+      km_rate: ""
     });
     setDialogOpen(true);
   }
@@ -113,7 +113,7 @@ export default function CoachesPage() {
       password: "", // Not used for editing, but required by formData type
       phone: coach.phone || "",
       hourly_rate: coach.hourly_rate?.toString() || "",
-      km_rate: coach.km_rate?.toString() || "",
+      km_rate: coach.km_rate?.toString() || ""
     });
     setDialogOpen(true);
   }
@@ -125,7 +125,7 @@ export default function CoachesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Ime, priimek in e-pošta so obvezni",
+        description: "Ime, priimek in e-pošta so obvezni"
       });
       return;
     }
@@ -135,7 +135,7 @@ export default function CoachesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Geslo je obvezno za novega trenerja",
+        description: "Geslo je obvezno za novega trenerja"
       });
       return;
     }
@@ -145,7 +145,7 @@ export default function CoachesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Geslo mora biti dolgo vsaj 6 znakov",
+        description: "Geslo mora biti dolgo vsaj 6 znakov"
       });
       return;
     }
@@ -159,15 +159,15 @@ export default function CoachesPage() {
         email: formData.email,
         phone: formData.phone || null,
         hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
-        km_rate: formData.km_rate ? parseFloat(formData.km_rate) : null,
+        km_rate: formData.km_rate ? parseFloat(formData.km_rate) : null
       };
 
       if (selectedCoach) {
         // Update existing coach
-        const { error } = await supabase
-          .from("profiles")
-          .update(payload)
-          .eq("id", selectedCoach.id);
+        const { error } = await supabase.
+        from("profiles").
+        update(payload).
+        eq("id", selectedCoach.id);
 
         if (error) throw error;
 
@@ -176,12 +176,12 @@ export default function CoachesPage() {
           const passwordResponse = await fetch('/api/admin/update-coach-password', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               userId: selectedCoach.id,
-              newPassword: formData.password,
-            }),
+              newPassword: formData.password
+            })
           });
 
           const passwordResult = await passwordResponse.json();
@@ -192,12 +192,12 @@ export default function CoachesPage() {
 
           toast({
             title: "Uspešno",
-            description: "Trener in geslo uspešno posodobljena",
+            description: "Trener in geslo uspešno posodobljena"
           });
         } else {
           toast({
             title: "Uspešno",
-            description: "Trener uspešno posodobljen",
+            description: "Trener uspešno posodobljen"
           });
         }
       } else {
@@ -205,7 +205,7 @@ export default function CoachesPage() {
         const response = await fetch('/api/admin/create-coach', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             email: formData.email,
@@ -213,8 +213,8 @@ export default function CoachesPage() {
             full_name,
             phone: formData.phone || null,
             hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
-            km_rate: formData.km_rate ? parseFloat(formData.km_rate) : null,
-          }),
+            km_rate: formData.km_rate ? parseFloat(formData.km_rate) : null
+          })
         });
 
         const result = await response.json();
@@ -225,7 +225,7 @@ export default function CoachesPage() {
 
         toast({
           title: "Uspešno",
-          description: "Trener uspešno ustvarjen",
+          description: "Trener uspešno ustvarjen"
         });
       }
 
@@ -236,7 +236,7 @@ export default function CoachesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju trenerja",
+        description: error.message || "Napaka pri shranjevanju trenerja"
       });
     } finally {
       setLoading(false);
@@ -253,17 +253,17 @@ export default function CoachesPage() {
 
     try {
       setLoading(true);
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", coachToDelete.id);
+      const { error } = await supabase.
+      from("profiles").
+      delete().
+      eq("id", coachToDelete.id);
 
       if (error) throw error;
       toast({
         title: "Uspešno",
-        description: "Trener uspešno izbrisan",
+        description: "Trener uspešno izbrisan"
       });
-      
+
       setDeleteDialogOpen(false);
       setCoachToDelete(null);
       loadCoaches();
@@ -272,7 +272,7 @@ export default function CoachesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri brisanju trenerja",
+        description: error.message || "Napaka pri brisanju trenerja"
       });
     } finally {
       setLoading(false);
@@ -284,15 +284,15 @@ export default function CoachesPage() {
 
     try {
       setLoading(true);
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", coachId);
+      const { error } = await supabase.
+      from("profiles").
+      delete().
+      eq("id", coachId);
 
       if (error) throw error;
       toast({
         title: "Uspešno",
-        description: "Trener uspešno izbrisan",
+        description: "Trener uspešno izbrisan"
       });
       loadCoaches();
     } catch (error: any) {
@@ -300,7 +300,7 @@ export default function CoachesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri brisanju trenerja",
+        description: error.message || "Napaka pri brisanju trenerja"
       });
     } finally {
       setLoading(false);
@@ -316,7 +316,7 @@ export default function CoachesPage() {
               <h2 className="text-3xl font-bold tracking-tight">Trenerji</h2>
               <p className="text-muted-foreground">Upravljanje trenerjev kluba</p>
             </div>
-            <Button onClick={handleAdd}>
+            <Button onClick={handleAdd} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
               <Plus className="h-4 w-4 mr-2" />
               Dodaj trenerja
             </Button>
@@ -330,16 +330,16 @@ export default function CoachesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading && coaches.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
-              ) : coaches.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+              {loading && coaches.length === 0 ?
+              <div className="text-center py-8 text-muted-foreground">Nalagam...</div> :
+              coaches.length === 0 ?
+              <div className="text-center py-12 text-muted-foreground">
                   <UserCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium">Ni trenerjev</p>
                   <p className="text-sm mt-2">Dodajte trenerje preko Supabase Dashboard</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
+                </div> :
+
+              <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -353,8 +353,8 @@ export default function CoachesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {coaches.map((coach) => (
-                        <TableRow key={coach.id}>
+                      {coaches.map((coach) =>
+                    <TableRow key={coach.id}>
                           <TableCell className="font-medium">{coach.first_name}</TableCell>
                           <TableCell>{coach.last_name}</TableCell>
                           <TableCell>{coach.email}</TableCell>
@@ -368,31 +368,31 @@ export default function CoachesPage() {
                           <TableCell className="text-right">
                             <div className="flex gap-2 justify-end">
                               <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEdit(coach)}
-                                disabled={loading}
-                              >
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(coach)}
+                            disabled={loading}>
+                            
                                 <Edit className="h-4 w-4 mr-1" />
                                 Uredi
                               </Button>
                               <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteClick(coach)}
-                                disabled={loading}
-                              >
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteClick(coach)}
+                            disabled={loading}>
+                            
                                 <Trash2 className="h-4 w-4 mr-1" />
                                 Izbriši
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                    )}
                     </TableBody>
                   </Table>
                 </div>
-              )}
+              }
             </CardContent>
           </Card>
 
@@ -415,8 +415,8 @@ export default function CoachesPage() {
                       placeholder="Janez"
                       value={formData.first_name}
                       onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                      required
-                    />
+                      required />
+                    
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last_name">
@@ -427,8 +427,8 @@ export default function CoachesPage() {
                       placeholder="Novak"
                       value={formData.last_name}
                       onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                      required
-                    />
+                      required />
+                    
                   </div>
                 </div>
 
@@ -443,8 +443,8 @@ export default function CoachesPage() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
-                    autoComplete="off"
-                  />
+                    autoComplete="off" />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -454,8 +454,8 @@ export default function CoachesPage() {
                     type="tel"
                     placeholder="+386 ..."
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -471,13 +471,13 @@ export default function CoachesPage() {
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required={!selectedCoach}
                     minLength={6}
-                    autoComplete="new-password"
-                  />
-                  {selectedCoach && (
-                    <p className="text-xs text-muted-foreground">
+                    autoComplete="new-password" />
+                  
+                  {selectedCoach &&
+                  <p className="text-xs text-muted-foreground">
                       Pustite prazno, če ne želite spreminjati gesla.
                     </p>
-                  )}
+                  }
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -490,8 +490,8 @@ export default function CoachesPage() {
                       min="0"
                       placeholder="npr. 15.00"
                       value={formData.hourly_rate}
-                      onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
-                    />
+                      onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })} />
+                    
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="km_rate">Vrednost kilometra (€)</Label>
@@ -502,8 +502,8 @@ export default function CoachesPage() {
                       min="0"
                       placeholder="npr. 0.37"
                       value={formData.km_rate}
-                      onChange={(e) => setFormData({ ...formData, km_rate: e.target.value })}
-                    />
+                      onChange={(e) => setFormData({ ...formData, km_rate: e.target.value })} />
+                    
                   </div>
                 </div>
 
@@ -512,11 +512,11 @@ export default function CoachesPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setDialogOpen(false)}
-                    disabled={loading}
-                  >
+                    disabled={loading}>
+                    
                     Prekliči
                   </Button>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                     {loading ? "Shranjujem..." : selectedCoach ? "Posodobi" : "Dodaj"}
                   </Button>
                 </DialogFooter>
@@ -536,8 +536,8 @@ export default function CoachesPage() {
                 <AlertDialogCancel>Prekliči</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleConfirmDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  
                   Izbriši
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -545,6 +545,6 @@ export default function CoachesPage() {
           </AlertDialog>
         </div>
       </AppLayout>
-    </ProtectedRoute>
-  );
+    </ProtectedRoute>);
+
 }

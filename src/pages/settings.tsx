@@ -40,7 +40,7 @@ export default function Settings() {
         toast({
           variant: "destructive",
           title: "Napaka",
-          description: "Gesli se ne ujemata",
+          description: "Gesli se ne ujemata"
         });
         return;
       }
@@ -50,21 +50,21 @@ export default function Settings() {
         toast({
           variant: "destructive",
           title: "Napaka",
-          description: "Geslo mora biti dolgo najmanj 6 znakov",
+          description: "Geslo mora biti dolgo najmanj 6 znakov"
         });
         return;
       }
 
       // Update password
       const { error } = await supabase.auth.updateUser({
-        password: newPassword,
+        password: newPassword
       });
 
       if (error) throw error;
 
       toast({
         title: "Uspešno",
-        description: "Geslo uspešno spremenjeno",
+        description: "Geslo uspešno spremenjeno"
       });
 
       // Clear form
@@ -76,7 +76,7 @@ export default function Settings() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri spreminjanju gesla",
+        description: error.message || "Napaka pri spreminjanju gesla"
       });
     } finally {
       setLoading(false);
@@ -91,14 +91,14 @@ export default function Settings() {
     <AppLayout>
       <div className="container mx-auto py-6 px-4 max-w-4xl">
         <div className="flex items-center gap-2 mb-6">
-          <h1 className="text-3xl font-bold">Nastavitve Uporabnika</h1>
+          <h1 className="text-3xl font-bold">Nastavitve uporabnika</h1>
         </div>
 
         <div className="space-y-6">
           {/* User Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Informacije o Uporabniku</CardTitle>
+              <CardTitle>Informacije o uporabniku</CardTitle>
               <CardDescription>
                 Vaš trenutni uporabniški račun
               </CardDescription>
@@ -110,8 +110,8 @@ export default function Settings() {
                   type="email"
                   value={user?.email || ""}
                   disabled
-                  className="bg-muted"
-                />
+                  className="bg-muted" />
+                
               </div>
               <div className="space-y-2">
                 <Label>Vloga</Label>
@@ -119,8 +119,8 @@ export default function Settings() {
                   type="text"
                   value={userRole === "admin" ? "Administrator" : "Trener"}
                   disabled
-                  className="bg-muted"
-                />
+                  className="bg-muted" />
+                
               </div>
             </CardContent>
           </Card>
@@ -130,7 +130,7 @@ export default function Settings() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Lock className="h-5 w-5 text-primary" />
-                <CardTitle>Spremeni Geslo</CardTitle>
+                <CardTitle>Spremeni geslo</CardTitle>
               </div>
               <CardDescription>
                 Posodobite svoje geslo za prijavo
@@ -150,14 +150,14 @@ export default function Settings() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
-                      minLength={6}
-                    />
+                      minLength={6} />
+                    
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                    >
+                      onClick={() => setShowNewPassword(!showNewPassword)}>
+                      
                       {showNewPassword ? "Skrij" : "Prikaži"}
                     </Button>
                   </div>
@@ -178,32 +178,32 @@ export default function Settings() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
-                      minLength={6}
-                    />
+                      minLength={6} />
+                    
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                      
                       {showConfirmPassword ? "Skrij" : "Prikaži"}
                     </Button>
                   </div>
                 </div>
 
                 <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Shranjevanje...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Spremeni Geslo
-                      </>
-                    )}
+                  <Button type="submit" disabled={loading} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>Spremeni geslo
+
+
+
+
+
+
+
+
+
+
+
                   </Button>
                 </div>
               </form>
@@ -211,6 +211,6 @@ export default function Settings() {
           </Card>
         </div>
       </div>
-    </AppLayout>
-  );
+    </AppLayout>);
+
 }

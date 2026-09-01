@@ -60,7 +60,7 @@ interface Message {
   created_at: string;
   sender_id: string | null;
   sender_parent_email: string | null;
-  profiles?: { full_name: string };
+  profiles?: {full_name: string;};
 }
 
 interface Contact {
@@ -82,7 +82,7 @@ export default function MessagingPage() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
-  
+
   // New conversation state
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [newSubject, setNewSubject] = useState("");
@@ -90,8 +90,8 @@ export default function MessagingPage() {
   const [selectedTeam, setSelectedTeam] = useState<string>("");
   const [availableContacts, setAvailableContacts] = useState<Contact[]>([]);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
-  const [teams, setTeams] = useState<Array<{ id: string; name: string }>>([]);
-  
+  const [teams, setTeams] = useState<Array<{id: string;name: string;}>>([]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Check if parent is logged in via session storage
@@ -158,17 +158,17 @@ export default function MessagingPage() {
 
   async function loadCoachTeams() {
     if (!user?.id) return;
-    
-    const { data } = await supabase
-      .from("team_coaches")
-      .select("team_id, teams(id, name)")
-      .eq("coach_id", user.id)
-      .eq("is_active", true);
-    
+
+    const { data } = await supabase.
+    from("team_coaches").
+    select("team_id, teams(id, name)").
+    eq("coach_id", user.id).
+    eq("is_active", true);
+
     if (data) {
-      const teamList = data
-        .filter(tc => tc.teams)
-        .map(tc => ({ id: tc.teams!.id, name: tc.teams!.name }));
+      const teamList = data.
+      filter((tc) => tc.teams).
+      map((tc) => ({ id: tc.teams!.id, name: tc.teams!.name }));
       setTeams(teamList);
     }
   }
@@ -180,15 +180,15 @@ export default function MessagingPage() {
         // Parent: Use API route (service role key, no RLS)
         const response = await fetch(`/api/parent/get-conversations?parent_email=${encodeURIComponent(parentEmail)}&status=${statusFilter}`);
         const data = await response.json();
-        
+
         if (!response.ok) throw new Error(data.error || "Failed to load conversations");
-        
+
         setConversations(data);
       } else {
         // Admin/Coach: Use Supabase client (RLS policies)
-        const query = supabase
-          .from("conversations")
-          .select(`
+        const query = supabase.
+        from("conversations").
+        select(`
             id,
             subject,
             team_id,
@@ -209,9 +209,9 @@ export default function MessagingPage() {
               sender_parent_email,
               profiles(full_name)
             )
-          `)
-          .eq("status", statusFilter)
-          .order("updated_at", { ascending: false });
+          `).
+        eq("status", statusFilter).
+        order("updated_at", { ascending: false });
 
         const { data, error } = await query;
 
@@ -223,18 +223,18 @@ export default function MessagingPage() {
         if (data) {
           const conversationsWithUnread = data.map((conv: any) => {
             const myParticipant = conv.conversation_participants.find((p: any) =>
-              p.user_id === user?.id
+            p.user_id === user?.id
             );
-            
-            const lastReadAt = myParticipant?.last_read_at;
-            const unreadCount = lastReadAt
-              ? conv.messages.filter((m: any) => new Date(m.created_at) > new Date(lastReadAt)).length
-              : conv.messages.length;
 
-            const lastMessage = conv.messages.sort((a: any, b: any) => 
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            const lastReadAt = myParticipant?.last_read_at;
+            const unreadCount = lastReadAt ?
+            conv.messages.filter((m: any) => new Date(m.created_at) > new Date(lastReadAt)).length :
+            conv.messages.length;
+
+            const lastMessage = conv.messages.sort((a: any, b: any) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             )[0];
-            
+
             const senderName = lastMessage?.sender_parent_email || lastMessage?.profiles?.full_name || "Sistem";
 
             return {
@@ -269,24 +269,24 @@ export default function MessagingPage() {
         // Parent: Use API route
         const response = await fetch(`/api/parent/get-messages?conversation_id=${conversationId}&parent_email=${encodeURIComponent(parentEmail)}`);
         const data = await response.json();
-        
+
         if (!response.ok) throw new Error(data.error || "Failed to load messages");
-        
+
         setMessages(data);
       } else {
         // Admin/Coach: Use Supabase client
-        const { data, error } = await supabase
-          .from("messages")
-          .select(`
+        const { data, error } = await supabase.
+        from("messages").
+        select(`
             id,
             content,
             created_at,
             sender_id,
             sender_parent_email,
             profiles(full_name)
-          `)
-          .eq("conversation_id", conversationId)
-          .order("created_at", { ascending: true });
+          `).
+        eq("conversation_id", conversationId).
+        order("created_at", { ascending: true });
 
         if (error) throw error;
 
@@ -315,13 +315,13 @@ export default function MessagingPage() {
         });
       } else {
         // Admin/Coach: Use Supabase client
-        await supabase
-          .from("conversation_participants")
-          .update({ last_read_at: new Date().toISOString() })
-          .eq("conversation_id", conversationId)
-          .eq("user_id", user?.id);
+        await supabase.
+        from("conversation_participants").
+        update({ last_read_at: new Date().toISOString() }).
+        eq("conversation_id", conversationId).
+        eq("user_id", user?.id);
       }
-      
+
       loadConversations();
     } catch (error: any) {
       console.error("Mark read error:", error);
@@ -362,7 +362,7 @@ export default function MessagingPage() {
       setNewMessage("");
       await loadMessages(selectedConversation.id);
       await loadConversations();
-      
+
       toast({
         title: "Sporočilo poslano",
         description: "Vaše sporočilo je bilo uspešno poslano."
@@ -384,7 +384,7 @@ export default function MessagingPage() {
       const { data } = await supabase.rpc("get_allowed_contacts_for_parent", {
         parent_email_param: parentEmail
       });
-      
+
       if (data) {
         setAvailableContacts(data.map((c: any) => ({
           id: c.user_id,
@@ -396,18 +396,18 @@ export default function MessagingPage() {
     } else if (isCoach && user?.id) {
       // Coach: Get admin + other coaches + parents from selected team
       const contacts: Contact[] = [];
-      
+
       // Always get admins and coaches
-      const { data: adminUsers } = await supabase
-        .from("user_roles")
-        .select("user_id, profiles(id, full_name, email)")
-        .eq("role", "admin");
-      
-      const { data: allCoaches } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .eq("is_active", true);
-      
+      const { data: adminUsers } = await supabase.
+      from("user_roles").
+      select("user_id, profiles(id, full_name, email)").
+      eq("role", "admin");
+
+      const { data: allCoaches } = await supabase.
+      from("profiles").
+      select("id, full_name, email").
+      eq("is_active", true);
+
       // Add admins
       if (adminUsers) {
         adminUsers.forEach((admin: any) => {
@@ -420,11 +420,11 @@ export default function MessagingPage() {
           }
         });
       }
-      
+
       // Add coaches (exclude self)
       if (allCoaches) {
-        allCoaches.forEach(coach => {
-          if (coach.id !== user?.id && !contacts.find(c => c.id === coach.id)) {
+        allCoaches.forEach((coach) => {
+          if (coach.id !== user?.id && !contacts.find((c) => c.id === coach.id)) {
             contacts.push({
               id: coach.id,
               name: coach.full_name,
@@ -433,14 +433,14 @@ export default function MessagingPage() {
           }
         });
       }
-      
+
       // If team is selected, add parents from that team's players
       if (teamId) {
         console.log("Coach selected team:", teamId, "- loading parents...");
-        
-        const { data: teamPlayers, error: playersError } = await supabase
-          .from("team_players")
-          .select(`
+
+        const { data: teamPlayers, error: playersError } = await supabase.
+        from("team_players").
+        select(`
             player_id,
             players!inner(
               id,
@@ -450,20 +450,20 @@ export default function MessagingPage() {
               guardian2_name,
               is_active
             )
-          `)
-          .eq("team_id", teamId)
-          .eq("players.is_active", true);
-        
+          `).
+        eq("team_id", teamId).
+        eq("players.is_active", true);
+
         if (playersError) {
           console.error("Error loading team players:", playersError);
         } else {
           console.log("Team players loaded:", teamPlayers?.length, teamPlayers);
         }
-        
+
         if (teamPlayers) {
           // De-duplicate parents by email
           const parentMap = new Map<string, Contact>();
-          
+
           teamPlayers.forEach((tp: any) => {
             const player = tp.players;
             if (player.guardian1_email && !parentMap.has(player.guardian1_email)) {
@@ -481,46 +481,46 @@ export default function MessagingPage() {
               });
             }
           });
-          
+
           console.log("Unique parents from team:", parentMap.size);
-          
+
           // Add unique parents to contacts
-          parentMap.forEach(contact => contacts.push(contact));
+          parentMap.forEach((contact) => contacts.push(contact));
         }
       }
-      
+
       console.log("Total contacts for coach:", contacts.length, contacts);
       setAvailableContacts(contacts);
     } else if (isAdmin) {
       // Admin: Get coaches + parents
       console.log("Admin loadAvailableContacts - fetching coaches and parents...");
-      
-      const { data: coaches, error: coachError } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .eq("is_active", true);
-      
+
+      const { data: coaches, error: coachError } = await supabase.
+      from("profiles").
+      select("id, full_name, email").
+      eq("is_active", true);
+
       if (coachError) {
         console.error("Error loading coaches:", coachError);
       } else {
         console.log("Coaches loaded:", coaches?.length, coaches);
       }
-      
-      const { data: parents, error: parentError } = await supabase
-        .from("players")
-        .select("guardian1_email, guardian1_name, guardian2_email, guardian2_name")
-        .eq("is_active", true);
-      
+
+      const { data: parents, error: parentError } = await supabase.
+      from("players").
+      select("guardian1_email, guardian1_name, guardian2_email, guardian2_name").
+      eq("is_active", true);
+
       if (parentError) {
         console.error("Error loading parents:", parentError);
       } else {
         console.log("Parents loaded:", parents?.length, parents);
       }
-      
+
       const contacts: Contact[] = [];
-      
+
       if (coaches) {
-        coaches.forEach(c => {
+        coaches.forEach((c) => {
           contacts.push({
             id: c.id,
             name: c.full_name,
@@ -529,12 +529,12 @@ export default function MessagingPage() {
         });
         console.log("Added coaches to contacts:", coaches.length);
       }
-      
+
       if (parents) {
         // De-duplicate parents by email
         const parentMap = new Map<string, Contact>();
-        
-        parents.forEach(p => {
+
+        parents.forEach((p) => {
           if (p.guardian1_email && !parentMap.has(p.guardian1_email)) {
             parentMap.set(p.guardian1_email, {
               email: p.guardian1_email,
@@ -550,13 +550,13 @@ export default function MessagingPage() {
             });
           }
         });
-        
+
         console.log("Unique parents found:", parentMap.size);
-        
+
         // Add unique parents to contacts
-        parentMap.forEach(contact => contacts.push(contact));
+        parentMap.forEach((contact) => contacts.push(contact));
       }
-      
+
       console.log("Total contacts for admin:", contacts.length, contacts);
       setAvailableContacts(contacts);
     }
@@ -567,20 +567,20 @@ export default function MessagingPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Prosim izpolnite naslov, sporočilo in izberite vsaj enega prejemnika.",
+        description: "Prosim izpolnite naslov, sporočilo in izberite vsaj enega prejemnika."
       });
       return;
     }
 
     console.log("Creating conversation - user:", user, "user?.id:", user?.id, "effectiveRole:", effectiveRole);
-    
+
     setSendingMessage(true);
 
     try {
       if (isParent && parentEmail) {
         // Parent: Use API route to bypass RLS
         console.log("Parent creating conversation via API route...");
-        
+
         const response = await fetch("/api/parent/create-conversation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -590,7 +590,7 @@ export default function MessagingPage() {
             teamId: selectedTeam || null,
             participantIds: selectedContacts,
             initialMessage: newContent
-          }),
+          })
         });
 
         const data = await response.json();
@@ -603,7 +603,7 @@ export default function MessagingPage() {
 
         toast({
           title: "Uspešno",
-          description: "Pogovor ustvarjen",
+          description: "Pogovor ustvarjen"
         });
 
         setShowNewDialog(false);
@@ -617,12 +617,12 @@ export default function MessagingPage() {
       } else {
         // Coach/Admin: Use Supabase client directly
         const creatorId = user?.id || null;
-        
+
         if (!creatorId) {
           toast({
             variant: "destructive",
             title: "Napaka",
-            description: "Ni mogoče določiti ustvarjalca pogovora. Prosim poskusite znova.",
+            description: "Ni mogoče določiti ustvarjalca pogovora. Prosim poskusite znova."
           });
           return;
         }
@@ -630,15 +630,15 @@ export default function MessagingPage() {
         console.log("Coach/Admin creating conversation - creator:", creatorId);
 
         // Create conversation
-        const { data: conversation, error: convError } = await supabase
-          .from("conversations")
-          .insert({
-            subject: newSubject,
-            team_id: selectedTeam || null,
-            created_by: creatorId
-          })
-          .select()
-          .single();
+        const { data: conversation, error: convError } = await supabase.
+        from("conversations").
+        insert({
+          subject: newSubject,
+          team_id: selectedTeam || null,
+          created_by: creatorId
+        }).
+        select().
+        single();
 
         if (convError || !conversation) {
           console.error("Conversation insert error:", convError);
@@ -648,7 +648,7 @@ export default function MessagingPage() {
         console.log("Conversation created:", conversation.id);
 
         // Add participants
-        const participants = selectedContacts.map(id => ({
+        const participants = selectedContacts.map((id) => ({
           conversation_id: conversation.id,
           user_id: id.includes('@') ? null : id,
           parent_email: id.includes('@') ? id : null
@@ -661,9 +661,9 @@ export default function MessagingPage() {
           parent_email: null
         });
 
-        const { error: participantsError } = await supabase
-          .from("conversation_participants")
-          .insert(participants);
+        const { error: participantsError } = await supabase.
+        from("conversation_participants").
+        insert(participants);
 
         if (participantsError) {
           console.error("Participants insert error:", participantsError);
@@ -673,14 +673,14 @@ export default function MessagingPage() {
         console.log("Participants added");
 
         // Create initial message
-        const { error: messageError } = await supabase
-          .from("messages")
-          .insert({
-            conversation_id: conversation.id,
-            sender_id: creatorId,
-            sender_parent_email: null,
-            content: newContent
-          });
+        const { error: messageError } = await supabase.
+        from("messages").
+        insert({
+          conversation_id: conversation.id,
+          sender_id: creatorId,
+          sender_parent_email: null,
+          content: newContent
+        });
 
         if (messageError) {
           console.error("Message insert error:", messageError);
@@ -691,7 +691,7 @@ export default function MessagingPage() {
 
         toast({
           title: "Uspešno",
-          description: "Pogovor ustvarjen",
+          description: "Pogovor ustvarjen"
         });
 
         setShowNewDialog(false);
@@ -707,7 +707,7 @@ export default function MessagingPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče ustvariti pogovora",
+        description: error.message || "Ni mogoče ustvariti pogovora"
       });
     } finally {
       setSendingMessage(false);
@@ -716,10 +716,10 @@ export default function MessagingPage() {
 
   async function archiveConversation(conversationId: string) {
     try {
-      const { error } = await supabase
-        .from("conversations")
-        .update({ status: "archived" })
-        .eq("id", conversationId);
+      const { error } = await supabase.
+      from("conversations").
+      update({ status: "archived" }).
+      eq("id", conversationId);
 
       if (error) throw error;
 
@@ -741,10 +741,10 @@ export default function MessagingPage() {
 
   async function unarchiveConversation(conversationId: string) {
     try {
-      const { error } = await supabase
-        .from("conversations")
-        .update({ status: "active" })
-        .eq("id", conversationId);
+      const { error } = await supabase.
+      from("conversations").
+      update({ status: "active" }).
+      eq("id", conversationId);
 
       if (error) throw error;
 
@@ -763,9 +763,9 @@ export default function MessagingPage() {
     }
   }
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.teams?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConversations = conversations.filter((conv) =>
+  conv.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  conv.teams?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -776,13 +776,13 @@ export default function MessagingPage() {
             variant="ghost"
             size="sm"
             onClick={() => router.back()}
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+            
             <ArrowLeft className="h-4 w-4" />
             Nazaj
           </Button>
-          <h1 className="text-2xl font-bold">
-            {isAdmin ? "Sporočila" : isCoach ? "Moja Sporočila" : "Sporočila"}
+          <h1 className="text-2xl font-bold">Moja sporočila
+
           </h1>
         </div>
 
@@ -797,7 +797,7 @@ export default function MessagingPage() {
                   </CardTitle>
                   <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
                     <DialogTrigger asChild>
-                      <Button size="sm" onClick={() => loadAvailableContacts()}>
+                      <Button size="sm" onClick={() => loadAvailableContacts()} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                         <Plus className="h-4 w-4 mr-2" />
                         Nov Pogovor
                       </Button>
@@ -813,34 +813,34 @@ export default function MessagingPage() {
                           <Input
                             value={newSubject}
                             onChange={(e) => setNewSubject(e.target.value)}
-                            placeholder="Vnesi naslov pogovora"
-                          />
+                            placeholder="Vnesi naslov pogovora" />
+                          
                         </div>
 
                         {/* Show team selector only for coaches and admins */}
-                        {(isCoach || isAdmin) && (
-                          <div>
+                        {(isCoach || isAdmin) &&
+                        <div>
                             <label className="text-sm font-medium mb-2 block">Selekcija (Opcijsko)</label>
-                            <Select 
-                              value={selectedTeam || undefined} 
-                              onValueChange={(value) => {
-                                setSelectedTeam(value);
-                                loadAvailableContacts(value || undefined);
-                              }}
-                            >
+                            <Select
+                            value={selectedTeam || undefined}
+                            onValueChange={(value) => {
+                              setSelectedTeam(value);
+                              loadAvailableContacts(value || undefined);
+                            }}>
+                            
                               <SelectTrigger>
                                 <SelectValue placeholder="Brez selekcije" />
                               </SelectTrigger>
                               <SelectContent>
-                                {teams.map(team => (
-                                  <SelectItem key={team.id} value={team.id}>
+                                {teams.map((team) =>
+                              <SelectItem key={team.id} value={team.id}>
                                     {team.name}
                                   </SelectItem>
-                                ))}
+                              )}
                               </SelectContent>
                             </Select>
                           </div>
-                        )}
+                        }
 
                         <div>
                           <label className="text-sm font-medium mb-2 block">Prvo Sporočilo</label>
@@ -848,14 +848,14 @@ export default function MessagingPage() {
                             value={newContent}
                             onChange={(e) => setNewContent(e.target.value)}
                             placeholder="Napišite svoje sporočilo..."
-                            rows={3}
-                          />
+                            rows={3} />
+                          
                         </div>
 
                         <div>
                           <label className="text-sm font-medium mb-2 block">Prejemniki</label>
                           <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
-                            {availableContacts.map(contact => {
+                            {availableContacts.map((contact) => {
                               const contactId = contact.id || contact.email || "";
                               return (
                                 <div key={contactId} className="flex items-center gap-2">
@@ -865,32 +865,32 @@ export default function MessagingPage() {
                                       if (checked) {
                                         setSelectedContacts([...selectedContacts, contactId]);
                                       } else {
-                                        setSelectedContacts(selectedContacts.filter(id => id !== contactId));
+                                        setSelectedContacts(selectedContacts.filter((id) => id !== contactId));
                                       }
-                                    }}
-                                  />
+                                    }} />
+                                  
                                   <label className="text-sm cursor-pointer flex-1">
                                     {contact.name}
                                     {contact.type === "parent" && " (Starš)"}
                                     {contact.type === "coach" && " (Trener)"}
                                     {contact.type === "admin" && " (Admin)"}
                                   </label>
-                                </div>
-                              );
+                                </div>);
+
                             })}
-                            {availableContacts.length === 0 && (
-                              <p className="text-sm text-muted-foreground">
+                            {availableContacts.length === 0 &&
+                            <p className="text-sm text-muted-foreground">
                                 {isCoach ? "Izberite selekcijo za prikaz staršev igralcev" : "Ni kontaktov"}
                               </p>
-                            )}
+                            }
                           </div>
                         </div>
 
                         <Button
                           onClick={createConversation}
                           disabled={!newSubject || !newContent || selectedContacts.length === 0 || sendingMessage}
-                          className="w-full"
-                        >
+                          className="w-full">
+                          
                           {sendingMessage ? "Ustvarjam..." : "Ustvari Pogovor"}
                         </Button>
                       </div>
@@ -905,8 +905,8 @@ export default function MessagingPage() {
                     className="pl-9"
                     placeholder="Iskanje..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+                    onChange={(e) => setSearchQuery(e.target.value)} />
+                  
                 </div>
 
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -923,38 +923,38 @@ export default function MessagingPage() {
 
             <ScrollArea className="flex-1">
               <div className="space-y-2">
-                {loading ? (
-                  <p className="text-center text-muted-foreground py-8">Nalaganje...</p>
-                ) : filteredConversations.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Ni pogovorov</p>
-                ) : (
-                  conversations.map(conv => (
-                    <div
-                      key={conv.id}
-                      onClick={() => {
-                        setSelectedConversation(conv);
-                        loadMessages(conv.id);
-                        markAsRead(conv.id);
-                      }}
-                      className={cn(
-                        "p-3 rounded-lg cursor-pointer transition-colors border",
-                        selectedConversation?.id === conv.id
-                          ? "bg-primary/10 border-primary"
-                          : "hover:bg-muted border-transparent"
-                      )}
-                    >
+                {loading ?
+                <p className="text-center text-muted-foreground py-8">Nalaganje...</p> :
+                filteredConversations.length === 0 ?
+                <p className="text-center text-muted-foreground py-8">Ni pogovorov</p> :
+
+                conversations.map((conv) =>
+                <div
+                  key={conv.id}
+                  onClick={() => {
+                    setSelectedConversation(conv);
+                    loadMessages(conv.id);
+                    markAsRead(conv.id);
+                  }}
+                  className={cn(
+                    "p-3 rounded-lg cursor-pointer transition-colors border",
+                    selectedConversation?.id === conv.id ?
+                    "bg-primary/10 border-primary" :
+                    "hover:bg-muted border-transparent"
+                  )}>
+                  
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium truncate">{conv.subject}</h3>
-                          {conv.team_id && conv.teams && (
-                            <p className="text-xs text-muted-foreground">{conv.teams.name}</p>
-                          )}
+                          {conv.team_id && conv.teams &&
+                      <p className="text-xs text-muted-foreground">{conv.teams.name}</p>
+                      }
                         </div>
-                        {conv.unread_count > 0 && (
-                          <Badge variant="destructive" className="text-xs">
+                        {conv.unread_count > 0 &&
+                    <Badge variant="destructive" className="text-xs">
                             {conv.unread_count}
                           </Badge>
-                        )}
+                    }
                       </div>
                       
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
@@ -962,8 +962,8 @@ export default function MessagingPage() {
                         <span>{conv.conversation_participants?.length || 0} prejemnikov</span>
                       </div>
                       
-                      {conv.last_message && (
-                        <div className="text-sm text-muted-foreground">
+                      {conv.last_message &&
+                  <div className="text-sm text-muted-foreground">
                           <p className="truncate">
                             <span className="font-medium">{conv.last_message.sender_name}:</span>{" "}
                             {conv.last_message.content}
@@ -972,51 +972,51 @@ export default function MessagingPage() {
                             {format(new Date(conv.last_message.created_at), "d. M. yyyy HH:mm", { locale: sl })}
                           </p>
                         </div>
-                      )}
+                  }
                     </div>
-                  ))
-                )}
+                )
+                }
               </div>
             </ScrollArea>
           </div>
 
           <Card className="flex-1 flex flex-col">
-            {selectedConversation ? (
-              <>
+            {selectedConversation ?
+            <>
                 <CardHeader className="border-b">
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle>{selectedConversation.subject}</CardTitle>
-                      {selectedConversation.teams && (
-                        <p className="text-sm text-muted-foreground mt-1">
+                      {selectedConversation.teams &&
+                    <p className="text-sm text-muted-foreground mt-1">
                           {selectedConversation.teams.name}
                         </p>
-                      )}
+                    }
                     </div>
-                    {isAdmin && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          await supabase
-                            .from("conversations")
-                            .update({ status: selectedConversation.status === "active" ? "archived" : "active" })
-                            .eq("id", selectedConversation.id);
-                          loadConversations();
-                          setSelectedConversation(null);
-                        }}
-                      >
+                    {isAdmin &&
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      await supabase.
+                      from("conversations").
+                      update({ status: selectedConversation.status === "active" ? "archived" : "active" }).
+                      eq("id", selectedConversation.id);
+                      loadConversations();
+                      setSelectedConversation(null);
+                    }}>
+                    
                         <Archive className="h-4 w-4 mr-2" />
                         {selectedConversation.status === "active" ? "Arhiviraj" : "Aktiviraj"}
                       </Button>
-                    )}
+                  }
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
                     <Users className="h-4 w-4" />
                     <span>
-                      {selectedConversation.conversation_participants?.map(p => 
-                        p.profiles?.full_name || p.parent_email
-                      ).join(", ")}
+                      {selectedConversation.conversation_participants?.map((p) =>
+                    p.profiles?.full_name || p.parent_email
+                    ).join(", ")}
                     </span>
                   </div>
                 </CardHeader>
@@ -1024,41 +1024,41 @@ export default function MessagingPage() {
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-4">
                     {messages.map((message: any) => {
-                      const isMine = isParent 
-                        ? message.sender_parent_email === parentEmail
-                        : message.sender_id === user?.id;
-                      
-                      const senderName = message.sender_parent_email 
-                        ? message.sender_parent_email 
-                        : message.profiles?.full_name || "Sistem";
+                    const isMine = isParent ?
+                    message.sender_parent_email === parentEmail :
+                    message.sender_id === user?.id;
 
-                      return (
-                        <div
-                          key={message.id}
-                          className={cn(
-                            "flex flex-col gap-1",
-                            isMine ? "items-end" : "items-start"
-                          )}
-                        >
+                    const senderName = message.sender_parent_email ?
+                    message.sender_parent_email :
+                    message.profiles?.full_name || "Sistem";
+
+                    return (
+                      <div
+                        key={message.id}
+                        className={cn(
+                          "flex flex-col gap-1",
+                          isMine ? "items-end" : "items-start"
+                        )}>
+                        
                           <div className="text-xs text-muted-foreground px-1">
                             {senderName}
                           </div>
                           <div
-                            className={cn(
-                              "max-w-[70%] rounded-lg p-3",
-                              isMine
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted"
-                            )}
-                          >
+                          className={cn(
+                            "max-w-[70%] rounded-lg p-3",
+                            isMine ?
+                            "bg-primary text-primary-foreground" :
+                            "bg-muted"
+                          )} style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>
+                          
                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                             <p className="text-xs mt-1 opacity-70">
                               {format(new Date(message.created_at), "d. M. yyyy HH:mm", { locale: sl })}
                             </p>
                           </div>
-                        </div>
-                      );
-                    })}
+                        </div>);
+
+                  })}
                     <div ref={messagesEndRef} />
                   </div>
                 </ScrollArea>
@@ -1066,18 +1066,18 @@ export default function MessagingPage() {
                 <div className="p-4 border-t">
                   <div className="flex gap-2">
                     <Textarea
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Napišite sporočilo..."
-                      rows={2}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          sendMessage();
-                        }
-                      }}
-                    />
-                    <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()}>
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Napišite sporočilo..."
+                    rows={2}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }} />
+                  
+                    <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
@@ -1085,18 +1085,18 @@ export default function MessagingPage() {
                     Pritisnite Enter za pošiljanje, Shift + Enter za novo vrstico
                   </p>
                 </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              </> :
+
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
                 <div className="text-center">
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Izberite pogovor za prikaz sporočil</p>
                 </div>
               </div>
-            )}
+            }
           </Card>
         </div>
       </div>
-    </AppLayout>
-  );
+    </AppLayout>);
+
 }

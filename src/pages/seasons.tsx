@@ -16,8 +16,8 @@ import {
   updateSeason,
   setActiveSeason,
   deleteSeason,
-  type Season,
-} from "@/services/seasonsService";
+  type Season } from
+"@/services/seasonsService";
 import { Calendar, Plus, Edit, Trash2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -31,7 +31,7 @@ export default function SeasonsPage() {
   const [formData, setFormData] = useState({
     name: "",
     start_date: "",
-    end_date: "",
+    end_date: ""
   });
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function SeasonsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti sezon",
+        description: error.message || "Ni mogoče naložiti sezon"
       });
     } finally {
       setLoading(false);
@@ -60,7 +60,7 @@ export default function SeasonsPage() {
     setFormData({
       name: "",
       start_date: "",
-      end_date: "",
+      end_date: ""
     });
     setDialogOpen(true);
   }
@@ -70,7 +70,7 @@ export default function SeasonsPage() {
     setFormData({
       name: season.name,
       start_date: season.start_date,
-      end_date: season.end_date,
+      end_date: season.end_date
     });
     setDialogOpen(true);
   }
@@ -82,7 +82,7 @@ export default function SeasonsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Vsa polja so obvezna",
+        description: "Vsa polja so obvezna"
       });
       return;
     }
@@ -94,18 +94,18 @@ export default function SeasonsPage() {
         await updateSeason(selectedSeason.id, formData);
         toast({
           title: "Uspešno",
-          description: "Sezona uspešno posodobljena",
+          description: "Sezona uspešno posodobljena"
         });
       } else {
         // First season created should be active by default
         const isFirstSeason = seasons.length === 0;
         await createSeason({
           ...formData,
-          is_active: isFirstSeason,
+          is_active: isFirstSeason
         });
         toast({
           title: "Uspešno",
-          description: `Sezona uspešno ustvarjena${isFirstSeason ? " in aktivirana" : ""}`,
+          description: `Sezona uspešno ustvarjena${isFirstSeason ? " in aktivirana" : ""}`
         });
       }
 
@@ -116,7 +116,7 @@ export default function SeasonsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju sezone",
+        description: error.message || "Napaka pri shranjevanju sezone"
       });
     } finally {
       setLoading(false);
@@ -129,7 +129,7 @@ export default function SeasonsPage() {
       await setActiveSeason(seasonId);
       toast({
         title: "Uspešno",
-        description: "Aktivna sezona je bila spremenjena",
+        description: "Aktivna sezona je bila spremenjena"
       });
       loadSeasons();
     } catch (error: any) {
@@ -137,7 +137,7 @@ export default function SeasonsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri aktiviranju sezone",
+        description: error.message || "Napaka pri aktiviranju sezone"
       });
     } finally {
       setLoading(false);
@@ -152,7 +152,7 @@ export default function SeasonsPage() {
       await deleteSeason(seasonId);
       toast({
         title: "Uspešno",
-        description: "Sezona uspešno izbrisana",
+        description: "Sezona uspešno izbrisana"
       });
       loadSeasons();
     } catch (error: any) {
@@ -160,7 +160,7 @@ export default function SeasonsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri brisanju sezone",
+        description: error.message || "Napaka pri brisanju sezone"
       });
     } finally {
       setLoading(false);
@@ -180,20 +180,20 @@ export default function SeasonsPage() {
                 Upravljanje sezon in aktiviranje trenutne sezone
               </p>
             </div>
-            <Button onClick={handleAdd}>
+            <Button onClick={handleAdd} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
               <Plus className="h-4 w-4 mr-2" />
               Dodaj sezono
             </Button>
           </div>
 
-          {!activeSeason && seasons.length > 0 && (
-            <Alert variant="destructive">
+          {!activeSeason && seasons.length > 0 &&
+          <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 Ni aktivne sezone! Aktivirajte eno od spodnjih sezon.
               </AlertDescription>
             </Alert>
-          )}
+          }
 
           <Card>
             <CardHeader>
@@ -203,16 +203,16 @@ export default function SeasonsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading && seasons.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
-              ) : seasons.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+              {loading && seasons.length === 0 ?
+              <div className="text-center py-8 text-muted-foreground">Nalagam...</div> :
+              seasons.length === 0 ?
+              <div className="text-center py-12 text-muted-foreground">
                   <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium">Ni sezon</p>
                   <p className="text-sm mt-2">Dodajte prvo sezono</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
+                </div> :
+
+              <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -224,8 +224,8 @@ export default function SeasonsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {seasons.map((season) => (
-                        <TableRow key={season.id}>
+                      {seasons.map((season) =>
+                    <TableRow key={season.id}>
                           <TableCell className="font-medium">{season.name}</TableCell>
                           <TableCell>
                             {new Date(season.start_date).toLocaleDateString("sl-SI")}
@@ -234,54 +234,54 @@ export default function SeasonsPage() {
                             {new Date(season.end_date).toLocaleDateString("sl-SI")}
                           </TableCell>
                           <TableCell>
-                            {season.is_active ? (
-                              <Badge className="bg-green-600">
+                            {season.is_active ?
+                        <Badge className="bg-green-600">
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
                                 Aktivna
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary">Neaktivna</Badge>
-                            )}
+                              </Badge> :
+
+                        <Badge variant="secondary">Neaktivna</Badge>
+                        }
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-2 justify-end">
-                              {!season.is_active && (
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onClick={() => handleSetActive(season.id)}
-                                  disabled={loading}
-                                >
+                              {!season.is_active &&
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleSetActive(season.id)}
+                            disabled={loading}>
+                            
                                   <CheckCircle2 className="h-4 w-4 mr-1" />
                                   Aktiviraj
                                 </Button>
-                              )}
+                          }
                               <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEdit(season)}
-                                disabled={loading}
-                              >
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(season)}
+                            disabled={loading}>
+                            
                                 <Edit className="h-4 w-4 mr-1" />
                                 Uredi
                               </Button>
                               <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDelete(season.id)}
-                                disabled={loading}
-                              >
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(season.id)}
+                            disabled={loading}>
+                            
                                 <Trash2 className="h-4 w-4 mr-1" />
                                 Izbriši
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                    )}
                     </TableBody>
                   </Table>
                 </div>
-              )}
+              }
             </CardContent>
           </Card>
 
@@ -304,8 +304,8 @@ export default function SeasonsPage() {
                       placeholder="npr. 2026/2027"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
+                      required />
+                    
                   </div>
 
                   <div className="space-y-2">
@@ -317,8 +317,8 @@ export default function SeasonsPage() {
                       type="date"
                       value={formData.start_date}
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                      required
-                    />
+                      required />
+                    
                   </div>
 
                   <div className="space-y-2">
@@ -330,8 +330,8 @@ export default function SeasonsPage() {
                       type="date"
                       value={formData.end_date}
                       onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                      required
-                    />
+                      required />
+                    
                   </div>
 
                   <DialogFooter className="mt-6">
@@ -339,11 +339,11 @@ export default function SeasonsPage() {
                       type="button"
                       variant="outline"
                       onClick={() => setDialogOpen(false)}
-                      disabled={loading}
-                    >
+                      disabled={loading}>
+                      
                       Prekliči
                     </Button>
-                    <Button type="submit" disabled={loading}>
+                    <Button type="submit" disabled={loading} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
                       {loading ? "Shranjujem..." : selectedSeason ? "Posodobi" : "Dodaj"}
                     </Button>
                   </DialogFooter>
@@ -353,6 +353,6 @@ export default function SeasonsPage() {
           </Dialog>
         </div>
       </AppLayout>
-    </ProtectedRoute>
-  );
+    </ProtectedRoute>);
+
 }
