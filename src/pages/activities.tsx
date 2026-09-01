@@ -787,7 +787,7 @@ export default function ActivitiesPage() {
                                 <Button
                                 variant="default"
                                 size="sm"
-                                onClick={() => router.push(`/attendance?activity=${activity.id}`)}>
+                                onClick={() => router.push(`/attendance?activity=${activity.id}`)} style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>
                                 
                                   <ClipboardCheck className="h-4 w-4 mr-2" />
                                   Prisotnost
