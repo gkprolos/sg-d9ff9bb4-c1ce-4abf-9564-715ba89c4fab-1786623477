@@ -1012,7 +1012,7 @@ export default function MyPlayersPage() {
                   
                   Prekliči
                 </Button>
-                <Button onClick={handleUpdatePlayer} disabled={loading}>
+                <Button onClick={handleUpdatePlayer} disabled={loading} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
                   {loading ? "Shranjujem..." : "Shrani spremembe"}
                 </Button>
               </DialogFooter>
