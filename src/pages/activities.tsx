@@ -778,7 +778,7 @@ export default function ActivitiesPage() {
                                     <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleDelete(activity.id)}>
+                                  onClick={() => handleDelete(activity.id)} style={{ backgroundColor: "#ef4444", backgroundImage: "none" }}>
                                   
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
