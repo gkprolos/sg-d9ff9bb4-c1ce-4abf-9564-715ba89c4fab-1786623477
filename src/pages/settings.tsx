@@ -91,14 +91,14 @@ export default function Settings() {
     <AppLayout>
       <div className="container mx-auto py-6 px-4 max-w-4xl">
         <div className="flex items-center gap-2 mb-6">
-          <h1 className="text-3xl font-bold">Nastavitve Uporabnika</h1>
+          <h1 className="text-3xl font-bold">Nastavitve uporabnika</h1>
         </div>
 
         <div className="space-y-6">
           {/* User Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Informacije o Uporabniku</CardTitle>
+              <CardTitle>Informacije o uporabniku</CardTitle>
               <CardDescription>
                 Vaš trenutni uporabniški račun
               </CardDescription>
@@ -130,7 +130,7 @@ export default function Settings() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Lock className="h-5 w-5 text-primary" />
-                <CardTitle>Spremeni Geslo</CardTitle>
+                <CardTitle>Spremeni geslo</CardTitle>
               </div>
               <CardDescription>
                 Posodobite svoje geslo za prijavo
