@@ -903,7 +903,7 @@ export default function PlayersPage() {
                     
                     Prekliči
                   </Button>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                     {loading ? "Shranjujem..." : selectedPlayer ? "Posodobi" : "Dodaj"}
                   </Button>
                 </DialogFooter>
