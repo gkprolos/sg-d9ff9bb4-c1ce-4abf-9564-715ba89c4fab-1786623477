@@ -503,8 +503,11 @@ export default function AttendancePage() {
                 <Calendar className="mr-2 h-4 w-4" />
                 Mesečni Pregled
               </Button>
-              <Button onClick={() => setNewActivityOpen(true)} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
-                <Plus className="mr-2 h-4 w-4" />
+              <Button
+                onClick={() => setShowCreateDialog(true)}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
                 Nova Aktivnost
               </Button>
             </div>
