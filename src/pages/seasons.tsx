@@ -343,7 +343,7 @@ export default function SeasonsPage() {
                       
                       Prekliči
                     </Button>
-                    <Button type="submit" disabled={loading}>
+                    <Button type="submit" disabled={loading} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
                       {loading ? "Shranjujem..." : selectedSeason ? "Posodobi" : "Dodaj"}
                     </Button>
                   </DialogFooter>
