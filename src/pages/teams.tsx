@@ -549,7 +549,7 @@ export default function TeamsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={team.is_active ? "default" : "secondary"}>
+                            <Badge variant={team.is_active ? "default" : "secondary"} style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>
                               {team.is_active ? "Aktivna" : "Neaktivna"}
                             </Badge>
                           </TableCell>
