@@ -1049,7 +1049,7 @@ export default function MessagingPage() {
                             isMine ?
                             "bg-primary text-primary-foreground" :
                             "bg-muted"
-                          )}>
+                          )} style={{ backgroundColor: "#525252", backgroundImage: "none" }}>
                           
                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                             <p className="text-xs mt-1 opacity-70">
