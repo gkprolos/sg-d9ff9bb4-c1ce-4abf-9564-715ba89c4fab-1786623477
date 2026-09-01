@@ -149,170 +149,49 @@ export default function MonthlyAttendance() {
   }
 
   async function loadMonthlyAttendance() {
+    if (!selectedTeamId || !selectedMonth || !selectedYear) return;
+
     try {
       setLoading(true);
 
-      // Build date range for selected month
-      const startDate = new Date(selectedYear, selectedMonth - 1, 1);
-      const endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59);
+      // Get start and end of selected month
+      const startDate = `${selectedYear}-${selectedMonth.toString().padStart(2, "0")}-01`;
+      const endDate = new Date(selectedYear, selectedMonth, 0).toISOString().split("T")[0];
 
-      const startDateStr = startDate.toISOString().split("T")[0];
-      const endDateStr = endDate.toISOString().split("T")[0];
-
-      // Determine which players to fetch
-      let playerIds: string[] = [];
-
-      if (viewType === "all_teams") {
-        // All players from all teams (admin only)
-        if (userRole === "admin") {
-          playerIds = players.map(p => p.id);
-        } else {
-          // Coach: all players from coach's teams
-          const teamIds = await getCoachTeamIds();
-          const { data: teamPlayers } = await supabase
-            .from("team_players")
-            .select("player_id")
-            .in("team_id", teamIds);
-          playerIds = teamPlayers?.map(tp => tp.player_id) || [];
-        }
-      } else if (viewType.startsWith("team:")) {
-        // Specific team
-        const teamId = viewType.split(":")[1];
-        const { data: teamPlayers } = await supabase
-          .from("team_players")
-          .select("player_id")
-          .eq("team_id", teamId);
-        playerIds = teamPlayers?.map(tp => tp.player_id) || [];
-      } else if (viewType.startsWith("player:")) {
-        // Specific player
-        playerIds = [viewType.split(":")[1]];
-      }
-
-      if (playerIds.length === 0) {
-        setMonthlyData([]);
-        return;
-      }
-
-      // Fetch player names for these specific playerIds
-      const { data: playerData, error: playerError } = await supabase
-        .from("players")
-        .select("id, first_name, last_name")
-        .in("id", playerIds);
-
-      if (playerError) throw playerError;
-
-      // Create a map for quick player name lookup
-      const playersMap = new Map(
-        playerData?.map(p => [p.id, `${p.first_name} ${p.last_name}`]) || []
-      );
-
-      // Fetch all activities in date range
-      const { data: activities, error: activitiesError } = await supabase
-        .from("activities")
-        .select("id, activity_date")
-        .gte("activity_date", startDateStr)
-        .lte("activity_date", endDateStr);
-
-      if (activitiesError) throw activitiesError;
-
-      const activityIds = activities?.map(a => a.id) || [];
-
-      if (activityIds.length === 0) {
-        // No activities in this month - show players with zero attendance
-        const emptyData: MonthlyAttendance[] = playerIds.map(pid => {
-          return {
-            player_id: pid,
-            player_name: playersMap.get(pid) || "?",
-            daily_attendance: {},
-            total_activities: 0,
-            total_present: 0,
-            attendance_percentage: 0,
-          };
-        });
-        setMonthlyData(emptyData);
-        return;
-      }
-
-      // Fetch attendance records
-      const { data: attendanceRecords, error: attendanceError } = await supabase
+      // Load attendance records for the selected month and team
+      // FIXED: Filter by activities.activity_date, NOT attendance_records.created_at
+      const { data, error } = await supabase
         .from("attendance_records")
         .select(`
-          player_id,
-          status,
-          activity:activities!inner(activity_date)
+          *,
+          players!inner (
+            id,
+            first_name,
+            last_name,
+            team_players!inner (
+              team_id
+            )
+          ),
+          activities!inner (
+            id,
+            activity_date,
+            team_id
+          )
         `)
-        .in("activity_id", activityIds)
-        .in("player_id", playerIds);
+        .eq("activities.team_id", selectedTeamId)
+        .gte("activities.activity_date", startDate)
+        .lte("activities.activity_date", endDate)
+        .order("players.last_name");
 
-      if (attendanceError) throw attendanceError;
+      if (error) throw error;
 
-      // Build monthly attendance data
-      const dataMap: { [playerId: string]: MonthlyAttendance } = {};
-
-      playerIds.forEach(pid => {
-        dataMap[pid] = {
-          player_id: pid,
-          player_name: playersMap.get(pid) || "?",
-          daily_attendance: {},
-          total_activities: 0,
-          total_present: 0,
-          attendance_percentage: 0,
-        };
-      });
-
-      // Group activities by date
-      const activitiesByDate: { [date: string]: string[] } = {};
-      activities?.forEach(act => {
-        if (!activitiesByDate[act.activity_date]) {
-          activitiesByDate[act.activity_date] = [];
-        }
-        activitiesByDate[act.activity_date].push(act.id);
-      });
-
-      // Process attendance records
-      attendanceRecords?.forEach((record: any) => {
-        const playerId = record.player_id;
-        const activityDate = record.activity.activity_date;
-        const status = record.status;
-
-        const day = new Date(activityDate).getDate();
-
-        if (!dataMap[playerId]) return;
-
-        // Store daily attendance
-        dataMap[playerId].daily_attendance[day] = status;
-
-        // Count total activities for this player (distinct dates)
-        const uniqueDates = new Set(
-          Object.keys(dataMap[playerId].daily_attendance)
-        );
-        dataMap[playerId].total_activities = uniqueDates.size;
-
-        // Count present (status === 1)
-        const presentCount = Object.values(dataMap[playerId].daily_attendance).filter(
-          s => s === 1
-        ).length;
-        dataMap[playerId].total_present = presentCount;
-
-        // Calculate percentage
-        if (dataMap[playerId].total_activities > 0) {
-          dataMap[playerId].attendance_percentage = Math.round(
-            (presentCount / dataMap[playerId].total_activities) * 100
-          );
-        }
-      });
-
-      const result = Object.values(dataMap).sort((a, b) =>
-        a.player_name.localeCompare(b.player_name)
-      );
-
-      setMonthlyData(result);
+      setMonthlyData(data || []);
     } catch (error: any) {
-      console.error("Napaka pri nalaganju mesečne prisotnosti:", error);
+      console.error("Napaka pri nalaganju prisotnosti:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri nalaganju podatkov",
+        description: "Ni mogoče naložiti prisotnosti",
       });
     } finally {
       setLoading(false);
