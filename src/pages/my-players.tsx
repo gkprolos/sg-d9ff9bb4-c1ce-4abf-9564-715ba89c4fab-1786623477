@@ -646,7 +646,7 @@ export default function MyPlayersPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleAddToTeamClick(player)}
-                            title="Dodaj v selekcijo">
+                            title="Dodaj v selekcijo" style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>
                             
                                 <Users className="h-4 w-4" />
                               </Button>
