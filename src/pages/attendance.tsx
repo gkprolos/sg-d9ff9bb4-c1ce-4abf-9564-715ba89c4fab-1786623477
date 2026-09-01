@@ -686,7 +686,7 @@ export default function AttendancePage() {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button onClick={handleCreateActivity} disabled={loading} className="flex-1">
+                      <Button onClick={handleCreateActivity} disabled={loading} className="flex-1" style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
                         Ustvari
                       </Button>
                       <Button
