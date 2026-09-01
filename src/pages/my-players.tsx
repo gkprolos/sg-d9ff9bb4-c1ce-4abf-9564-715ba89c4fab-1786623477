@@ -839,7 +839,7 @@ export default function MyPlayersPage() {
                   
                   Prekliči
                 </Button>
-                <Button onClick={handleAddPlayer} disabled={loading}>
+                <Button onClick={handleAddPlayer} disabled={loading} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
                   {loading ? "Dodajam..." : "Dodaj igralca"}
                 </Button>
               </DialogFooter>
