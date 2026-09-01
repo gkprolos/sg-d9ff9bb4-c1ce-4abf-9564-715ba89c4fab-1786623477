@@ -71,6 +71,10 @@ export default function ActivitiesPage() {
   const [venues, setVenues] = useState<any[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<Activity | null>(null);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [completingActivityId, setCompletingActivityId] = useState<string | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editActivityId, setEditActivityId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     activity_date: "",
     start_time: "",
