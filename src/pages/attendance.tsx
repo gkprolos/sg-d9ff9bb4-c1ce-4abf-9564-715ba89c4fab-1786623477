@@ -498,7 +498,7 @@ export default function AttendancePage() {
             <div className="flex gap-2">
               <Button
                 onClick={() => router.push("/attendance/monthly")}
-                variant="outline">
+                variant="outline" style={{ backgroundColor: "#fbbf24", backgroundImage: "none" }}>
                 
                 <Calendar className="mr-2 h-4 w-4" />
                 Mesečni Pregled
