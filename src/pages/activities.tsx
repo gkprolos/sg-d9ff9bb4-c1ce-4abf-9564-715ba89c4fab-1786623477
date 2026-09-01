@@ -499,7 +499,7 @@ export default function ActivitiesPage() {
     if (!editActivityId) return;
 
     try {
-      // Prepare update data - handle venue_id vs custom_location properly
+      // Prepare update data - handle venue_id vs custom_venue properly
       const updateData: any = {
         activity_date: editForm.activity_date,
         start_time: editForm.start_time,
@@ -508,14 +508,22 @@ export default function ActivitiesPage() {
         is_home_game: editForm.is_home_game,
       };
 
-      // Handle venue_id vs custom_location (venue_xor_custom constraint)
+      // Handle venue_id vs custom_venue (venue_xor_custom constraint)
+      // Either venue_id OR custom_venue must be set (not both, not neither for type 1)
       if (editForm.venue_id && editForm.venue_id !== "") {
+        // User selected a venue from dropdown
         updateData.venue_id = editForm.venue_id;
-        updateData.custom_location = null;
-      } else {
+        updateData.custom_venue = null;
+      } else if (editForm.activity_type_id === 1) {
+        // Type 1 requires venue_id or custom_venue
+        // If no venue selected, we need to keep existing custom_venue or fail
+        // For now, just set venue_id to null and let constraint handle it
         updateData.venue_id = null;
-        // Keep existing custom_location or set to empty string
-        // Don't update custom_location here - it should be in the form if needed
+        // Don't touch custom_venue - constraint will fail if it's also null for type 1
+      } else {
+        // Type 2 or 3: both can be null
+        updateData.venue_id = null;
+        updateData.custom_venue = null;
       }
 
       // Update activity
