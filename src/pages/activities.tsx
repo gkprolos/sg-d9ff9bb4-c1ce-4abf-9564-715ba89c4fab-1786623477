@@ -447,6 +447,40 @@ export default function ActivitiesPage() {
     }
   }
 
+  function handleCompleteActivity(activityId: string) {
+    setCompletingActivityId(activityId);
+    setShowCompleteDialog(true);
+  }
+
+  async function handleDelete(activityId: string) {
+    if (!confirm("Ali ste prepričani, da želite izbrisati to aktivnost?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("activities")
+        .delete()
+        .eq("id", activityId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Uspeh",
+        description: "Aktivnost izbrisana",
+      });
+
+      loadActivities();
+    } catch (error: any) {
+      console.error("Error deleting activity:", error);
+      toast({
+        title: "Napaka",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  }
+
   function handleEdit(activity: any) {
     setEditActivityId(activity.id);
     setEditForm({
