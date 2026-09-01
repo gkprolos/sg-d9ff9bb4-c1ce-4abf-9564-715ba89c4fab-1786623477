@@ -560,7 +560,7 @@ export default function TeamsPage() {
                             variant="outline"
                             onClick={() => handleManagePlayers(team)}
                             disabled={loading || !isAssignedCoach(team.id)}
-                            title={!isAssignedCoach(team.id) ? "Samo dodeljeni trenerji lahko urejajo igralce" : ""}>
+                            title={!isAssignedCoach(team.id) ? "Samo dodeljeni trenerji lahko urejajo igralce" : ""} style={{ backgroundColor: "#22c55e", backgroundImage: "none" }}>
                             
                                 <Users className="h-4 w-4 mr-1" />
                                 Igralci
