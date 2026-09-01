@@ -18,8 +18,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AlertDialogTitle } from
+"@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -28,18 +28,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Users, Plus, Edit, Trash2 } from "lucide-react";
 
 const AGE_CATEGORIES = [
-  "Člani",
-  "Mladinci",
-  "Kadeti",
-  "Starejši dečki",
-  "Dečki",
-  "Članice",
-  "Mladinke",
-  "Kadetinje",
-  "Starejše deklice",
-  "Deklice",
-  "Začetniki",
-];
+"Člani",
+"Mladinci",
+"Kadeti",
+"Starejši dečki",
+"Dečki",
+"Članice",
+"Mladinke",
+"Kadetinje",
+"Starejše deklice",
+"Deklice",
+"Začetniki"];
+
 
 interface Team {
   id: string;
@@ -51,8 +51,8 @@ interface Team {
   notes: string | null;
   season_id: string;
   head_coach_id: string | null;
-  head_coach?: { full_name: string } | null;
-  coaches?: Array<{ coach_id: string }>;
+  head_coach?: {full_name: string;} | null;
+  coaches?: Array<{coach_id: string;}>;
 }
 
 export default function TeamsPage() {
@@ -81,7 +81,7 @@ export default function TeamsPage() {
     is_active: true,
     notes: "",
     season_id: "",
-    head_coach_id: "",
+    head_coach_id: ""
   });
 
   // Filter players by search term and team gender
@@ -89,8 +89,8 @@ export default function TeamsPage() {
     // Search filter
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
-      player.first_name.toLowerCase().includes(searchLower) ||
-      player.last_name.toLowerCase().includes(searchLower);
+    player.first_name.toLowerCase().includes(searchLower) ||
+    player.last_name.toLowerCase().includes(searchLower);
 
     if (!matchesSearch) return false;
 
@@ -116,12 +116,12 @@ export default function TeamsPage() {
   useEffect(() => {
     async function checkAdmin() {
       if (!user) return;
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+      const { data } = await supabase.
+      from("user_roles").
+      select("role").
+      eq("user_id", user.id).
+      eq("role", "admin").
+      maybeSingle();
       setIsAdmin(!!data);
     }
     checkAdmin();
@@ -131,17 +131,17 @@ export default function TeamsPage() {
   function isAssignedCoach(teamId: string): boolean {
     if (isAdmin) return true;
     if (!user) return false;
-    const team = teams.find(t => t.id === teamId);
+    const team = teams.find((t) => t.id === teamId);
     if (!team) return false;
     return team.coaches?.some((tc: any) => tc.coach_id === user.id) || false;
   }
 
   async function loadCoaches() {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .order("full_name", { ascending: true });
+      const { data, error } = await supabase.
+      from("profiles").
+      select("id, full_name").
+      order("full_name", { ascending: true });
 
       if (error) throw error;
       setCoaches(data || []);
@@ -152,11 +152,11 @@ export default function TeamsPage() {
 
   async function loadSeasons() {
     try {
-      const { data, error } = await supabase
-        .from("seasons")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.
+      from("seasons").
+      select("*").
+      eq("is_active", true).
+      order("created_at", { ascending: false });
 
       if (error) throw error;
       setSeasons(data || []);
@@ -170,9 +170,9 @@ export default function TeamsPage() {
 
   async function loadAllPlayers() {
     try {
-      const { data, error } = await supabase
-        .from("players")
-        .select(`
+      const { data, error } = await supabase.
+      from("players").
+      select(`
           id, 
           first_name, 
           last_name, 
@@ -181,9 +181,9 @@ export default function TeamsPage() {
           teams:team_players(
             teams(id, name, short_name)
           )
-        `)
-        .eq("is_active", true)
-        .order("last_name", { ascending: true });
+        `).
+      eq("is_active", true).
+      order("last_name", { ascending: true });
 
       if (error) throw error;
       setAllPlayers(data || []);
@@ -194,15 +194,15 @@ export default function TeamsPage() {
 
   async function loadTeamPlayers(teamId: string) {
     try {
-      const { data, error } = await supabase
-        .from("team_players")
-        .select(`
+      const { data, error } = await supabase.
+      from("team_players").
+      select(`
           id,
           player_id,
           players(first_name, last_name, date_of_birth)
-        `)
-        .eq("team_id", teamId)
-        .order("created_at", { ascending: true });
+        `).
+      eq("team_id", teamId).
+      order("created_at", { ascending: true });
 
       if (error) throw error;
       setTeamPlayers(data || []);
@@ -229,42 +229,42 @@ export default function TeamsPage() {
     try {
       if (isCurrentlySelected) {
         // Remove player - delete from DB immediately
-        const { error } = await supabase
-          .from("team_players")
-          .delete()
-          .eq("team_id", selectedTeam.id)
-          .eq("player_id", playerId);
+        const { error } = await supabase.
+        from("team_players").
+        delete().
+        eq("team_id", selectedTeam.id).
+        eq("player_id", playerId);
 
         if (error) throw error;
 
         // Update local state
-        setSelectedPlayers(prev => prev.filter(id => id !== playerId));
-        setTeamPlayers(prev => prev.filter(tp => tp.player_id !== playerId));
+        setSelectedPlayers((prev) => prev.filter((id) => id !== playerId));
+        setTeamPlayers((prev) => prev.filter((tp) => tp.player_id !== playerId));
 
         toast({
           title: "Odstranjen",
-          description: "Igralec odstranjen iz selekcije",
+          description: "Igralec odstranjen iz selekcije"
         });
       } else {
         // Add player - insert to DB immediately
-        const { error } = await supabase
-          .from("team_players")
-          .insert([{
-            team_id: selectedTeam.id,
-            player_id: playerId,
-          }]);
+        const { error } = await supabase.
+        from("team_players").
+        insert([{
+          team_id: selectedTeam.id,
+          player_id: playerId
+        }]);
 
         if (error) throw error;
 
         // Update local state
-        setSelectedPlayers(prev => [...prev, playerId]);
-        
+        setSelectedPlayers((prev) => [...prev, playerId]);
+
         // Reload team players to get full data
         await loadTeamPlayers(selectedTeam.id);
 
         toast({
           title: "Dodan",
-          description: "Igralec dodan v selekcijo",
+          description: "Igralec dodan v selekcijo"
         });
       }
     } catch (error: any) {
@@ -272,7 +272,7 @@ export default function TeamsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju",
+        description: error.message || "Napaka pri shranjevanju"
       });
     }
   }
@@ -288,21 +288,21 @@ export default function TeamsPage() {
   async function loadTeams() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("teams")
-        .select(`
+      const { data, error } = await supabase.
+      from("teams").
+      select(`
           *,
           head_coach:profiles!head_coach_id(full_name),
           coaches:team_coaches(coach_id),
           team_players(count)
-        `)
-        .order("name", { ascending: true });
+        `).
+      order("name", { ascending: true });
 
       if (error) throw error;
       // Map is_archived (DB) to is_active (UI)
       const mappedTeams = (data || []).map((team: any) => ({
         ...team,
-        is_active: !team.is_archived,
+        is_active: !team.is_archived
       }));
       setTeams(mappedTeams);
     } catch (error: any) {
@@ -310,7 +310,7 @@ export default function TeamsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti selekcij",
+        description: error.message || "Ni mogoče naložiti selekcij"
       });
     } finally {
       setLoading(false);
@@ -327,7 +327,7 @@ export default function TeamsPage() {
       is_active: true,
       notes: "",
       season_id: seasons[0]?.id || "",
-      head_coach_id: "",
+      head_coach_id: ""
     });
     setDialogOpen(true);
   }
@@ -342,7 +342,7 @@ export default function TeamsPage() {
       is_active: team.is_active,
       notes: team.notes || "",
       season_id: team.season_id,
-      head_coach_id: team.head_coach_id || "",
+      head_coach_id: team.head_coach_id || ""
     });
     setDialogOpen(true);
   }
@@ -354,7 +354,7 @@ export default function TeamsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Naziv in sezona sta obvezna",
+        description: "Naziv in sezona sta obvezna"
       });
       return;
     }
@@ -370,25 +370,25 @@ export default function TeamsPage() {
         is_archived: !formData.is_active,
         notes: formData.notes || null,
         season_id: formData.season_id,
-        head_coach_id: formData.head_coach_id || null,
+        head_coach_id: formData.head_coach_id || null
       };
 
       let teamId = selectedTeam?.id;
       const oldHeadCoachId = selectedTeam?.head_coach_id;
 
       if (selectedTeam) {
-        const { error } = await supabase
-          .from("teams")
-          .update(payload)
-          .eq("id", selectedTeam.id);
+        const { error } = await supabase.
+        from("teams").
+        update(payload).
+        eq("id", selectedTeam.id);
 
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
-          .from("teams")
-          .insert([payload])
-          .select("id")
-          .single();
+        const { data, error } = await supabase.
+        from("teams").
+        insert([payload]).
+        select("id").
+        single();
 
         if (error) throw error;
         teamId = data.id;
@@ -397,34 +397,34 @@ export default function TeamsPage() {
       // Sync head_coach_id to team_coaches table
       if (teamId && formData.head_coach_id) {
         // Find existing head coach record for this team
-        const { data: existingHeadCoachRecord } = await supabase
-          .from("team_coaches")
-          .select("id, coach_id")
-          .eq("team_id", teamId)
-          .eq("can_be_head_coach", true)
-          .maybeSingle();
+        const { data: existingHeadCoachRecord } = await supabase.
+        from("team_coaches").
+        select("id, coach_id").
+        eq("team_id", teamId).
+        eq("can_be_head_coach", true).
+        maybeSingle();
 
         if (existingHeadCoachRecord) {
           // Update existing head coach record with new coach_id
-          const { error: updateError } = await supabase
-            .from("team_coaches")
-            .update({ coach_id: formData.head_coach_id })
-            .eq("id", existingHeadCoachRecord.id);
+          const { error: updateError } = await supabase.
+          from("team_coaches").
+          update({ coach_id: formData.head_coach_id }).
+          eq("id", existingHeadCoachRecord.id);
 
           if (updateError) {
             console.error("Napaka pri posodobitvi coach_id:", updateError);
           }
         } else {
           // No head coach record exists - create new one
-          const { error: insertError } = await supabase
-            .from("team_coaches")
-            .insert([{
-              team_id: teamId,
-              coach_id: formData.head_coach_id,
-              can_be_head_coach: true,
-              can_be_assistant: true,
-              is_active: true,
-            }]);
+          const { error: insertError } = await supabase.
+          from("team_coaches").
+          insert([{
+            team_id: teamId,
+            coach_id: formData.head_coach_id,
+            can_be_head_coach: true,
+            can_be_assistant: true,
+            is_active: true
+          }]);
 
           if (insertError) {
             console.error("Napaka pri sinhronizaciji team_coaches:", insertError);
@@ -434,9 +434,9 @@ export default function TeamsPage() {
 
       toast({
         title: "Uspešno",
-        description: selectedTeam 
-          ? "Selekcija uspešno posodobljena" 
-          : "Selekcija uspešno ustvarjena",
+        description: selectedTeam ?
+        "Selekcija uspešno posodobljena" :
+        "Selekcija uspešno ustvarjena"
       });
 
       setDialogOpen(false);
@@ -446,7 +446,7 @@ export default function TeamsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju selekcije",
+        description: error.message || "Napaka pri shranjevanju selekcije"
       });
     } finally {
       setLoading(false);
@@ -463,17 +463,17 @@ export default function TeamsPage() {
 
     try {
       setLoading(true);
-      const { error } = await supabase
-        .from("teams")
-        .delete()
-        .eq("id", teamToDelete.id);
+      const { error } = await supabase.
+      from("teams").
+      delete().
+      eq("id", teamToDelete.id);
 
       if (error) throw error;
       toast({
         title: "Uspešno",
-        description: "Selekcija uspešno izbrisana",
+        description: "Selekcija uspešno izbrisana"
       });
-      
+
       setDeleteDialogOpen(false);
       setTeamToDelete(null);
       loadTeams();
@@ -482,7 +482,7 @@ export default function TeamsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri brisanju selekcije",
+        description: error.message || "Napaka pri brisanju selekcije"
       });
     } finally {
       setLoading(false);
@@ -512,16 +512,16 @@ export default function TeamsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading && teams.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
-              ) : teams.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+              {loading && teams.length === 0 ?
+              <div className="text-center py-8 text-muted-foreground">Nalagam...</div> :
+              teams.length === 0 ?
+              <div className="text-center py-12 text-muted-foreground">
                   <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium">Ni selekcij</p>
                   <p className="text-sm mt-2">Dodajte prvo selekcijo</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
+                </div> :
+
+              <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -536,8 +536,8 @@ export default function TeamsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {teams.map((team) => (
-                        <TableRow key={team.id}>
+                      {teams.map((team) =>
+                    <TableRow key={team.id}>
                           <TableCell className="font-medium">{team.name}</TableCell>
                           <TableCell>{team.short_name || "N/A"}</TableCell>
                           <TableCell>{team.age_category || "N/A"}</TableCell>
@@ -556,42 +556,42 @@ export default function TeamsPage() {
                           <TableCell className="text-right">
                             <div className="flex gap-2 justify-end">
                               <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleManagePlayers(team)}
-                                disabled={loading || !isAssignedCoach(team.id)}
-                                title={!isAssignedCoach(team.id) ? "Samo dodeljeni trenerji lahko urejajo igralce" : ""}
-                              >
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleManagePlayers(team)}
+                            disabled={loading || !isAssignedCoach(team.id)}
+                            title={!isAssignedCoach(team.id) ? "Samo dodeljeni trenerji lahko urejajo igralce" : ""}>
+                            
                                 <Users className="h-4 w-4 mr-1" />
                                 Igralci
                               </Button>
                               <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEdit(team)}
-                                disabled={loading || !isAssignedCoach(team.id)}
-                                title={!isAssignedCoach(team.id) ? "Samo dodeljeni trenerji lahko urejajo selekcijo" : ""}
-                              >
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(team)}
+                            disabled={loading || !isAssignedCoach(team.id)}
+                            title={!isAssignedCoach(team.id) ? "Samo dodeljeni trenerji lahko urejajo selekcijo" : ""}>
+                            
                                 <Edit className="h-4 w-4 mr-1" />
                                 Uredi
                               </Button>
                               <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteClick(team)}
-                                disabled={loading || !isAdmin}
-                              >
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteClick(team)}
+                            disabled={loading || !isAdmin}>
+                            
                                 <Trash2 className="h-4 w-4 mr-1" />
                                 Izbriši
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                    )}
                     </TableBody>
                   </Table>
                 </div>
-              )}
+              }
             </CardContent>
           </Card>
 
@@ -613,8 +613,8 @@ export default function TeamsPage() {
                     placeholder="npr. Kadetinje 1"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
+                    required />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -623,25 +623,25 @@ export default function TeamsPage() {
                     id="short_name"
                     placeholder="npr. KAD1"
                     value={formData.short_name}
-                    onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
-                  />
+                    onChange={(e) => setFormData({ ...formData, short_name: e.target.value })} />
+                  
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="age_category">Starostna kategorija</Label>
                   <Select
                     value={formData.age_category}
-                    onValueChange={(value) => setFormData({ ...formData, age_category: value })}
-                  >
+                    onValueChange={(value) => setFormData({ ...formData, age_category: value })}>
+                    
                     <SelectTrigger id="age_category">
                       <SelectValue placeholder="Izberi starostno kategorijo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {AGE_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
+                      {AGE_CATEGORIES.map((cat) =>
+                      <SelectItem key={cat} value={cat}>
                           {cat}
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -650,8 +650,8 @@ export default function TeamsPage() {
                   <Label htmlFor="gender">Spol</Label>
                   <Select
                     value={formData.gender}
-                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
-                  >
+                    onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+                    
                     <SelectTrigger id="gender">
                       <SelectValue placeholder="Izberi spol" />
                     </SelectTrigger>
@@ -667,17 +667,17 @@ export default function TeamsPage() {
                   <Label htmlFor="head_coach_id">Glavni trener</Label>
                   <Select
                     value={formData.head_coach_id}
-                    onValueChange={(value) => setFormData({ ...formData, head_coach_id: value })}
-                  >
+                    onValueChange={(value) => setFormData({ ...formData, head_coach_id: value })}>
+                    
                     <SelectTrigger id="head_coach_id">
                       <SelectValue placeholder="Izberi glavnega trenerja" />
                     </SelectTrigger>
                     <SelectContent>
-                      {coaches.map((coach) => (
-                        <SelectItem key={coach.id} value={coach.id}>
+                      {coaches.map((coach) =>
+                      <SelectItem key={coach.id} value={coach.id}>
                           {coach.full_name}
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -688,9 +688,9 @@ export default function TeamsPage() {
                     id="is_active"
                     checked={formData.is_active}
                     onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_active: checked })
-                    }
-                  />
+                    setFormData({ ...formData, is_active: checked })
+                    } />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -700,8 +700,8 @@ export default function TeamsPage() {
                     placeholder="Dodatne opombe..."
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
-                  />
+                    rows={3} />
+                  
                 </div>
 
                 <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
@@ -709,11 +709,11 @@ export default function TeamsPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setDialogOpen(false)}
-                    disabled={loading}
-                  >
+                    disabled={loading}>
+                    
                     Prekliči
                   </Button>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                     {loading ? "Shranjujem..." : selectedTeam ? "Posodobi" : "Dodaj"}
                   </Button>
                 </DialogFooter>
@@ -751,8 +751,8 @@ export default function TeamsPage() {
                     placeholder="Ime ali priimek..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={handleSearchKeyDown}
-                  />
+                    onKeyDown={handleSearchKeyDown} />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -772,9 +772,9 @@ export default function TeamsPage() {
                         <TableBody>
                           {filteredPlayers.map((player) => {
                             const isSelected = selectedPlayers.includes(player.id);
-                            const otherTeams = player.teams
-                              ?.filter((tp: any) => tp.teams.id !== selectedTeam?.id)
-                              .map((tp: any) => tp.teams) || [];
+                            const otherTeams = player.teams?.
+                            filter((tp: any) => tp.teams.id !== selectedTeam?.id).
+                            map((tp: any) => tp.teams) || [];
 
                             return (
                               <TableRow key={player.id} className="text-sm">
@@ -783,33 +783,33 @@ export default function TeamsPage() {
                                     type="checkbox"
                                     checked={isSelected}
                                     onChange={() => togglePlayer(player.id)}
-                                    className="h-4 w-4"
-                                  />
+                                    className="h-4 w-4" />
+                                  
                                 </TableCell>
                                 <TableCell className="font-medium py-2">
                                   {player.first_name}
                                 </TableCell>
                                 <TableCell className="py-2">{player.last_name}</TableCell>
                                 <TableCell className="py-2">
-                                  {player.date_of_birth
-                                    ? new Date(player.date_of_birth).toLocaleDateString("sl-SI")
-                                    : "N/A"}
+                                  {player.date_of_birth ?
+                                  new Date(player.date_of_birth).toLocaleDateString("sl-SI") :
+                                  "N/A"}
                                 </TableCell>
                                 <TableCell className="py-2">
                                   <div className="flex flex-wrap gap-1">
-                                    {otherTeams.length > 0 ? (
-                                      otherTeams.map((team: any, idx: number) => (
-                                        <Badge key={idx} variant="outline" className="text-xs">
+                                    {otherTeams.length > 0 ?
+                                    otherTeams.map((team: any, idx: number) =>
+                                    <Badge key={idx} variant="outline" className="text-xs">
                                           {team.short_name || team.name}
                                         </Badge>
-                                      ))
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground">-</span>
-                                    )}
+                                    ) :
+
+                                    <span className="text-xs text-muted-foreground">-</span>
+                                    }
                                   </div>
                                 </TableCell>
-                              </TableRow>
-                            );
+                              </TableRow>);
+
                           })}
                         </TableBody>
                       </Table>
@@ -823,8 +823,8 @@ export default function TeamsPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setManagePlayersDialogOpen(false)}
-                  disabled={loading}
-                >
+                  disabled={loading}>
+                  
                   Zapri
                 </Button>
               </DialogFooter>
@@ -843,8 +843,8 @@ export default function TeamsPage() {
                 <AlertDialogCancel>Prekliči</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleConfirmDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  
                   Izbriši
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -852,6 +852,6 @@ export default function TeamsPage() {
           </AlertDialog>
         </div>
       </AppLayout>
-    </ProtectedRoute>
-  );
+    </ProtectedRoute>);
+
 }
