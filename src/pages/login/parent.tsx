@@ -15,20 +15,20 @@ type AuthStep = "email" | "otp" | "password" | "complete";
 export default function ParentLogin() {
   const router = useRouter();
   const { toast } = useToast();
-
+  
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [canResend, setCanResend] = useState(true);
-
+  
   const otpRefs = [
-  useRef<HTMLInputElement>(null),
-  useRef<HTMLInputElement>(null),
-  useRef<HTMLInputElement>(null),
-  useRef<HTMLInputElement>(null)];
-
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
 
   // OTP expiry countdown
   useEffect(() => {
@@ -47,12 +47,12 @@ export default function ParentLogin() {
 
   async function handleSendOTP(e?: React.FormEvent) {
     if (e) e.preventDefault();
-
+    
     if (!email || !email.includes("@")) {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Vnesite veljaven email naslov"
+        description: "Vnesite veljaven email naslov",
       });
       return;
     }
@@ -62,7 +62,7 @@ export default function ParentLogin() {
       const response = await fetch("/api/auth/parent/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
       });
 
       const data = await response.json();
@@ -75,10 +75,10 @@ export default function ParentLogin() {
       setTimeRemaining(180); // 3 minutes
       setCanResend(false);
       setTimeout(() => setCanResend(true), 60000); // Allow resend after 1 min
-
+      
       toast({
         title: "Koda poslana",
-        description: `4-mestna koda poslana na ${email}`
+        description: `4-mestna koda poslana na ${email}`,
       });
 
       // Focus first OTP input
@@ -87,7 +87,7 @@ export default function ParentLogin() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri pošiljanju kode"
+        description: error.message || "Napaka pri pošiljanju kode",
       });
     } finally {
       setLoading(false);
@@ -121,7 +121,7 @@ export default function ParentLogin() {
       const response = await fetch("/api/auth/parent/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code })
+        body: JSON.stringify({ email, code }),
       });
 
       const data = await response.json();
@@ -138,7 +138,7 @@ export default function ParentLogin() {
 
       toast({
         title: "Uspešna prijava",
-        description: "Dobrodošli!"
+        description: "Dobrodošli!",
       });
 
       // Redirect to parent dashboard
@@ -147,7 +147,7 @@ export default function ParentLogin() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message
+        description: error.message,
       });
     } finally {
       setLoading(false);
@@ -158,7 +158,7 @@ export default function ParentLogin() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Prijava za starše</h1>
+          <h1 className="text-3xl font-bold mb-2">Prijava za Starše</h1>
           <p className="text-muted-foreground">
             Sledite prisotnosti vašega otroka
           </p>
@@ -166,75 +166,75 @@ export default function ParentLogin() {
 
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Prijava za starše</CardTitle>
+            <CardTitle>Prijava za Starše</CardTitle>
             <CardDescription>
               {step === "email" && "Vnesite vaš email naslov"}
               {step === "otp" && "Vnesite 4-mestno kodo"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {step === "email" &&
-            <>
+            {step === "email" && (
+              <>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
-                  id="email"
-                  type="email"
-                  placeholder="vas.email@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading} />
-                
+                    id="email"
+                    type="email"
+                    placeholder="vas.email@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                  />
                 </div>
                 <Button
-                onClick={handleSendOTP}
-                disabled={loading || !email}
-                className="w-full">
-                
+                  onClick={handleSendOTP}
+                  disabled={loading || !email}
+                  className="w-full"
+                >
                   {loading ? "Pošiljam..." : "Pošlji kodo"}
                 </Button>
               </>
-            }
+            )}
 
-            {step === "otp" &&
-            <>
+            {step === "otp" && (
+              <>
                 <div className="space-y-2">
                   <Label>Vnesite 4-mestno kodo</Label>
                   <div className="flex gap-2 justify-center">
-                    {otp.map((digit, index) =>
-                  <Input
-                    key={index}
-                    id={`otp-${index}`}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    className="w-12 h-12 text-center text-lg"
-                    disabled={loading} />
-
-                  )}
+                    {otp.map((digit, index) => (
+                      <Input
+                        key={index}
+                        id={`otp-${index}`}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        className="w-12 h-12 text-center text-lg"
+                        disabled={loading}
+                      />
+                    ))}
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Button
-                  onClick={handleVerifyOtp}
-                  disabled={loading || otp.some((d) => !d)}
-                  className="w-full">
-                  
+                    onClick={handleVerifyOtp}
+                    disabled={loading || otp.some(d => !d)}
+                    className="w-full"
+                  >
                     {loading ? "Preverjam..." : "Preveri kodo"}
                   </Button>
                   <Button
-                  onClick={() => setStep("email")}
-                  variant="outline"
-                  className="w-full"
-                  disabled={loading}>
-                  
+                    onClick={() => setStep("email")}
+                    variant="outline"
+                    className="w-full"
+                    disabled={loading}
+                  >
                     Nazaj
                   </Button>
                 </div>
               </>
-            }
+            )}
           </CardContent>
         </Card>
 
@@ -245,6 +245,6 @@ export default function ParentLogin() {
           </Link>
         </div>
       </div>
-    </div>);
-
+    </div>
+  );
 }

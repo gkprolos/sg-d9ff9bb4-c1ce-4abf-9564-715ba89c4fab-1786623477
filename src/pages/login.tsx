@@ -30,7 +30,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Vpišite e-pošto in geslo"
+        description: "Vpišite e-pošto in geslo",
       });
       return;
     }
@@ -40,7 +40,7 @@ export default function LoginPage() {
       await signIn(email, password);
       toast({
         title: "Uspešna prijava",
-        description: "Dobrodošli!"
+        description: "Dobrodošli!",
       });
       router.push("/dashboard");
     } catch (error: any) {
@@ -48,7 +48,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Napaka pri prijavi",
-        description: error.message || "Napačna e-pošta ali geslo"
+        description: error.message || "Napačna e-pošta ali geslo",
       });
     } finally {
       setSubmitting(false);
@@ -59,8 +59,8 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Nalagam...</p>
-      </div>);
-
+      </div>
+    );
   }
 
   return (
@@ -68,11 +68,11 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto mb-4">
-            <img
-              src="/LOGO-2015-C_B.gif"
-              alt="Odbojkarski klub Lubnik"
-              className="h-24 w-auto mx-auto" />
-            
+            <img 
+              src="/LOGO-2015-C_B.gif" 
+              alt="Odbojkarski klub Lubnik" 
+              className="h-24 w-auto mx-auto"
+            />
           </div>
           <CardTitle className="text-2xl font-bold">Odbojkarski klub Lubnik Škofja Loka</CardTitle>
           <CardDescription>Prijavite se v svoj račun</CardDescription>
@@ -88,8 +88,8 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={submitting} />
-              
+                disabled={submitting}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Geslo</Label>
@@ -100,18 +100,18 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={submitting} />
-              
+                disabled={submitting}
+              />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ?
-              <>
+              {loading ? (
+                <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Prijavljanje...
-                </> :
-
-              "Prijava"
-              }
+                </>
+              ) : (
+                "Prijava"
+              )}
             </Button>
           </form>
 
@@ -128,13 +128,13 @@ export default function LoginPage() {
             </div>
             
             <Link href="/login/parent">
-              <Button variant="outline" className="w-full mt-4">Prijava za starše
-
+              <Button variant="outline" className="w-full mt-4">
+                📧 Prijava za Starše
               </Button>
             </Link>
           </div>
         </CardContent>
       </Card>
-    </div>);
-
+    </div>
+  );
 }
