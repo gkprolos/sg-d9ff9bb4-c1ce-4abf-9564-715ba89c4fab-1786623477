@@ -505,7 +505,7 @@ export default function AttendancePage() {
               </Button>
               {/* Top right action button */}
               <Button
-                onClick={() => setShowDialog(true)}
+                onClick={handleCreateActivity}
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
