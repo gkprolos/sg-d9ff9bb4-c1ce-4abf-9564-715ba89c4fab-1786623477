@@ -183,8 +183,7 @@ export default function MonthlyAttendance() {
           )
         `)
         .gte("activities.activity_date", startDate)
-        .lte("activities.activity_date", endDate)
-        .order("last_name", { foreignTable: "players", ascending: true });
+        .lte("activities.activity_date", endDate);
 
       // Filter by team(s)
       if (selectedTeamId && selectedTeamId !== "" && viewType !== "all_teams") {
@@ -196,6 +195,7 @@ export default function MonthlyAttendance() {
         const teamIds = teams.map(t => t.id);
         query = query.in("activities.team_id", teamIds);
         console.log("📌 Filtering by all teams:", teamIds);
+        console.log("📌 Team names:", teams.map(t => t.name));
       } else {
         console.log("⚠️ No teams available");
         setMonthlyData([]);
@@ -203,9 +203,28 @@ export default function MonthlyAttendance() {
         return;
       }
 
+      // Execute query
       const { data, error } = await query;
 
       console.log("✅ Query result:", { count: data?.length, error });
+      
+      // Debug: Log first few records to see what teams they belong to
+      if (data && data.length > 0) {
+        console.log("🔍 First 5 records sample:", data.slice(0, 5).map((r: any) => ({
+          player: `${r.players?.first_name} ${r.players?.last_name}`,
+          activity_date: r.activities?.activity_date,
+          team_id: r.activities?.team_id,
+          status: r.status
+        })));
+        
+        // Count records per team
+        const teamCounts = data.reduce((acc: any, r: any) => {
+          const teamId = r.activities?.team_id;
+          acc[teamId] = (acc[teamId] || 0) + 1;
+          return acc;
+        }, {});
+        console.log("📊 Records per team_id:", teamCounts);
+      }
 
       if (error) throw error;
 
