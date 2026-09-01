@@ -781,8 +781,8 @@ export default function MessagingPage() {
             <ArrowLeft className="h-4 w-4" />
             Nazaj
           </Button>
-          <h1 className="text-2xl font-bold">
-            {isAdmin ? "Sporočila" : isCoach ? "Moja Sporočila" : "Sporočila"}
+          <h1 className="text-2xl font-bold">Moja sporočila
+
           </h1>
         </div>
 
