@@ -1418,7 +1418,7 @@ export default function DashboardPage() {
                     variant={showLowAttendanceOnly ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowLowAttendanceOnly(!showLowAttendanceOnly)}
-                    className="hidden md:inline-flex" style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
+                    className="hidden md:inline-flex" style={{ backgroundColor: "#eab308", backgroundImage: "none" }}>
                     
                     {showLowAttendanceOnly ? "Prikaži vse" : "Samo nizka prisotnost"}
                   </Button>
