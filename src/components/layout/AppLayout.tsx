@@ -17,16 +17,16 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarProvider,
-} from "@/components/ui/sidebar";
+  SidebarProvider } from
+"@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -49,11 +49,11 @@ import {
   Shield,
   Mail,
   Archive,
-  MessageSquare,
-} from "lucide-react";
+  MessageSquare } from
+"lucide-react";
 import { cn } from "@/lib/utils";
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+export function AppLayout({ children }: {children: React.ReactNode;}) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, userRole, signOut } = useAuth();
@@ -96,67 +96,67 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Parent Navigation (only My Children)
   const parentNavigation = [
-    { name: "Moji Otroci", href: "/my-children", icon: UserCircle },
-  ];
+  { name: "Moji Otroci", href: "/my-children", icon: UserCircle }];
+
 
   // Admin Navigation
   const adminNavigation = [
-    { name: "Nadzorna plošča", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Vnos prisotnosti", href: "/attendance", icon: ClipboardList },
-    { name: "Aktivnosti", href: "/activities", icon: Activity },
-    { name: "Selekcije", href: "/teams", icon: Users },
-    { name: "Igralci", href: "/players", icon: UserCircle },
-    { name: "Trenerji", href: "/coaches", icon: UserCog },
-    { name: "Dvorane", href: "/venues", icon: MapPin },
-    { name: "Urniki", href: "/schedules", icon: Clock },
-    { name: "Sezone", href: "/seasons", icon: Calendar },
-    { name: "Nastavitve", href: "/settings", icon: Settings },
-  ];
+  { name: "Nadzorna plošča", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Vnos prisotnosti", href: "/attendance", icon: ClipboardList },
+  { name: "Aktivnosti", href: "/activities", icon: Activity },
+  { name: "Selekcije", href: "/teams", icon: Users },
+  { name: "Igralci", href: "/players", icon: UserCircle },
+  { name: "Trenerji", href: "/coaches", icon: UserCog },
+  { name: "Dvorane", href: "/venues", icon: MapPin },
+  { name: "Urniki", href: "/schedules", icon: Clock },
+  { name: "Sezone", href: "/seasons", icon: Calendar },
+  { name: "Nastavitve", href: "/settings", icon: Settings }];
+
 
   // Coach Navigation
   const coachNavigation = [
-    { name: "Moj pregled", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Dodaj prisotnost", href: "/attendance", icon: ClipboardCheck },
-    { name: "Aktivnosti", href: "/activities", icon: Activity },
-    { name: "Moje selekcije", href: "/my-teams", icon: Users },
-    { name: "Moji igralci", href: "/my-players", icon: UserCircle },
-    { name: "Dvorane", href: "/my-venues", icon: MapPin },
-    { name: "Urniki", href: "/my-schedules", icon: Clock },
-    { name: "Nastavitve", href: "/settings", icon: Settings },
-  ];
+  { name: "Moj pregled", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Dodaj prisotnost", href: "/attendance", icon: ClipboardCheck },
+  { name: "Aktivnosti", href: "/activities", icon: Activity },
+  { name: "Moje selekcije", href: "/my-teams", icon: Users },
+  { name: "Moji igralci", href: "/my-players", icon: UserCircle },
+  { name: "Dvorane", href: "/my-venues", icon: MapPin },
+  { name: "Urniki", href: "/my-schedules", icon: Clock },
+  { name: "Nastavitve", href: "/settings", icon: Settings }];
 
-  const navigation = isAdmin
-    ? [
-        { name: "Nadzorna plošča", href: "/dashboard", icon: LayoutDashboard },
-        { name: "Aktivnosti", href: "/activities", icon: Activity },
-        { name: "Prisotnost", href: "/attendance", icon: ClipboardCheck },
-        { name: "Selekcije", href: "/teams", icon: Users },
-        { name: "Igralci", href: "/players", icon: UserCog },
-        { name: "Trenerji", href: "/coaches", icon: ClipboardList },
-        { name: "Dvorane", href: "/venues", icon: Building },
-        { name: "Urniki", href: "/schedules", icon: Clock },
-        { name: "Sezone", href: "/seasons", icon: Calendar },
-        { name: "Nastavitve", href: "/settings", icon: Settings },
-      ]
-    : [
-        { name: "Moj pregled", href: "/dashboard", icon: LayoutDashboard },
-        { name: "Vnos prisotnosti", href: "/attendance", icon: ClipboardCheck },
-        { name: "Moje aktivnosti", href: "/activities", icon: Activity },
-        { name: "Igralci", href: "/my-players", icon: UserCog },
-        { name: "Selekcije", href: "/my-teams", icon: Users },
-        { name: "Dvorane", href: "/my-venues", icon: Building },
-        { name: "Urniki", href: "/my-schedules", icon: Clock },
-      ];
 
-  const NavContent = () => (
-    <>
+  const navigation = isAdmin ?
+  [
+  { name: "Nadzorna plošča", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Aktivnosti", href: "/activities", icon: Activity },
+  { name: "Prisotnost", href: "/attendance", icon: ClipboardCheck },
+  { name: "Selekcije", href: "/teams", icon: Users },
+  { name: "Igralci", href: "/players", icon: UserCog },
+  { name: "Trenerji", href: "/coaches", icon: ClipboardList },
+  { name: "Dvorane", href: "/venues", icon: Building },
+  { name: "Urniki", href: "/schedules", icon: Clock },
+  { name: "Sezone", href: "/seasons", icon: Calendar },
+  { name: "Nastavitve", href: "/settings", icon: Settings }] :
+
+  [
+  { name: "Moj pregled", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Vnos prisotnosti", href: "/attendance", icon: ClipboardCheck },
+  { name: "Moje aktivnosti", href: "/activities", icon: Activity },
+  { name: "Igralci", href: "/my-players", icon: UserCog },
+  { name: "Selekcije", href: "/my-teams", icon: Users },
+  { name: "Dvorane", href: "/my-venues", icon: Building },
+  { name: "Urniki", href: "/my-schedules", icon: Clock }];
+
+
+  const NavContent = () =>
+  <>
       <div className="px-6 py-4">
         <div className="flex items-center gap-3">
-          <img 
-            src="/LOGO-2015-C_B.gif" 
-            alt="OK Lubnik" 
-            className="h-12 w-auto"
-          />
+          <img
+          src="/LOGO-2015-C_B.gif"
+          alt="OK Lubnik"
+          className="h-12 w-auto" />
+        
           <div>
             <h2 className="font-semibold text-base leading-tight">OK Lubnik</h2>
             <p className="text-xs text-muted-foreground">Sezona 2026/2027</p>
@@ -178,8 +178,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            {isAdmin && (
-              <>
+            {isAdmin &&
+          <>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <Link href="/activities">
@@ -197,7 +197,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </>
-            )}
+          }
 
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
@@ -225,10 +225,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
-                isActive={pathname === "/billing"}
-                className="cursor-pointer"
-              >
+              asChild
+              isActive={pathname === "/billing"}
+              className="cursor-pointer">
+              
                 <Link href="/billing">
                   <Calculator className="h-4 w-4" />
                   <span>Obračun</span>
@@ -238,10 +238,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
-                isActive={pathname === "/reports"}
-                className="cursor-pointer"
-              >
+              asChild
+              isActive={pathname === "/reports"}
+              className="cursor-pointer">
+              
                 <Link href="/reports">
                   <FileText className="h-4 w-4" />
                   <span>Poročila</span>
@@ -251,10 +251,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
-                isActive={pathname === "/audit"}
-                className="cursor-pointer"
-              >
+              asChild
+              isActive={pathname === "/audit"}
+              className="cursor-pointer">
+              
                 <Link href="/audit">
                   <Shield className="h-4 w-4" />
                   <span>Revizijska sled</span>
@@ -262,8 +262,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            {isAdmin ? (
-              <>
+            {isAdmin ?
+          <>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <Link href="/teams">
@@ -312,9 +312,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              </>
-            ) : (
-              <>
+              </> :
+
+          <>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <Link href="/activities">
@@ -356,7 +356,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </>
-            )}
+          }
           </SidebarMenu>
         </nav>
       </ScrollArea>
@@ -367,10 +367,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-primary text-primary-foreground">
-              {user?.email
-                ?.split("@")[0]
-                .substring(0, 2)
-                .toUpperCase() || "??"}
+              {user?.email?.
+            split("@")[0].
+            substring(0, 2).
+            toUpperCase() || "??"}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
@@ -381,8 +381,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </div>
-    </>
-  );
+    </>;
+
 
   return (
     <SidebarProvider>
@@ -407,9 +407,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarGroup>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {isParent ? (
-                        // Parent Menu
-                        <>
+                      {isParent ?
+                      // Parent Menu
+                      <>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
                               <Link href="/my-children">
@@ -426,10 +426,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
-                        </>
-                      ) : userRole === "admin" ? (
-                        // Admin Menu (unchanged)
-                        <>
+                        </> :
+                      userRole === "admin" ?
+                      // Admin Menu (unchanged)
+                      <>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
                               <Link href="/dashboard">
@@ -545,119 +545,119 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
-                        </>
-                      ) : (
-                        <>
+                        </> :
+
+                      <>
                           <Link
-                            href="/dashboard"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/dashboard"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/dashboard"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/dashboard" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <LayoutDashboard className="h-4 w-4" />
                             Pregled
                           </Link>
                           <Link
-                            href="/attendance"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/attendance"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/attendance"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/attendance" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <ClipboardCheck className="h-4 w-4" />
                             Prisotnost
                           </Link>
                           <Link
-                            href="/billing"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/billing"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/billing"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/billing" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <DollarSign className="h-4 w-4" />
                             Mesečni obračun
                           </Link>
                           <Link
-                            href="/activities"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/activities"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/activities"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/activities" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Activity className="h-4 w-4" />
                             Moje aktivnosti
                           </Link>
                           <Link
-                            href="/my-players"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/my-players"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/my-players"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-players" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <UserCog className="h-4 w-4" />
                             Igralci
                           </Link>
                           <Link
-                            href="/my-teams"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/my-teams"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/my-teams"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-teams" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Users className="h-4 w-4" />
                             Selekcije
                           </Link>
                           <Link
-                            href="/my-venues"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/my-venues"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/my-venues"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-venues" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Building className="h-4 w-4" />
                             Dvorane
                           </Link>
                           <Link
-                            href="/my-schedules"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/my-schedules"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/my-schedules"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-schedules" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Clock className="h-4 w-4" />
                             Urniki
                           </Link>
                           <Link
-                            href="/messaging"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/messaging"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/messaging"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/messaging" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <MessageSquare className="h-4 w-4" />
                             Moja Sporočila
                           </Link>
                         </>
-                      )}
+                      }
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
@@ -680,58 +680,58 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <SheetContent side="left" className="w-64 p-0">
                 <div className="flex h-16 items-center border-b px-6">
                   <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                      <span className="text-lg font-bold">OK</span>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground" style={{ backgroundColor: "transparent", backgroundImage: "url(\"/LOGO-2015-C_B.gif\")", backgroundSize: "cover" }}>
+                      <span className="text-lg font-bold" style={{ backgroundImage: "url(\"/LOGO-2015-C_B.gif\")", backgroundColor: "transparent", backgroundSize: "contain", color: "#00000000", lineHeight: "", backgroundRepeat: "no-repeat", fontWeight: "100" }}>.</span>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold leading-tight">OK Lubnik</span>
-                      <span className="text-xs text-muted-foreground leading-tight">Športni klub</span>
+                      <span className="text-xs text-muted-foreground leading-tight">Odbojkarski klub</span>
                     </div>
                   </Link>
                 </div>
                 <ScrollArea className="flex-1 px-3 py-4">
                   <nav className="space-y-1">
                     <>
-                      {isParent ? (
-                        // Parent Mobile Menu
-                        <>
+                      {isParent ?
+                      // Parent Mobile Menu
+                      <>
                           <Link
-                            href="/my-children"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/my-children"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/my-children"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-children" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <UserCircle className="h-4 w-4" />
                             Moji Otroci
                           </Link>
                           <Link
-                            href="/messaging"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/messaging"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/messaging"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/messaging" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <MessageSquare className="h-4 w-4" />
                             Sporočila
                           </Link>
-                        </>
-                      ) : userRole === "admin" ? (
-                        // Admin Mobile Menu (unchanged)
-                        <>
+                        </> :
+                      userRole === "admin" ?
+                      // Admin Mobile Menu (unchanged)
+                      <>
                           <Link
-                            href="/dashboard"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/dashboard"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/dashboard"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/dashboard" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <LayoutDashboard className="h-4 w-4" />
                             Pregled
                           </Link>
@@ -740,134 +740,134 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             Upravljanje
                           </div>
                           <Link
-                            href="/players"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/players"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/players"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/players" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <UserCog className="h-4 w-4" />
                             Igralci
                           </Link>
                           <Link
-                            href="/coaches"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/coaches"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/coaches"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/coaches" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Users className="h-4 w-4" />
                             Trenerji
                           </Link>
                           <Link
-                            href="/teams"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/teams"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/teams"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/teams" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Shield className="h-4 w-4" />
                             Selekcije
                           </Link>
                           <Link
-                            href="/activities"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/activities"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/activities"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/activities" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Activity className="h-4 w-4" />
                             Aktivnosti
                           </Link>
                           <Link
-                            href="/venues"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/venues"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/venues"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/venues" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Building className="h-4 w-4" />
                             Dvorane
                           </Link>
                           <Link
-                            href="/schedules"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/schedules"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/schedules"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/schedules" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Clock className="h-4 w-4" />
                             Urniki
                           </Link>
                           <Link
-                            href="/seasons"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/seasons"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/seasons"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/seasons" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Calendar className="h-4 w-4" />
                             Sezone
                           </Link>
                           <Link
-                            href="/attendance"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/attendance"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/attendance"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/attendance" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <ClipboardCheck className="h-4 w-4" />
                             Prisotnost
                           </Link>
                           <Link
-                            href="/billing"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/billing"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/billing"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/billing" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <DollarSign className="h-4 w-4" />
                             Obračun
                           </Link>
                           <Link
-                            href="/reports"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/reports"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/reports"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/reports" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <FileText className="h-4 w-4" />
                             Poročila
                           </Link>
                           <Link
-                            href="/messaging"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/messaging"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/messaging"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/messaging" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <MessageSquare className="h-4 w-4" />
                             Sporočila
                           </Link>
@@ -876,142 +876,142 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             Nastavitve
                           </div>
                           <Link
-                            href="/smtp-settings"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/smtp-settings"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/smtp-settings"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/smtp-settings" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Mail className="h-4 w-4" />
                             SMTP nastavitve
                           </Link>
                           <Link
-                            href="/settings"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/settings"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/settings"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/settings" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Settings className="h-4 w-4" />
                             Nastavitve
                           </Link>
-                        </>
-                      ) : (
-                        <>
+                        </> :
+
+                      <>
                           <Link
-                            href="/dashboard"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/dashboard"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/dashboard"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/dashboard" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <LayoutDashboard className="h-4 w-4" />
                             Pregled
                           </Link>
                           <Link
-                            href="/attendance"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/attendance"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/attendance"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/attendance" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <ClipboardCheck className="h-4 w-4" />
                             Prisotnost
                           </Link>
                           <Link
-                            href="/billing"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/billing"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/billing"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/billing" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <DollarSign className="h-4 w-4" />
                             Mesečni obračun
                           </Link>
                           <Link
-                            href="/activities"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/activities"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/activities"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/activities" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Activity className="h-4 w-4" />
                             Moje aktivnosti
                           </Link>
                           <Link
-                            href="/my-players"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/my-players"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/my-players"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-players" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <UserCog className="h-4 w-4" />
                             Igralci
                           </Link>
                           <Link
-                            href="/my-teams"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/my-teams"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/my-teams"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-teams" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Users className="h-4 w-4" />
                             Selekcije
                           </Link>
                           <Link
-                            href="/my-venues"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/my-venues"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/my-venues"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-venues" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Building className="h-4 w-4" />
                             Dvorane
                           </Link>
                           <Link
-                            href="/my-schedules"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/my-schedules"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/my-schedules"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/my-schedules" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <Clock className="h-4 w-4" />
                             Urniki
                           </Link>
                           <Link
-                            href="/messaging"
-                            className={cn(
-                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                              router.pathname === "/messaging"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                            )}
-                          >
+                          href="/messaging"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                            router.pathname === "/messaging" ?
+                            "bg-primary text-primary-foreground" :
+                            "hover:bg-muted"
+                          )}>
+                          
                             <MessageSquare className="h-4 w-4" />
                             Moja Sporočila
                           </Link>
                         </>
-                      )}
+                      }
                     </>
                   </nav>
                 </ScrollArea>
@@ -1026,11 +1026,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
                     <AvatarFallback>
-                      {user?.user_metadata?.full_name
-                        ?.split(" ")
-                        .map((n: string) => n[0])
-                        .join("")
-                        .toUpperCase() || <UserCircle className="h-5 w-5" />}
+                      {user?.user_metadata?.full_name?.
+                      split(" ").
+                      map((n: string) => n[0]).
+                      join("").
+                      toUpperCase() || <UserCircle className="h-5 w-5" />}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -1039,25 +1039,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {isParent
-                        ? parentEmail
-                        : user?.user_metadata?.full_name || user?.email}
+                      {isParent ?
+                      parentEmail :
+                      user?.user_metadata?.full_name || user?.email}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {isParent ? "Starš" : (isAdmin ? "Administrator" : "Trener")}
+                      {isParent ? "Starš" : isAdmin ? "Administrator" : "Trener"}
                     </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {!isParent && (
-                  <>
+                {!isParent &&
+                <>
                     <DropdownMenuItem onClick={() => router.push("/settings")}>
                       <Settings className="mr-2 h-4 w-4" />
                       Nastavitve
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
-                )}
+                }
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Odjava
@@ -1072,6 +1072,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
-    </SidebarProvider>
-  );
+    </SidebarProvider>);
+
 }
