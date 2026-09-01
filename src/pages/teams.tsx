@@ -498,7 +498,7 @@ export default function TeamsPage() {
               <h2 className="text-3xl font-bold tracking-tight">Selekcije</h2>
               <p className="text-muted-foreground">Upravljanje ekip in njihovih članov</p>
             </div>
-            <Button onClick={handleAdd} disabled={loading || !isAdmin}>
+            <Button onClick={handleAdd} disabled={loading || !isAdmin} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
               <Plus className="h-4 w-4 mr-2" />
               Dodaj selekcijo
             </Button>
