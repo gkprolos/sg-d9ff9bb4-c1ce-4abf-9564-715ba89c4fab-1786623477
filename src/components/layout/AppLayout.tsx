@@ -555,7 +555,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
                             router.pathname === "/dashboard" ?
                             "bg-primary text-primary-foreground" :
                             "hover:bg-muted"
-                          )} style={{ backgroundColor: "#f8f8f8", backgroundImage: "none" }}>
+                          )} style={{ backgroundColor: "#f8f8f8", backgroundImage: "none", color: "#010101" }}>
                           
                             <LayoutDashboard className="h-4 w-4" />
                             Pregled
