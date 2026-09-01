@@ -492,7 +492,7 @@ export default function ActivitiesPage() {
       activity_type_id: activity.activity_type_id,
       is_home_game: activity.is_home_game,
     });
-    setShowEditDialog(true);
+    setEditDialogOpen(true); // Fixed: was setShowEditDialog(true)
   }
 
   return (
