@@ -17,8 +17,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AlertDialogTitle } from
+"@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -52,7 +52,7 @@ export default function VenuesPage() {
     city: "",
     room_designation: "",
     is_active: true,
-    notes: "",
+    notes: ""
   });
 
   useEffect(() => {
@@ -62,12 +62,12 @@ export default function VenuesPage() {
   useEffect(() => {
     async function checkAdmin() {
       if (!user) return;
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+      const { data } = await supabase.
+      from("user_roles").
+      select("role").
+      eq("user_id", user.id).
+      eq("role", "admin").
+      maybeSingle();
       setIsAdmin(!!data);
     }
     checkAdmin();
@@ -76,10 +76,10 @@ export default function VenuesPage() {
   async function loadVenues() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("venues")
-        .select("*")
-        .order("name", { ascending: true });
+      const { data, error } = await supabase.
+      from("venues").
+      select("*").
+      order("name", { ascending: true });
 
       if (error) throw error;
       setVenues(data || []);
@@ -88,7 +88,7 @@ export default function VenuesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti dvoran",
+        description: error.message || "Ni mogoče naložiti dvoran"
       });
     } finally {
       setLoading(false);
@@ -103,7 +103,7 @@ export default function VenuesPage() {
       address: "",
       room_designation: "",
       is_active: true,
-      notes: "",
+      notes: ""
     });
     setDialogOpen(true);
   }
@@ -116,7 +116,7 @@ export default function VenuesPage() {
       address: venue.address || "",
       room_designation: venue.room_designation || "",
       is_active: venue.is_active,
-      notes: venue.notes || "",
+      notes: venue.notes || ""
     });
     setDialogOpen(true);
   }
@@ -128,7 +128,7 @@ export default function VenuesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Naziv je obvezen",
+        description: "Naziv je obvezen"
       });
       return;
     }
@@ -142,29 +142,29 @@ export default function VenuesPage() {
         city: formData.city || null,
         room_designation: formData.room_designation || null,
         is_active: formData.is_active,
-        notes: formData.notes || null,
+        notes: formData.notes || null
       };
 
       if (selectedVenue) {
-        const { error } = await supabase
-          .from("venues")
-          .update(payload)
-          .eq("id", selectedVenue.id);
+        const { error } = await supabase.
+        from("venues").
+        update(payload).
+        eq("id", selectedVenue.id);
 
         if (error) throw error;
         toast({
           title: "Uspešno",
-          description: "Dvorana uspešno posodobljena",
+          description: "Dvorana uspešno posodobljena"
         });
       } else {
-        const { error } = await supabase
-          .from("venues")
-          .insert([payload]);
+        const { error } = await supabase.
+        from("venues").
+        insert([payload]);
 
         if (error) throw error;
         toast({
           title: "Uspešno",
-          description: "Dvorana uspešno ustvarjena",
+          description: "Dvorana uspešno ustvarjena"
         });
       }
 
@@ -175,7 +175,7 @@ export default function VenuesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju dvorane",
+        description: error.message || "Napaka pri shranjevanju dvorane"
       });
     } finally {
       setLoading(false);
@@ -192,17 +192,17 @@ export default function VenuesPage() {
 
     try {
       setLoading(true);
-      const { error } = await supabase
-        .from("venues")
-        .delete()
-        .eq("id", venueToDelete.id);
+      const { error } = await supabase.
+      from("venues").
+      delete().
+      eq("id", venueToDelete.id);
 
       if (error) throw error;
       toast({
         title: "Uspešno",
-        description: "Dvorana uspešno izbrisana",
+        description: "Dvorana uspešno izbrisana"
       });
-      
+
       setDeleteDialogOpen(false);
       setVenueToDelete(null);
       loadVenues();
@@ -211,7 +211,7 @@ export default function VenuesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri brisanju dvorane",
+        description: error.message || "Napaka pri brisanju dvorane"
       });
     } finally {
       setLoading(false);
@@ -223,15 +223,15 @@ export default function VenuesPage() {
 
     try {
       setLoading(true);
-      const { error } = await supabase
-        .from("venues")
-        .delete()
-        .eq("id", venueId);
+      const { error } = await supabase.
+      from("venues").
+      delete().
+      eq("id", venueId);
 
       if (error) throw error;
       toast({
         title: "Uspešno",
-        description: "Dvorana uspešno izbrisana",
+        description: "Dvorana uspešno izbrisana"
       });
       loadVenues();
     } catch (error: any) {
@@ -239,7 +239,7 @@ export default function VenuesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri brisanju dvorane",
+        description: error.message || "Napaka pri brisanju dvorane"
       });
     } finally {
       setLoading(false);
@@ -269,16 +269,16 @@ export default function VenuesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading && venues.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
-              ) : venues.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+              {loading && venues.length === 0 ?
+              <div className="text-center py-8 text-muted-foreground">Nalagam...</div> :
+              venues.length === 0 ?
+              <div className="text-center py-12 text-muted-foreground">
                   <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium">Ni dvoran</p>
                   <p className="text-sm mt-2">Dodajte prvo dvorano</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
+                </div> :
+
+              <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -291,45 +291,45 @@ export default function VenuesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {venues.map((venue) => (
-                        <TableRow key={venue.id}>
+                      {venues.map((venue) =>
+                    <TableRow key={venue.id}>
                           <TableCell className="font-medium">{venue.name}</TableCell>
                           <TableCell>{venue.city}</TableCell>
                           <TableCell>{venue.address || "N/A"}</TableCell>
                           <TableCell>{venue.room_designation || "N/A"}</TableCell>
                           <TableCell>
-                            <Badge variant={venue.is_active ? "default" : "secondary"}>
+                            <Badge variant={venue.is_active ? "default" : "secondary"} style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>
                               {venue.is_active ? "Aktivna" : "Neaktivna"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-2 justify-end">
                               <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEdit(venue)}
-                                disabled={loading || !isAdmin}
-                              >
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(venue)}
+                            disabled={loading || !isAdmin}>
+                            
                                 <Edit className="h-4 w-4 mr-1" />
                                 Uredi
                               </Button>
                               <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteClick(venue)}
-                                disabled={loading || !isAdmin}
-                              >
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteClick(venue)}
+                            disabled={loading || !isAdmin}>
+                            
                                 <Trash2 className="h-4 w-4 mr-1" />
                                 Izbriši
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                    )}
                     </TableBody>
                   </Table>
                 </div>
-              )}
+              }
             </CardContent>
           </Card>
 
@@ -351,8 +351,8 @@ export default function VenuesPage() {
                     placeholder="npr. Športna dvorana Poden"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
+                    required />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -364,8 +364,8 @@ export default function VenuesPage() {
                     placeholder="npr. Škofja Loka"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    required
-                  />
+                    required />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -374,8 +374,8 @@ export default function VenuesPage() {
                     id="address"
                     placeholder="npr. Podlubnik 1a"
                     value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  />
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -384,8 +384,8 @@ export default function VenuesPage() {
                     id="room_designation"
                     placeholder="npr. Mala dvorana"
                     value={formData.room_designation}
-                    onChange={(e) => setFormData({ ...formData, room_designation: e.target.value })}
-                  />
+                    onChange={(e) => setFormData({ ...formData, room_designation: e.target.value })} />
+                  
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -394,9 +394,9 @@ export default function VenuesPage() {
                     id="is_active"
                     checked={formData.is_active}
                     onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_active: checked })
-                    }
-                  />
+                    setFormData({ ...formData, is_active: checked })
+                    } />
+                  
                 </div>
 
                 <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
@@ -404,8 +404,8 @@ export default function VenuesPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setDialogOpen(false)}
-                    disabled={loading}
-                  >
+                    disabled={loading}>
+                    
                     Prekliči
                   </Button>
                   <Button type="submit" disabled={loading}>
@@ -428,8 +428,8 @@ export default function VenuesPage() {
                 <AlertDialogCancel>Prekliči</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleConfirmDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  
                   Izbriši
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -437,6 +437,6 @@ export default function VenuesPage() {
           </AlertDialog>
         </div>
       </AppLayout>
-    </ProtectedRoute>
-  );
+    </ProtectedRoute>);
+
 }
