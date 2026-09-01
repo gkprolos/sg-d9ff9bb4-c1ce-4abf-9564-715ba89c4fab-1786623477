@@ -1207,7 +1207,7 @@ export default function DashboardPage() {
 
             {!isAdmin &&
             <Link href="/attendance">
-                <Button size="lg" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto" style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                   <Plus className="mr-2 h-5 w-5" />
                   Dodaj prisotnost
                 </Button>
