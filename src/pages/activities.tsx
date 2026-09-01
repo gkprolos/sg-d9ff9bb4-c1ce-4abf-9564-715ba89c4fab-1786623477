@@ -443,6 +443,20 @@ export default function ActivitiesPage() {
     }
   }
 
+  function handleEdit(activity: any) {
+    setEditActivityId(activity.id);
+    setEditForm({
+      activity_date: activity.activity_date,
+      start_time: activity.start_time || "",
+      end_time: activity.end_time || "",
+      venue_id: activity.venues?.id || "",
+      mileage_km: activity.activity_coaches?.[0]?.mileage_km || 0,
+      activity_type_id: activity.activity_type_id,
+      is_home_game: activity.is_home_game,
+    });
+    setShowEditDialog(true);
+  }
+
   return (
     <ProtectedRoute>
       <AppLayout>
@@ -612,6 +626,11 @@ export default function ActivitiesPage() {
                     </TableHeader>
                     <TableBody>
                       {activities.map((activity) => {
+                        // Check if logged-in user is coach on this activity
+                        const isCoachOnActivity = activity.activity_coaches?.some(
+                          (ac: any) => ac.profiles?.id === user?.id
+                        ) || false;
+
                         const headCoach = activity.activity_coaches?.find((ac) => ac.role === 'head');
                         const assistants = activity.activity_coaches?.filter((ac) => ac.role === 'assistant') || [];
                         
