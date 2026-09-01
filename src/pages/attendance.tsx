@@ -503,10 +503,10 @@ export default function AttendancePage() {
                 <Calendar className="mr-2 h-4 w-4" />
                 Mesečni Pregled
               </Button>
-              <Button onClick={() => setNewActivityOpen(true)} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Aktivnost
-              </Button>
+              
+
+
+              
             </div>
           </div>
 
