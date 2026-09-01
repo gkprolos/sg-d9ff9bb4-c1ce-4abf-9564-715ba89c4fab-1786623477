@@ -181,7 +181,7 @@ export default function MonthlyAttendance() {
         .eq("activities.team_id", selectedTeamId)
         .gte("activities.activity_date", startDate)
         .lte("activities.activity_date", endDate)
-        .order("players.last_name");
+        .order("last_name", { foreignTable: "players", ascending: true });
 
       if (error) throw error;
 
