@@ -195,6 +195,7 @@ export default function MonthlyAttendance() {
 
         if (!playerMap.has(playerId)) {
           playerMap.set(playerId, {
+            player_id: playerId,
             player_name: playerName,
             daily_attendance: {},
             total_activities: 0,
