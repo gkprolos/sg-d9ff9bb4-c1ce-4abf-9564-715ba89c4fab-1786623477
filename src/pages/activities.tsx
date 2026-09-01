@@ -294,6 +294,7 @@ export default function ActivitiesPage() {
     try {
       setLoading(true);
       setSelectedActivity(activity);
+      setEditActivityId(activity.id); // Set the ID for handleSaveEdit
 
       // Get the full activity data including venue_id and coach mileage
       const { data, error } = await supabase
@@ -309,8 +310,10 @@ export default function ActivitiesPage() {
 
       if (error) throw error;
 
-      // Get mileage for the first coach (or 0 if none)
-      const firstCoachMileage = data?.activity_coaches?.[0]?.mileage_km || 0;
+      // Get mileage for the current user's coach record
+      const userCoachMileage = data?.activity_coaches?.find(
+        (ac: any) => ac.coach_id === user?.id
+      )?.mileage_km || 0;
 
       // Set the form with the loaded venue_id and mileage
       setEditForm({
@@ -318,7 +321,7 @@ export default function ActivitiesPage() {
         start_time: activity.start_time,
         end_time: activity.end_time,
         venue_id: data?.venue_id || "",
-        mileage_km: firstCoachMileage,
+        mileage_km: userCoachMileage,
         activity_type_id: data?.activity_type_id || 1,
         is_home_game: data?.is_home_game ?? null,
       });
@@ -479,20 +482,6 @@ export default function ActivitiesPage() {
         variant: "destructive",
       });
     }
-  }
-
-  function handleEdit(activity: any) {
-    setEditActivityId(activity.id);
-    setEditForm({
-      activity_date: activity.activity_date,
-      start_time: activity.start_time || "",
-      end_time: activity.end_time || "",
-      venue_id: activity.venues?.id || "",
-      mileage_km: activity.activity_coaches?.[0]?.mileage_km || 0,
-      activity_type_id: activity.activity_type_id,
-      is_home_game: activity.is_home_game,
-    });
-    setEditDialogOpen(true); // Fixed: was setShowEditDialog(true)
   }
 
   async function handleSaveEdit() {
@@ -782,7 +771,7 @@ export default function ActivitiesPage() {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => handleEdit(activity)}
+                                      onClick={() => handleEditClick(activity)}
                                     >
                                       <Edit className="h-4 w-4" />
                                     </Button>
