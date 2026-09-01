@@ -156,14 +156,20 @@ export default function MonthlyAttendance() {
 
       // Get start and end of selected month
       const startDate = `${selectedYear}-${selectedMonth.toString().padStart(2, "0")}-01`;
-      const endDate = new Date(selectedYear, selectedMonth, 0).toISOString().split("T")[0];
+      
+      // FIXED: Get last day of the month correctly
+      // new Date(year, month, 0) gets last day of PREVIOUS month
+      // new Date(year, month + 1, 0) gets last day of CURRENT month
+      const lastDayOfMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+      const endDate = `${selectedYear}-${selectedMonth.toString().padStart(2, "0")}-${lastDayOfMonth.toString().padStart(2, "0")}`;
 
       console.log("🔍 Loading attendance:", { 
         selectedTeamId, 
         viewType,
         teamsCount: teams.length,
         startDate, 
-        endDate 
+        endDate,
+        lastDayOfMonth
       });
 
       // Build query
