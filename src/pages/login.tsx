@@ -103,7 +103,7 @@ export default function LoginPage() {
                 disabled={submitting} />
               
             </div>
-            <Button type="submit" className="w-full" disabled={loading} style={{ backgroundImage: "radial-gradient(ellipse, #0ea5e9 0%, #1d4ed8 100%)", backgroundColor: "transparent" }}>
+            <Button type="submit" className="w-full" disabled={loading} style={{ backgroundImage: "none", backgroundColor: "#3b82f6" }}>
               {loading ?
               <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
