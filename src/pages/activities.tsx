@@ -495,6 +495,53 @@ export default function ActivitiesPage() {
     setEditDialogOpen(true); // Fixed: was setShowEditDialog(true)
   }
 
+  async function handleSaveEdit() {
+    if (!editActivityId) return;
+
+    try {
+      // Update activity
+      const { error: activityError } = await supabase
+        .from("activities")
+        .update({
+          activity_date: editForm.activity_date,
+          start_time: editForm.start_time,
+          end_time: editForm.end_time,
+          venue_id: editForm.venue_id || null,
+          activity_type_id: editForm.activity_type_id,
+          is_home_game: editForm.is_home_game,
+        })
+        .eq("id", editActivityId);
+
+      if (activityError) throw activityError;
+
+      // Update mileage for current coach
+      const { error: mileageError } = await supabase
+        .from("activity_coaches")
+        .update({
+          mileage_km: editForm.mileage_km,
+        })
+        .eq("activity_id", editActivityId)
+        .eq("coach_id", user?.id);
+
+      if (mileageError) throw mileageError;
+
+      toast({
+        title: "Uspešno",
+        description: "Aktivnost uspešno posodobljena",
+      });
+
+      setEditDialogOpen(false);
+      loadActivities(); // Refresh list
+    } catch (error: any) {
+      console.error("Napaka pri shranjevanju aktivnosti:", error);
+      toast({
+        title: "Napaka",
+        description: error.message || "Napaka pri shranjevanju aktivnosti",
+        variant: "destructive",
+      });
+    }
+  }
+
   return (
     <ProtectedRoute>
       <AppLayout>
@@ -869,18 +916,11 @@ export default function ActivitiesPage() {
                 )}
               </div>
 
-              <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setEditDialogOpen(false)}
-                  disabled={loading}
-                >
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                   Prekliči
                 </Button>
-                <Button onClick={handleUpdateActivity} disabled={loading}>
-                  {loading ? "Shranjujem..." : "Shrani spremembe"}
-                </Button>
+                <Button onClick={handleSaveEdit}>Shrani spremembe</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
