@@ -158,8 +158,10 @@ export default function MonthlyAttendance() {
       const startDate = `${selectedYear}-${selectedMonth.toString().padStart(2, "0")}-01`;
       const endDate = new Date(selectedYear, selectedMonth, 0).toISOString().split("T")[0];
 
+      console.log("🔍 Loading attendance:", { selectedTeamId, startDate, endDate });
+
       // Load attendance records for the selected month and team
-      // FIXED: Filter by activities.activity_date, NOT attendance_records.created_at
+      // FIXED: Removed redundant team_players inner join - we already filter by activities.team_id
       const { data, error } = await supabase
         .from("attendance_records")
         .select(`
@@ -167,10 +169,7 @@ export default function MonthlyAttendance() {
           players!inner (
             id,
             first_name,
-            last_name,
-            team_players!inner (
-              team_id
-            )
+            last_name
           ),
           activities!inner (
             id,
@@ -182,6 +181,8 @@ export default function MonthlyAttendance() {
         .gte("activities.activity_date", startDate)
         .lte("activities.activity_date", endDate)
         .order("last_name", { foreignTable: "players", ascending: true });
+
+      console.log("✅ Query result:", { count: data?.length, error });
 
       if (error) throw error;
 
@@ -220,6 +221,8 @@ export default function MonthlyAttendance() {
             ? Math.round((player.total_present / player.total_activities) * 100)
             : 0,
       }));
+
+      console.log("📊 Transformed data:", { playerCount: transformedData.length });
 
       setMonthlyData(transformedData);
     } catch (error: any) {
