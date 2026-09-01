@@ -503,8 +503,9 @@ export default function AttendancePage() {
                 <Calendar className="mr-2 h-4 w-4" />
                 Mesečni Pregled
               </Button>
+              {/* Top right action button */}
               <Button
-                onClick={() => setIsCreateDialogOpen(true)}
+                onClick={() => setShowDialog(true)}
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
