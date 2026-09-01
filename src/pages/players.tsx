@@ -659,7 +659,7 @@ export default function PlayersPage() {
                           <TableCell className="py-2">{player.city || "N/A"}</TableCell>
                           <TableCell className="py-2">{player.phone || "N/A"}</TableCell>
                           <TableCell className="py-2">
-                            <Badge variant={player.is_active ? "default" : "secondary"} className="text-xs" style={{ backgroundColor: "#000000", backgroundImage: "none" }}>
+                            <Badge variant={player.is_active ? "default" : "secondary"} className="text-xs" style={{ backgroundColor: "#737373", backgroundImage: "none" }}>
                               {player.is_active ? "Aktiven" : "Neaktiven"}
                             </Badge>
                           </TableCell>
