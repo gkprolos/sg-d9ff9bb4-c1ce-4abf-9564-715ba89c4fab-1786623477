@@ -17,8 +17,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AlertDialogTitle } from
+"@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -32,8 +32,8 @@ import {
   downloadXLSX,
   type ParsedData,
   type ImportRow,
-  type ValidationError,
-} from "@/lib/excelUtils";
+  type ValidationError } from
+"@/lib/excelUtils";
 
 interface Player {
   id: string;
@@ -70,7 +70,7 @@ export default function PlayersPage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importData, setImportData] = useState<ParsedData | null>(null);
   const [importErrors, setImportErrors] = useState<ValidationError[]>([]);
-  const [importMapping, setImportMapping] = useState<{ [key: string]: string }>({});
+  const [importMapping, setImportMapping] = useState<{[key: string]: string;}>({});
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
@@ -90,7 +90,7 @@ export default function PlayersPage() {
     is_active: true,
     joined_date: "",
     left_date: "",
-    notes: "",
+    notes: ""
   });
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -107,8 +107,8 @@ export default function PlayersPage() {
     const query = searchQuery.toLowerCase();
     const filtered = players.filter(
       (player) =>
-        player.first_name.toLowerCase().includes(query) ||
-        player.last_name.toLowerCase().includes(query)
+      player.first_name.toLowerCase().includes(query) ||
+      player.last_name.toLowerCase().includes(query)
     );
     setFilteredPlayers(filtered);
   }, [searchQuery, players]);
@@ -116,10 +116,10 @@ export default function PlayersPage() {
   async function loadPlayers() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("players")
-        .select("*")
-        .order("last_name");
+      const { data, error } = await supabase.
+      from("players").
+      select("*").
+      order("last_name");
 
       if (error) throw error;
       setPlayers(data || []);
@@ -129,7 +129,7 @@ export default function PlayersPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Napaka pri nalaganju igralcev",
+        description: "Napaka pri nalaganju igralcev"
       });
     } finally {
       setLoading(false);
@@ -155,7 +155,7 @@ export default function PlayersPage() {
       is_active: true,
       joined_date: "",
       left_date: "",
-      notes: "",
+      notes: ""
     });
     setDialogOpen(true);
   }
@@ -179,26 +179,26 @@ export default function PlayersPage() {
       is_active: player.is_active,
       joined_date: player.joined_date || "",
       left_date: player.left_date || "",
-      notes: player.notes || "",
+      notes: player.notes || ""
     });
     setDialogOpen(true);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+
     if (!formData.first_name.trim() || !formData.last_name.trim()) {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Ime in priimek sta obvezna",
+        description: "Ime in priimek sta obvezna"
       });
       return;
     }
 
     try {
       setLoading(true);
-      
+
       const playerData = {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
@@ -216,20 +216,20 @@ export default function PlayersPage() {
         is_active: formData.is_active,
         joined_date: formData.joined_date || null,
         left_date: formData.left_date || null,
-        notes: formData.notes.trim() || null,
+        notes: formData.notes.trim() || null
       };
 
       if (selectedPlayer) {
-        const { error } = await supabase
-          .from("players")
-          .update(playerData)
-          .eq("id", selectedPlayer.id);
+        const { error } = await supabase.
+        from("players").
+        update(playerData).
+        eq("id", selectedPlayer.id);
 
         if (error) throw error;
 
         toast({
           title: "Uspešno",
-          description: "Igralec posodobljen",
+          description: "Igralec posodobljen"
         });
       } else {
         const { error } = await supabase.from("players").insert([playerData]);
@@ -238,7 +238,7 @@ export default function PlayersPage() {
 
         toast({
           title: "Uspešno",
-          description: "Igralec dodan",
+          description: "Igralec dodan"
         });
       }
 
@@ -250,7 +250,7 @@ export default function PlayersPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Napaka pri shranjevanju igralca",
+        description: "Napaka pri shranjevanju igralca"
       });
     } finally {
       setLoading(false);
@@ -267,10 +267,10 @@ export default function PlayersPage() {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("players")
-        .delete()
-        .eq("id", playerToDelete.id);
+      const { data, error } = await supabase.
+      from("players").
+      delete().
+      eq("id", playerToDelete.id);
 
       console.log("DELETE response:", { data, error });
 
@@ -279,16 +279,16 @@ export default function PlayersPage() {
           message: error.message,
           details: error.details,
           hint: error.hint,
-          code: error.code,
+          code: error.code
         });
         throw error;
       }
 
       toast({
         title: "Uspešno",
-        description: "Igralec uspešno izbrisan",
+        description: "Igralec uspešno izbrisan"
       });
-      
+
       setDeleteDialogOpen(false);
       setPlayerToDelete(null);
       loadPlayers();
@@ -297,7 +297,7 @@ export default function PlayersPage() {
       toast({
         variant: "destructive",
         title: "Napaka pri brisanju",
-        description: error.message || "Napaka pri brisanju igralca",
+        description: error.message || "Napaka pri brisanju igralca"
       });
     } finally {
       setLoading(false);
@@ -319,46 +319,46 @@ export default function PlayersPage() {
 
     if (fileExtension === 'xlsx' || fileExtension === 'xls') {
       // Parse XLSX file
-      parseXLSX(file)
-        .then((parsed) => {
-          if (parsed.headers.length === 0) {
-            toast({
-              variant: "destructive",
-              title: "Napaka",
-              description: "Datoteka je prazna ali neveljavna",
-            });
-            return;
-          }
-
-          setImportData(parsed);
-          
-          // Auto-map common column names
-          const mapping: { [key: string]: string } = {};
-          parsed.headers.forEach(header => {
-            const lower = header.toLowerCase();
-            if (lower.includes('ime') && !lower.includes('priimek')) mapping['first_name'] = header;
-            if (lower.includes('priimek')) mapping['last_name'] = header;
-            if (lower.includes('datum') || lower.includes('birth')) mapping['date_of_birth'] = header;
-            if (lower.includes('spol') || lower.includes('gender')) mapping['gender'] = header;
-            if (lower.includes('naslov') || lower.includes('address')) mapping['address'] = header;
-            if (lower.includes('kraj') || lower.includes('city')) mapping['city'] = header;
-            if (lower.includes('telefon') || lower.includes('phone')) mapping['phone'] = header;
-          });
-          setImportMapping(mapping);
-
-          toast({
-            title: "Datoteka naložena",
-            description: `Prebrano ${parsed.rows.length} vrstic`,
-          });
-        })
-        .catch((error: any) => {
-          console.error("Napaka pri branju XLSX datoteke:", error);
+      parseXLSX(file).
+      then((parsed) => {
+        if (parsed.headers.length === 0) {
           toast({
             variant: "destructive",
             title: "Napaka",
-            description: error.message || "Napaka pri branju XLSX datoteke",
+            description: "Datoteka je prazna ali neveljavna"
           });
+          return;
+        }
+
+        setImportData(parsed);
+
+        // Auto-map common column names
+        const mapping: {[key: string]: string;} = {};
+        parsed.headers.forEach((header) => {
+          const lower = header.toLowerCase();
+          if (lower.includes('ime') && !lower.includes('priimek')) mapping['first_name'] = header;
+          if (lower.includes('priimek')) mapping['last_name'] = header;
+          if (lower.includes('datum') || lower.includes('birth')) mapping['date_of_birth'] = header;
+          if (lower.includes('spol') || lower.includes('gender')) mapping['gender'] = header;
+          if (lower.includes('naslov') || lower.includes('address')) mapping['address'] = header;
+          if (lower.includes('kraj') || lower.includes('city')) mapping['city'] = header;
+          if (lower.includes('telefon') || lower.includes('phone')) mapping['phone'] = header;
         });
+        setImportMapping(mapping);
+
+        toast({
+          title: "Datoteka naložena",
+          description: `Prebrano ${parsed.rows.length} vrstic`
+        });
+      }).
+      catch((error: any) => {
+        console.error("Napaka pri branju XLSX datoteke:", error);
+        toast({
+          variant: "destructive",
+          title: "Napaka",
+          description: error.message || "Napaka pri branju XLSX datoteke"
+        });
+      });
     } else if (fileExtension === 'csv') {
       // Parse CSV file
       const reader = new FileReader();
@@ -366,21 +366,21 @@ export default function PlayersPage() {
         try {
           const content = event.target?.result as string;
           const parsed = parseCSV(content);
-          
+
           if (parsed.headers.length === 0) {
             toast({
               variant: "destructive",
               title: "Napaka",
-              description: "Datoteka je prazna ali neveljavna",
+              description: "Datoteka je prazna ali neveljavna"
             });
             return;
           }
 
           setImportData(parsed);
-          
+
           // Auto-map common column names
-          const mapping: { [key: string]: string } = {};
-          parsed.headers.forEach(header => {
+          const mapping: {[key: string]: string;} = {};
+          parsed.headers.forEach((header) => {
             const lower = header.toLowerCase();
             if (lower.includes('ime') && !lower.includes('priimek')) mapping['first_name'] = header;
             if (lower.includes('priimek')) mapping['last_name'] = header;
@@ -394,14 +394,14 @@ export default function PlayersPage() {
 
           toast({
             title: "Datoteka naložena",
-            description: `Prebrano ${parsed.rows.length} vrstic`,
+            description: `Prebrano ${parsed.rows.length} vrstic`
           });
         } catch (error: any) {
           console.error("Napaka pri branju CSV datoteke:", error);
           toast({
             variant: "destructive",
             title: "Napaka",
-            description: error.message || "Napaka pri branju CSV datoteke",
+            description: error.message || "Napaka pri branju CSV datoteke"
           });
         }
       };
@@ -410,7 +410,7 @@ export default function PlayersPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Podprte so samo XLSX in CSV datoteke",
+        description: "Podprte so samo XLSX in CSV datoteke"
       });
     }
   }
@@ -430,7 +430,7 @@ export default function PlayersPage() {
       toast({
         variant: "destructive",
         title: "Validacijske napake",
-        description: `Najdenih ${errors.length} napak. Prosim popravite podatke.`,
+        description: `Najdenih ${errors.length} napak. Prosim popravite podatke.`
       });
       return;
     }
@@ -447,12 +447,12 @@ export default function PlayersPage() {
           const lastName = row[importMapping['last_name']]?.toString().trim() || '';
 
           // Check if player already exists (by first_name + last_name)
-          const { data: existingPlayers, error: checkError } = await supabase
-            .from("players")
-            .select("id")
-            .eq("first_name", firstName)
-            .eq("last_name", lastName)
-            .limit(1);
+          const { data: existingPlayers, error: checkError } = await supabase.
+          from("players").
+          select("id").
+          eq("first_name", firstName).
+          eq("last_name", lastName).
+          limit(1);
 
           if (checkError) throw checkError;
 
@@ -465,7 +465,7 @@ export default function PlayersPage() {
           // Parse date of birth - handle multiple formats, default to '1800-01-01' if empty
           let dateOfBirth: string = '1800-01-01'; // Default value for empty/null
           const dobRaw = row[importMapping['date_of_birth']]?.toString().trim();
-          
+
           if (dobRaw) {
             // If Excel serial number (e.g., 44317), convert to YYYY-MM-DD
             if (/^\d+(\.\d+)?$/.test(dobRaw)) {
@@ -494,12 +494,12 @@ export default function PlayersPage() {
             address: row[importMapping['address']]?.toString().trim() || null,
             city: row[importMapping['city']]?.toString().trim() || null,
             phone: row[importMapping['phone']]?.toString().trim() || null,
-            is_active: true,
+            is_active: true
           };
 
-          const { error } = await supabase
-            .from("players")
-            .insert([playerData]);
+          const { error } = await supabase.
+          from("players").
+          insert([playerData]);
 
           if (error) throw error;
           successCount++;
@@ -509,13 +509,13 @@ export default function PlayersPage() {
         }
       }
 
-      const message = skippedCount > 0 
-        ? `Uspešno: ${successCount}, Neuspešno: ${failCount}, Preskočeno: ${skippedCount}`
-        : `Uspešno: ${successCount}, Neuspešno: ${failCount}`;
+      const message = skippedCount > 0 ?
+      `Uspešno: ${successCount}, Neuspešno: ${failCount}, Preskočeno: ${skippedCount}` :
+      `Uspešno: ${successCount}, Neuspešno: ${failCount}`;
 
       toast({
         title: "Uvoz zaključen",
-        description: message,
+        description: message
       });
 
       setImportDialogOpen(false);
@@ -525,7 +525,7 @@ export default function PlayersPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri uvozu",
+        description: error.message || "Napaka pri uvozu"
       });
     } finally {
       setImporting(false);
@@ -536,7 +536,7 @@ export default function PlayersPage() {
     downloadXLSX('vzorcna_predloga_igralci.xlsx');
     toast({
       title: "Predloga prenesena",
-      description: "Odprite datoteko v Excelu in izpolnite podatke",
+      description: "Odprite datoteko v Excelu in izpolnite podatke"
     });
   }
 
@@ -545,15 +545,15 @@ export default function PlayersPage() {
 
     try {
       setLoading(true);
-      const { error } = await supabase
-        .from("players")
-        .delete()
-        .eq("id", playerId);
+      const { error } = await supabase.
+      from("players").
+      delete().
+      eq("id", playerId);
 
       if (error) throw error;
       toast({
         title: "Uspešno",
-        description: "Igralec uspešno izbrisan",
+        description: "Igralec uspešno izbrisan"
       });
       loadPlayers();
     } catch (error: any) {
@@ -561,7 +561,7 @@ export default function PlayersPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri brisanju igralca",
+        description: error.message || "Napaka pri brisanju igralca"
       });
     } finally {
       setLoading(false);
@@ -587,7 +587,7 @@ export default function PlayersPage() {
       is_active: true,
       joined_date: "",
       left_date: "",
-      notes: "",
+      notes: ""
     });
   }
 
@@ -605,9 +605,9 @@ export default function PlayersPage() {
                 placeholder="Išči po imenu ali priimku..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={() => setDialogOpen(true)}>
+                className="flex-1" />
+              
+              <Button onClick={() => setDialogOpen(true)} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                 <Plus className="mr-2 h-4 w-4" />
                 Dodaj igralca
               </Button>
@@ -622,16 +622,16 @@ export default function PlayersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading && players.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
-              ) : players.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+              {loading && players.length === 0 ?
+              <div className="text-center py-8 text-muted-foreground">Nalagam...</div> :
+              players.length === 0 ?
+              <div className="text-center py-12 text-muted-foreground">
                   <UserCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium">Ni igralcev</p>
                   <p className="text-sm mt-2">Dodajte prvega igralca</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
+                </div> :
+
+              <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="text-xs">
@@ -646,53 +646,53 @@ export default function PlayersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredPlayers.map((player) => (
-                        <TableRow key={player.id} className="text-sm">
+                      {filteredPlayers.map((player) =>
+                    <TableRow key={player.id} className="text-sm">
                           <TableCell className="font-medium py-2">{player.first_name}</TableCell>
                           <TableCell className="py-2">{player.last_name}</TableCell>
                           <TableCell className="py-2">
-                            {player.date_of_birth
-                              ? new Date(player.date_of_birth).toLocaleDateString("sl-SI")
-                              : "N/A"}
+                            {player.date_of_birth ?
+                        new Date(player.date_of_birth).toLocaleDateString("sl-SI") :
+                        "N/A"}
                           </TableCell>
                           <TableCell className="py-2">{player.gender || "N/A"}</TableCell>
                           <TableCell className="py-2">{player.city || "N/A"}</TableCell>
                           <TableCell className="py-2">{player.phone || "N/A"}</TableCell>
                           <TableCell className="py-2">
-                            <Badge variant={player.is_active ? "default" : "secondary"} className="text-xs">
+                            <Badge variant={player.is_active ? "default" : "secondary"} className="text-xs" style={{ backgroundColor: "#000000", backgroundImage: "none" }}>
                               {player.is_active ? "Aktiven" : "Neaktiven"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right py-2">
                             <div className="flex gap-1 justify-end">
                               <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditPlayer(player)}
-                                disabled={loading}
-                                className="h-7 text-xs"
-                              >
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditPlayer(player)}
+                            disabled={loading}
+                            className="h-7 text-xs">
+                            
                                 <Edit className="h-3 w-3 mr-1" />
                                 Uredi
                               </Button>
                               <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteClick(player)}
-                                disabled={loading}
-                                className="h-7 text-xs"
-                              >
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteClick(player)}
+                            disabled={loading}
+                            className="h-7 text-xs">
+                            
                                 <Trash2 className="h-3 w-3 mr-1" />
                                 Izbriši
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                    )}
                     </TableBody>
                   </Table>
                 </div>
-              )}
+              }
             </CardContent>
           </Card>
 
@@ -714,8 +714,8 @@ export default function PlayersPage() {
                       id="first_name"
                       value={formData.first_name}
                       onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                      required
-                    />
+                      required />
+                    
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last_name">
@@ -725,8 +725,8 @@ export default function PlayersPage() {
                       id="last_name"
                       value={formData.last_name}
                       onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                      required
-                    />
+                      required />
+                    
                   </div>
                 </div>
 
@@ -736,16 +736,16 @@ export default function PlayersPage() {
                     id="date_of_birth"
                     type="date"
                     value={formData.date_of_birth}
-                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                  />
+                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })} />
+                  
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="gender">Spol</Label>
                   <Select
                     value={formData.gender}
-                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
-                  >
+                    onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+                    
                     <SelectTrigger id="gender">
                       <SelectValue placeholder="Izberi spol" />
                     </SelectTrigger>
@@ -762,8 +762,8 @@ export default function PlayersPage() {
                     id="phone"
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -771,8 +771,8 @@ export default function PlayersPage() {
                   <Input
                     id="address"
                     value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  />
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -780,8 +780,8 @@ export default function PlayersPage() {
                   <Input
                     id="city"
                     value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  />
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })} />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -790,8 +790,8 @@ export default function PlayersPage() {
                     id="joined_date"
                     type="date"
                     value={formData.joined_date}
-                    onChange={(e) => setFormData({ ...formData, joined_date: e.target.value })}
-                  />
+                    onChange={(e) => setFormData({ ...formData, joined_date: e.target.value })} />
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -800,8 +800,8 @@ export default function PlayersPage() {
                     id="left_date"
                     type="date"
                     value={formData.left_date}
-                    onChange={(e) => setFormData({ ...formData, left_date: e.target.value })}
-                  />
+                    onChange={(e) => setFormData({ ...formData, left_date: e.target.value })} />
+                  
                 </div>
 
                 <div className="grid gap-2">
@@ -812,8 +812,8 @@ export default function PlayersPage() {
                       id="is_active"
                       checked={formData.is_active}
                       onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                      className="h-4 w-4"
-                    />
+                      className="h-4 w-4" />
+                    
                     <Label htmlFor="is_active" className="cursor-pointer">Aktiven</Label>
                   </div>
                 </div>
@@ -824,8 +824,8 @@ export default function PlayersPage() {
                     id="notes"
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Opombe o igralcu..."
-                  />
+                    placeholder="Opombe o igralcu..." />
+                  
                 </div>
 
                 {/* Guardian 1 */}
@@ -837,8 +837,8 @@ export default function PlayersPage() {
                       id="guardian1Name"
                       value={formData.guardian1_name}
                       onChange={(e) => setFormData({ ...formData, guardian1_name: e.target.value })}
-                      placeholder="Ime in priimek starša 1"
-                    />
+                      placeholder="Ime in priimek starša 1" />
+                    
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="guardian1Email">Email</Label>
@@ -847,8 +847,8 @@ export default function PlayersPage() {
                       type="email"
                       value={formData.guardian1_email}
                       onChange={(e) => setFormData({ ...formData, guardian1_email: e.target.value })}
-                      placeholder="starš1@email.com"
-                    />
+                      placeholder="starš1@email.com" />
+                    
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="guardian1Phone">Telefon</Label>
@@ -856,8 +856,8 @@ export default function PlayersPage() {
                       id="guardian1Phone"
                       value={formData.guardian1_phone}
                       onChange={(e) => setFormData({ ...formData, guardian1_phone: e.target.value })}
-                      placeholder="+386 ..."
-                    />
+                      placeholder="+386 ..." />
+                    
                   </div>
                 </div>
 
@@ -870,8 +870,8 @@ export default function PlayersPage() {
                       id="guardian2Name"
                       value={formData.guardian2_name}
                       onChange={(e) => setFormData({ ...formData, guardian2_name: e.target.value })}
-                      placeholder="Ime in priimek starša 2"
-                    />
+                      placeholder="Ime in priimek starša 2" />
+                    
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="guardian2Email">Email</Label>
@@ -880,8 +880,8 @@ export default function PlayersPage() {
                       type="email"
                       value={formData.guardian2_email}
                       onChange={(e) => setFormData({ ...formData, guardian2_email: e.target.value })}
-                      placeholder="starš2@email.com"
-                    />
+                      placeholder="starš2@email.com" />
+                    
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="guardian2Phone">Telefon</Label>
@@ -889,8 +889,8 @@ export default function PlayersPage() {
                       id="guardian2Phone"
                       value={formData.guardian2_phone}
                       onChange={(e) => setFormData({ ...formData, guardian2_phone: e.target.value })}
-                      placeholder="+386 ..."
-                    />
+                      placeholder="+386 ..." />
+                    
                   </div>
                 </div>
 
@@ -899,8 +899,8 @@ export default function PlayersPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setDialogOpen(false)}
-                    disabled={loading}
-                  >
+                    disabled={loading}>
+                    
                     Prekliči
                   </Button>
                   <Button type="submit" disabled={loading}>
@@ -918,16 +918,16 @@ export default function PlayersPage() {
               </DialogHeader>
 
               <div className="space-y-4">
-                {!importData ? (
-                  <>
+                {!importData ?
+                <>
                     <div className="space-y-2">
                       <Label>1. Prenesite vzorčno predlogo</Label>
                       <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleDownloadTemplate}
-                        className="w-full"
-                      >
+                      type="button"
+                      variant="outline"
+                      onClick={handleDownloadTemplate}
+                      className="w-full">
+                      
                         <Download className="h-4 w-4 mr-2" />
                         Prenesi vzorčno predlogo (XLSX)
                       </Button>
@@ -939,18 +939,18 @@ export default function PlayersPage() {
                     <div className="space-y-2">
                       <Label>2. Naložite datoteko</Label>
                       <Input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".xlsx,.xls,.csv"
-                        onChange={handleFileSelect}
-                      />
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={handleFileSelect} />
+                    
                       <p className="text-sm text-muted-foreground">
                         Podprte so XLSX in CSV datoteke. Obvezna polja: Ime, Priimek
                       </p>
                     </div>
-                  </>
-                ) : (
-                  <>
+                  </> :
+
+                <>
                     <div className="space-y-2">
                       <Label>Predogled podatkov ({importData.rows.length} vrstic)</Label>
                       <div className="border rounded-lg overflow-hidden">
@@ -958,41 +958,41 @@ export default function PlayersPage() {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                {importData.headers.slice(0, 5).map((header) => (
-                                  <TableHead key={header}>{header}</TableHead>
-                                ))}
+                                {importData.headers.slice(0, 5).map((header) =>
+                              <TableHead key={header}>{header}</TableHead>
+                              )}
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {importData.rows.slice(0, 3).map((row, index) => (
-                                <TableRow key={index}>
-                                  {importData.headers.slice(0, 5).map((header) => (
-                                    <TableCell key={header}>
+                              {importData.rows.slice(0, 3).map((row, index) =>
+                            <TableRow key={index}>
+                                  {importData.headers.slice(0, 5).map((header) =>
+                              <TableCell key={header}>
                                       {row[header]?.toString() || '-'}
                                     </TableCell>
-                                  ))}
+                              )}
                                 </TableRow>
-                              ))}
+                            )}
                             </TableBody>
                           </Table>
                         </ScrollArea>
                       </div>
                     </div>
 
-                    {importErrors.length > 0 && (
-                      <div className="space-y-2">
+                    {importErrors.length > 0 &&
+                  <div className="space-y-2">
                         <Label className="text-destructive">
                           Validacijske napake ({importErrors.length})
                         </Label>
                         <ScrollArea className="h-32 border rounded-lg p-2">
-                          {importErrors.map((error, index) => (
-                            <div key={index} className="text-sm text-destructive mb-1">
+                          {importErrors.map((error, index) =>
+                      <div key={index} className="text-sm text-destructive mb-1">
                               Vrstica {error.row}, {error.field}: {error.message}
                             </div>
-                          ))}
+                      )}
                         </ScrollArea>
                       </div>
-                    )}
+                  }
 
                     <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
                       <div className="flex-1">
@@ -1003,7 +1003,7 @@ export default function PlayersPage() {
                       </div>
                     </div>
                   </>
-                )}
+                }
               </div>
 
               <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
@@ -1015,18 +1015,18 @@ export default function PlayersPage() {
                     setImportData(null);
                     if (fileInputRef.current) fileInputRef.current.value = '';
                   }}
-                  disabled={importing}
-                >
+                  disabled={importing}>
+                  
                   Prekliči
                 </Button>
-                {importData && (
-                  <Button
-                    onClick={handleImport}
-                    disabled={importing || importErrors.length > 0}
-                  >
+                {importData &&
+                <Button
+                  onClick={handleImport}
+                  disabled={importing || importErrors.length > 0}>
+                  
                     {importing ? "Uvažam..." : `Uvozi ${importData.rows.length} igralcev`}
                   </Button>
-                )}
+                }
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -1043,8 +1043,8 @@ export default function PlayersPage() {
                 <AlertDialogCancel>Prekliči</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleConfirmDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  
                   Izbriši
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -1052,6 +1052,6 @@ export default function PlayersPage() {
           </AlertDialog>
         </div>
       </AppLayout>
-    </ProtectedRoute>
-  );
+    </ProtectedRoute>);
+
 }
