@@ -516,7 +516,7 @@ export default function CoachesPage() {
                     
                     Prekliči
                   </Button>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                     {loading ? "Shranjujem..." : selectedCoach ? "Posodobi" : "Dodaj"}
                   </Button>
                 </DialogFooter>
