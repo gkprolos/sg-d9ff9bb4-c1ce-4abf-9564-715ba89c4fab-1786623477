@@ -741,7 +741,7 @@ export default function ActivitiesPage() {
                               <div className="space-y-1">
                                 {headCoach &&
                               <div className="text-sm">
-                                    <Badge variant="default" className="mr-1">Glavni</Badge>
+                                    
                                     {headCoach.profiles?.full_name}
                                   </div>
                               }
