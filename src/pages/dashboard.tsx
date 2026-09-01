@@ -331,11 +331,9 @@ export default function DashboardPage() {
         .gte("activity_date", statsMonthStart)
         .lte("activity_date", statsMonthEnd);
 
+      // Season filter is OPTIONAL - only apply if a season is selected
       if (selectedSeason && selectedSeason.length > 0) {
         totalActivitiesQuery = totalActivitiesQuery.eq("season_id", selectedSeason);
-      } else {
-        console.warn("No valid season selected for activities query");
-        totalActivitiesQuery = totalActivitiesQuery.eq("id", "00000000-0000-0000-0000-000000000000");
       }
 
       if (!isAdmin && user?.id) {
@@ -399,11 +397,9 @@ export default function DashboardPage() {
         .gte("activity_date", statsMonthStart)
         .lte("activity_date", statsMonthEnd);
 
+      // Season filter is OPTIONAL - only apply if a season is selected
       if (selectedSeason && selectedSeason.length > 0) {
         monthlyActivitiesQuery = monthlyActivitiesQuery.eq("season_id", selectedSeason);
-      } else {
-        console.warn("No valid season selected for monthly activities query");
-        monthlyActivitiesQuery = monthlyActivitiesQuery.eq("id", "00000000-0000-0000-0000-000000000000");
       }
 
       if (!isAdmin && user?.id) {
@@ -1017,6 +1013,7 @@ export default function DashboardPage() {
         .gte("activity_date", monthStart)
         .lte("activity_date", monthEnd);
 
+      // Season filter is OPTIONAL - only apply if a season is selected
       if (selectedSeason && selectedSeason.length > 0) {
         query = query.eq("season_id", selectedSeason);
       }
