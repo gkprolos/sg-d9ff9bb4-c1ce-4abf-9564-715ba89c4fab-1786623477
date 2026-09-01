@@ -509,22 +509,16 @@ export default function ActivitiesPage() {
       };
 
       // Handle venue_id vs custom_venue (venue_xor_custom constraint)
-      // Either venue_id OR custom_venue must be set (not both, not neither for type 1)
+      // ONLY set venue_id if user selected one from dropdown
       if (editForm.venue_id && editForm.venue_id !== "") {
-        // User selected a venue from dropdown
         updateData.venue_id = editForm.venue_id;
-        updateData.custom_venue = null;
-      } else if (editForm.activity_type_id === 1) {
-        // Type 1 requires venue_id or custom_venue
-        // If no venue selected, we need to keep existing custom_venue or fail
-        // For now, just set venue_id to null and let constraint handle it
-        updateData.venue_id = null;
-        // Don't touch custom_venue - constraint will fail if it's also null for type 1
-      } else {
-        // Type 2 or 3: both can be null
-        updateData.venue_id = null;
-        updateData.custom_venue = null;
       }
+      
+      // DO NOT set custom_venue at all - let it keep existing value
+      // Only update the fields that are in the form
+
+      console.log("🔍 UPDATE DATA:", updateData);
+      console.log("🔍 Edit Form:", editForm);
 
       // Update activity
       const { error: activityError } = await supabase
@@ -532,7 +526,10 @@ export default function ActivitiesPage() {
         .update(updateData)
         .eq("id", editActivityId);
 
-      if (activityError) throw activityError;
+      if (activityError) {
+        console.error("❌ Activity update error:", activityError);
+        throw activityError;
+      }
 
       // Update mileage for current coach
       const { error: mileageError } = await supabase
