@@ -834,7 +834,7 @@ export default function AttendancePage() {
                   onClick={handleCompleteAttendance}
                   disabled={loading}
                   size="lg"
-                  className="gap-2">
+                  className="gap-2" style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
                   
                     <Save className="h-5 w-5" />
                     Shrani in zaključi
