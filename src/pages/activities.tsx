@@ -926,7 +926,7 @@ export default function ActivitiesPage() {
                 <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                   Prekliči
                 </Button>
-                <Button onClick={handleSaveEdit}>Shrani spremembe</Button>
+                <Button onClick={handleSaveEdit} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>Shrani spremembe</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
