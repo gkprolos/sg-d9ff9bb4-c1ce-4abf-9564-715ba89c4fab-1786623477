@@ -18,8 +18,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle } from
-"@/components/ui/alert-dialog";
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Edit, Trash2, Plus, ClipboardCheck, ArrowUpDown } from "lucide-react";
@@ -33,8 +33,8 @@ interface Activity {
   is_completed: boolean;
   activity_type_id: number;
   is_home_game: boolean;
-  teams: {id: string;name: string;short_name: string | null;};
-  venues: {name: string;} | null;
+  teams: { id: string; name: string; short_name: string | null };
+  venues: { name: string } | null;
   activity_coaches: Array<{
     role: string;
     coach_id: string;
@@ -82,7 +82,7 @@ export default function ActivitiesPage() {
     venue_id: "",
     mileage_km: 0,
     activity_type_id: 1,
-    is_home_game: null as boolean | null
+    is_home_game: null as boolean | null,
   });
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -101,17 +101,17 @@ export default function ActivitiesPage() {
 
   async function loadSeasons() {
     try {
-      const { data, error } = await supabase.
-      from("seasons").
-      select("id, name, is_active").
-      order("name", { ascending: false });
+      const { data, error } = await supabase
+        .from("seasons")
+        .select("id, name, is_active")
+        .order("name", { ascending: false });
 
       if (error) throw error;
 
       setSeasons(data || []);
 
       // Set active season as default
-      const activeSeason = data?.find((s) => s.is_active);
+      const activeSeason = data?.find(s => s.is_active);
       if (activeSeason) {
         setSelectedSeason(activeSeason.id);
       }
@@ -120,18 +120,18 @@ export default function ActivitiesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Ni mogoče naložiti sezon"
+        description: "Ni mogoče naložiti sezon",
       });
     }
   }
 
   async function loadTeams() {
     try {
-      const { data, error } = await supabase.
-      from("teams").
-      select("id, name").
-      eq("is_archived", false).
-      order("name", { ascending: true });
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id, name")
+        .eq("is_archived", false)
+        .order("name", { ascending: true });
 
       if (error) throw error;
 
@@ -144,14 +144,14 @@ export default function ActivitiesPage() {
   async function loadCoaches() {
     try {
       // Get coach user IDs from user_roles
-      const { data: userRoles, error: rolesError } = await supabase.
-      from("user_roles").
-      select("user_id").
-      eq("role", "coach");
+      const { data: userRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "coach");
 
       if (rolesError) throw rolesError;
 
-      const coachIds = (userRoles || []).map((ur) => ur.user_id);
+      const coachIds = (userRoles || []).map(ur => ur.user_id);
 
       if (coachIds.length === 0) {
         setCoaches([]);
@@ -159,11 +159,11 @@ export default function ActivitiesPage() {
       }
 
       // Get profiles for those coaches
-      const { data, error } = await supabase.
-      from("profiles").
-      select("id, full_name").
-      in("id", coachIds).
-      order("full_name", { ascending: true });
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", coachIds)
+        .order("full_name", { ascending: true });
 
       if (error) throw error;
 
@@ -175,11 +175,11 @@ export default function ActivitiesPage() {
 
   async function loadVenues() {
     try {
-      const { data, error } = await supabase.
-      from("venues").
-      select("id, name").
-      eq("is_active", true).
-      order("name", { ascending: true });
+      const { data, error } = await supabase
+        .from("venues")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
 
       if (error) throw error;
       setVenues(data || []);
@@ -196,9 +196,9 @@ export default function ActivitiesPage() {
     try {
       setLoading(true);
 
-      let query = supabase.
-      from("activities").
-      select(`
+      let query = supabase
+        .from("activities")
+        .select(`
           id,
           activity_date,
           start_time,
@@ -218,8 +218,8 @@ export default function ActivitiesPage() {
             total_amount,
             profiles(id, full_name)
           )
-        `).
-      order("activity_date", { ascending: sortOrder === "asc" });
+        `)
+        .order("activity_date", { ascending: sortOrder === "asc" });
 
       // Apply filters
       if (selectedSeason) {
@@ -248,19 +248,19 @@ export default function ActivitiesPage() {
       // Get season names for activities
       let activitiesWithSeasons = data || [];
       if (activitiesWithSeasons.length > 0) {
-        const seasonIds = [...new Set(activitiesWithSeasons.map((a) => a.season_id).filter(Boolean))];
-
+        const seasonIds = [...new Set(activitiesWithSeasons.map(a => a.season_id).filter(Boolean))];
+        
         if (seasonIds.length > 0) {
-          const { data: seasonsData } = await supabase.
-          from("seasons").
-          select("id, name").
-          in("id", seasonIds);
+          const { data: seasonsData } = await supabase
+            .from("seasons")
+            .select("id, name")
+            .in("id", seasonIds);
 
-          const seasonMap = new Map((seasonsData || []).map((s) => [s.id, s.name]));
-
-          activitiesWithSeasons = activitiesWithSeasons.map((activity) => ({
+          const seasonMap = new Map((seasonsData || []).map(s => [s.id, s.name]));
+          
+          activitiesWithSeasons = activitiesWithSeasons.map(activity => ({
             ...activity,
-            season_name: seasonMap.get(activity.season_id) || "N/A"
+            season_name: seasonMap.get(activity.season_id) || "N/A",
           }));
         }
       }
@@ -268,8 +268,8 @@ export default function ActivitiesPage() {
       // Filter by coach if selected
       let filteredData = activitiesWithSeasons;
       if (selectedCoach) {
-        filteredData = filteredData.filter((activity) =>
-        activity.activity_coaches?.some((ac: any) => ac.profiles?.id === selectedCoach)
+        filteredData = filteredData.filter(activity => 
+          activity.activity_coaches?.some((ac: any) => ac.profiles?.id === selectedCoach)
         );
       }
 
@@ -279,7 +279,7 @@ export default function ActivitiesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Ni mogoče naložiti aktivnosti"
+        description: "Ni mogoče naložiti aktivnosti",
       });
     } finally {
       setLoading(false);
@@ -297,16 +297,16 @@ export default function ActivitiesPage() {
       setEditActivityId(activity.id); // Set the ID for handleSaveEdit
 
       // Get the full activity data including venue_id and coach mileage
-      const { data, error } = await supabase.
-      from("activities").
-      select(`
+      const { data, error } = await supabase
+        .from("activities")
+        .select(`
           venue_id,
           activity_type_id,
           is_home_game,
           activity_coaches(coach_id, mileage_km)
-        `).
-      eq("id", activity.id).
-      single();
+        `)
+        .eq("id", activity.id)
+        .single();
 
       if (error) throw error;
 
@@ -323,7 +323,7 @@ export default function ActivitiesPage() {
         venue_id: data?.venue_id || "",
         mileage_km: userCoachMileage,
         activity_type_id: data?.activity_type_id || 1,
-        is_home_game: data?.is_home_game ?? null
+        is_home_game: data?.is_home_game ?? null,
       });
 
       // Now open the dialog with all data loaded
@@ -333,7 +333,7 @@ export default function ActivitiesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Ni mogoče naložiti podatkov aktivnosti"
+        description: "Ni mogoče naložiti podatkov aktivnosti",
       });
     } finally {
       setLoading(false);
@@ -347,7 +347,7 @@ export default function ActivitiesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Datum, začetek in konec so obvezni"
+        description: "Datum, začetek in konec so obvezni",
       });
       return;
     }
@@ -357,7 +357,7 @@ export default function ActivitiesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Za uradno tekmo je obvezna izbira doma/gostovanje"
+        description: "Za uradno tekmo je obvezna izbira doma/gostovanje",
       });
       return;
     }
@@ -366,33 +366,33 @@ export default function ActivitiesPage() {
       setLoading(true);
 
       // Update activity basic info
-      const { error: activityError } = await supabase.
-      from("activities").
-      update({
-        activity_date: editForm.activity_date,
-        start_time: editForm.start_time,
-        end_time: editForm.end_time,
-        venue_id: editForm.venue_id || null,
-        activity_type_id: editForm.activity_type_id,
-        is_home_game: editForm.is_home_game
-      }).
-      eq("id", selectedActivity.id);
+      const { error: activityError } = await supabase
+        .from("activities")
+        .update({
+          activity_date: editForm.activity_date,
+          start_time: editForm.start_time,
+          end_time: editForm.end_time,
+          venue_id: editForm.venue_id || null,
+          activity_type_id: editForm.activity_type_id,
+          is_home_game: editForm.is_home_game,
+        })
+        .eq("id", selectedActivity.id);
 
       if (activityError) throw activityError;
 
       // Update mileage for all coaches if mileage_km is provided and > 0
       if (editForm.mileage_km && editForm.mileage_km > 0) {
-        const { error: mileageError } = await supabase.
-        from("activity_coaches").
-        update({ mileage_km: editForm.mileage_km }).
-        eq("activity_id", selectedActivity.id);
+        const { error: mileageError } = await supabase
+          .from("activity_coaches")
+          .update({ mileage_km: editForm.mileage_km })
+          .eq("activity_id", selectedActivity.id);
 
         if (mileageError) throw mileageError;
       }
 
       toast({
         title: "Uspešno",
-        description: "Aktivnost uspešno posodobljena"
+        description: "Aktivnost uspešno posodobljena",
       });
 
       setEditDialogOpen(false);
@@ -402,7 +402,7 @@ export default function ActivitiesPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri posodabljanju aktivnosti"
+        description: error.message || "Napaka pri posodabljanju aktivnosti",
       });
     } finally {
       setLoading(false);
@@ -420,24 +420,24 @@ export default function ActivitiesPage() {
     try {
       setLoading(true);
 
-      const { error } = await supabase.
-      from("activities").
-      delete().
-      eq("id", activityToDelete.id);
+      const { error } = await supabase
+        .from("activities")
+        .delete()
+        .eq("id", activityToDelete.id);
 
       if (error) {
         console.error("Napaka pri brisanju aktivnosti:", error);
         toast({
           variant: "destructive",
           title: "Napaka pri brisanju",
-          description: error.message || "Napaka pri brisanju aktivnosti"
+          description: error.message || "Napaka pri brisanju aktivnosti",
         });
         throw error;
       }
 
       toast({
         title: "Uspešno",
-        description: "Aktivnost uspešno izbrisana"
+        description: "Aktivnost uspešno izbrisana",
       });
 
       setDeleteDialogOpen(false);
@@ -461,16 +461,16 @@ export default function ActivitiesPage() {
     }
 
     try {
-      const { error } = await supabase.
-      from("activities").
-      delete().
-      eq("id", activityId);
+      const { error } = await supabase
+        .from("activities")
+        .delete()
+        .eq("id", activityId);
 
       if (error) throw error;
 
       toast({
         title: "Uspeh",
-        description: "Aktivnost izbrisana"
+        description: "Aktivnost izbrisana",
       });
 
       loadActivities();
@@ -479,7 +479,7 @@ export default function ActivitiesPage() {
       toast({
         title: "Napaka",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   }
@@ -494,7 +494,7 @@ export default function ActivitiesPage() {
         start_time: editForm.start_time,
         end_time: editForm.end_time,
         activity_type_id: editForm.activity_type_id,
-        is_home_game: editForm.is_home_game
+        is_home_game: editForm.is_home_game,
       };
 
       // Handle venue_id vs custom_venue (venue_xor_custom constraint)
@@ -502,7 +502,7 @@ export default function ActivitiesPage() {
       if (editForm.venue_id && editForm.venue_id !== "") {
         updateData.venue_id = editForm.venue_id;
       }
-
+      
       // DO NOT set custom_venue at all - let it keep existing value
       // Only update the fields that are in the form
 
@@ -510,10 +510,10 @@ export default function ActivitiesPage() {
       console.log("🔍 Edit Form:", editForm);
 
       // Update activity
-      const { error: activityError } = await supabase.
-      from("activities").
-      update(updateData).
-      eq("id", editActivityId);
+      const { error: activityError } = await supabase
+        .from("activities")
+        .update(updateData)
+        .eq("id", editActivityId);
 
       if (activityError) {
         console.error("❌ Activity update error:", activityError);
@@ -521,19 +521,19 @@ export default function ActivitiesPage() {
       }
 
       // Update mileage for current coach
-      const { error: mileageError } = await supabase.
-      from("activity_coaches").
-      update({
-        mileage_km: editForm.mileage_km
-      }).
-      eq("activity_id", editActivityId).
-      eq("coach_id", user?.id);
+      const { error: mileageError } = await supabase
+        .from("activity_coaches")
+        .update({
+          mileage_km: editForm.mileage_km,
+        })
+        .eq("activity_id", editActivityId)
+        .eq("coach_id", user?.id);
 
       if (mileageError) throw mileageError;
 
       toast({
         title: "Uspešno",
-        description: "Aktivnost uspešno posodobljena"
+        description: "Aktivnost uspešno posodobljena",
       });
 
       setEditDialogOpen(false);
@@ -543,7 +543,7 @@ export default function ActivitiesPage() {
       toast({
         title: "Napaka",
         description: error.message || "Napaka pri shranjevanju aktivnosti",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   }
@@ -558,13 +558,13 @@ export default function ActivitiesPage() {
                 {isAdmin ? "Aktivnosti" : "Moje aktivnosti"}
               </h2>
               <p className="text-muted-foreground">
-                {isAdmin ?
-                "Upravljanje vseh aktivnosti kluba" :
-                "Pregled aktivnosti kjer si glavni trener ali sotrener"
+                {isAdmin 
+                  ? "Upravljanje vseh aktivnosti kluba" 
+                  : "Pregled aktivnosti kjer si glavni trener ali sotrener"
                 }
               </p>
             </div>
-            <Button onClick={handleAdd} disabled={loading} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
+            <Button onClick={handleAdd} disabled={loading}>
               <Plus className="h-4 w-4 mr-2" />
               Dodaj aktivnost
             </Button>
@@ -590,8 +590,8 @@ export default function ActivitiesPage() {
                     id="date_from"
                     type="date"
                     value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)} />
-                  
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -600,8 +600,8 @@ export default function ActivitiesPage() {
                     id="date_to"
                     type="date"
                     value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)} />
-                  
+                    onChange={(e) => setDateTo(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -611,11 +611,11 @@ export default function ActivitiesPage() {
                       <SelectValue placeholder="Vse sezone" />
                     </SelectTrigger>
                     <SelectContent>
-                      {seasons.map((season) =>
-                      <SelectItem key={season.id} value={season.id}>
+                      {seasons.map((season) => (
+                        <SelectItem key={season.id} value={season.id}>
                           {season.name} {season.is_active && "(Aktivna)"}
                         </SelectItem>
-                      )}
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -627,11 +627,11 @@ export default function ActivitiesPage() {
                       <SelectValue placeholder="Vse selekcije" />
                     </SelectTrigger>
                     <SelectContent>
-                      {teams.map((team) =>
-                      <SelectItem key={team.id} value={team.id}>
+                      {teams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
                           {team.name}
                         </SelectItem>
-                      )}
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -643,32 +643,32 @@ export default function ActivitiesPage() {
                       <SelectValue placeholder="Vsi trenerji" />
                     </SelectTrigger>
                     <SelectContent>
-                      {coaches.map((coach) =>
-                      <SelectItem key={coach.id} value={coach.id}>
+                      {coaches.map((coach) => (
+                        <SelectItem key={coach.id} value={coach.id}>
                           {coach.full_name}
                         </SelectItem>
-                      )}
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {(dateFrom || dateTo || selectedTeam || selectedCoach) &&
-              <div className="mt-4">
+              {(dateFrom || dateTo || selectedTeam || selectedCoach) && (
+                <div className="mt-4">
                   <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setDateFrom("");
-                    setDateTo("");
-                    setSelectedTeam("");
-                    setSelectedCoach("");
-                  }}>
-                  
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDateFrom("");
+                      setDateTo("");
+                      setSelectedTeam("");
+                      setSelectedCoach("");
+                    }}
+                  >
                     Počisti filtre
                   </Button>
                 </div>
-              }
+              )}
             </CardContent>
           </Card>
 
@@ -681,28 +681,28 @@ export default function ActivitiesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading && activities.length === 0 ?
-              <div className="text-center py-8 text-muted-foreground">Nalagam...</div> :
-              activities.length === 0 ?
-              <div className="text-center py-12 text-muted-foreground">
+              {loading && activities.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
+              ) : activities.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
                   <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium">Ni aktivnosti</p>
                   <p className="text-sm mt-2">Dodajte aktivnost preko "Vnos prisotnosti"</p>
-                </div> :
-
-              <div className="overflow-x-auto">
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>
                           <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2 lg:px-3"
-                          onClick={() => {
-                            setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                          }}>
-                          
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 lg:px-3"
+                            onClick={() => {
+                              setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                            }}
+                          >
                             Datum
                             <ArrowUpDown className="ml-2 h-4 w-4" />
                           </Button>
@@ -717,16 +717,16 @@ export default function ActivitiesPage() {
                     </TableHeader>
                     <TableBody>
                       {activities.map((activity) => {
-                      // Check if logged-in user is coach on this activity
-                      const isCoachOnActivity = activity.activity_coaches?.some(
-                        (ac: any) => ac.profiles?.id === user?.id
-                      ) || false;
+                        // Check if logged-in user is coach on this activity
+                        const isCoachOnActivity = activity.activity_coaches?.some(
+                          (ac: any) => ac.profiles?.id === user?.id
+                        ) || false;
 
-                      const headCoach = activity.activity_coaches?.find((ac) => ac.role === 'head');
-                      const assistants = activity.activity_coaches?.filter((ac) => ac.role === 'assistant') || [];
-
-                      return (
-                        <TableRow key={activity.id}>
+                        const headCoach = activity.activity_coaches?.find((ac) => ac.role === 'head');
+                        const assistants = activity.activity_coaches?.filter((ac) => ac.role === 'assistant') || [];
+                        
+                        return (
+                          <TableRow key={activity.id}>
                             <TableCell className="font-medium">
                               {new Date(activity.activity_date).toLocaleDateString("sl-SI")}
                             </TableCell>
@@ -739,68 +739,68 @@ export default function ActivitiesPage() {
                             </TableCell>
                             <TableCell>
                               <div className="space-y-1">
-                                {headCoach &&
-                              <div className="text-sm">
-                                    
+                                {headCoach && (
+                                  <div className="text-sm">
+                                    <Badge variant="default" className="mr-1">Glavni</Badge>
                                     {headCoach.profiles?.full_name}
                                   </div>
-                              }
-                                {assistants.map((assistant, idx) =>
-                              <div key={idx} className="text-sm">
+                                )}
+                                {assistants.map((assistant, idx) => (
+                                  <div key={idx} className="text-sm">
                                     <Badge variant="secondary" className="mr-1">Sotrener</Badge>
                                     {assistant.profiles?.full_name}
                                   </div>
-                              )}
-                                {!headCoach && assistants.length === 0 &&
-                              <span className="text-sm text-muted-foreground">Ni trenerjev</span>
-                              }
+                                ))}
+                                {!headCoach && assistants.length === 0 && (
+                                  <span className="text-sm text-muted-foreground">Ni trenerjev</span>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
                               {getActivityTypeName(activity.activity_type_id)}
-                              {activity.activity_type_id === 3 &&
-                            <Badge variant="outline" className="ml-2">
+                              {activity.activity_type_id === 3 && (
+                                <Badge variant="outline" className="ml-2">
                                   {activity.is_home_game ? "Doma" : "Gostovanje"}
                                 </Badge>
-                            }
+                              )}
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2 justify-end">
-                                {(isAdmin || isCoachOnActivity) &&
-                              <>
+                                {(isAdmin || isCoachOnActivity) && (
+                                  <>
                                     <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditClick(activity)}>
-                                  
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleEditClick(activity)}
+                                    >
                                       <Edit className="h-4 w-4" />
                                     </Button>
                                     <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDelete(activity.id)} style={{ backgroundColor: "#ef4444", backgroundImage: "none" }}>
-                                  
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDelete(activity.id)}
+                                    >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </>
-                              }
+                                )}
                                 <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => router.push(`/attendance?activity=${activity.id}`)} style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>
-                                
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => router.push(`/attendance?activity=${activity.id}`)}
+                                >
                                   <ClipboardCheck className="h-4 w-4 mr-2" />
                                   Prisotnost
                                 </Button>
                               </div>
                             </TableCell>
-                          </TableRow>);
-
-                    })}
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
-              }
+              )}
             </CardContent>
           </Card>
 
@@ -817,8 +817,8 @@ export default function ActivitiesPage() {
                     id="edit_date"
                     type="date"
                     value={editForm.activity_date}
-                    onChange={(e) => setEditForm({ ...editForm, activity_date: e.target.value })} />
-                  
+                    onChange={(e) => setEditForm({ ...editForm, activity_date: e.target.value })}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -829,8 +829,8 @@ export default function ActivitiesPage() {
                       type="time"
                       step="900"
                       value={editForm.start_time}
-                      onChange={(e) => setEditForm({ ...editForm, start_time: e.target.value })} />
-                    
+                      onChange={(e) => setEditForm({ ...editForm, start_time: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="edit_end_time">Konec *</Label>
@@ -839,8 +839,8 @@ export default function ActivitiesPage() {
                       type="time"
                       step="900"
                       value={editForm.end_time}
-                      onChange={(e) => setEditForm({ ...editForm, end_time: e.target.value })} />
-                    
+                      onChange={(e) => setEditForm({ ...editForm, end_time: e.target.value })}
+                    />
                   </div>
                 </div>
 
@@ -853,25 +853,25 @@ export default function ActivitiesPage() {
                     step="0.1"
                     placeholder="0"
                     value={editForm.mileage_km || ""}
-                    onChange={(e) => setEditForm({ ...editForm, mileage_km: parseFloat(e.target.value) || 0 })} />
-                  
+                    onChange={(e) => setEditForm({ ...editForm, mileage_km: parseFloat(e.target.value) || 0 })}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="edit_venue">Dvorana</Label>
                   <Select
                     value={editForm.venue_id}
-                    onValueChange={(value) => setEditForm({ ...editForm, venue_id: value })}>
-                    
+                    onValueChange={(value) => setEditForm({ ...editForm, venue_id: value })}
+                  >
                     <SelectTrigger id="edit_venue">
                       <SelectValue placeholder="Izberi dvorano (ni obvezno)" />
                     </SelectTrigger>
                     <SelectContent>
-                      {venues.map((venue) =>
-                      <SelectItem key={venue.id} value={venue.id}>
+                      {venues.map((venue) => (
+                        <SelectItem key={venue.id} value={venue.id}>
                           {venue.name}
                         </SelectItem>
-                      )}
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -880,8 +880,8 @@ export default function ActivitiesPage() {
                   <Label htmlFor="edit_activity_type">Vrsta aktivnosti *</Label>
                   <Select
                     value={editForm.activity_type_id.toString()}
-                    onValueChange={(value) => setEditForm({ ...editForm, activity_type_id: parseInt(value), is_home_game: value === "3" ? editForm.is_home_game : null })}>
-                    
+                    onValueChange={(value) => setEditForm({ ...editForm, activity_type_id: parseInt(value), is_home_game: value === "3" ? editForm.is_home_game : null })}
+                  >
                     <SelectTrigger id="edit_activity_type">
                       <SelectValue placeholder="Izberi vrsto" />
                     </SelectTrigger>
@@ -893,40 +893,40 @@ export default function ActivitiesPage() {
                   </Select>
                 </div>
 
-                {editForm.activity_type_id === 3 &&
-                <div className="space-y-2">
+                {editForm.activity_type_id === 3 && (
+                  <div className="space-y-2">
                     <Label>Lokacija tekme *</Label>
                     <div className="flex gap-4">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
-                        type="radio"
-                        name="edit_is_home_game"
-                        checked={editForm.is_home_game === true}
-                        onChange={() => setEditForm({ ...editForm, is_home_game: true })}
-                        className="w-4 h-4" />
-                      
+                          type="radio"
+                          name="edit_is_home_game"
+                          checked={editForm.is_home_game === true}
+                          onChange={() => setEditForm({ ...editForm, is_home_game: true })}
+                          className="w-4 h-4"
+                        />
                         <span>Domača tekma</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
-                        type="radio"
-                        name="edit_is_home_game"
-                        checked={editForm.is_home_game === false}
-                        onChange={() => setEditForm({ ...editForm, is_home_game: false })}
-                        className="w-4 h-4" />
-                      
+                          type="radio"
+                          name="edit_is_home_game"
+                          checked={editForm.is_home_game === false}
+                          onChange={() => setEditForm({ ...editForm, is_home_game: false })}
+                          className="w-4 h-4"
+                        />
                         <span>Gostovanje</span>
                       </label>
                     </div>
                   </div>
-                }
+                )}
               </div>
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                   Prekliči
                 </Button>
-                <Button onClick={handleSaveEdit} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>Shrani spremembe</Button>
+                <Button onClick={handleSaveEdit}>Shrani spremembe</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -947,8 +947,8 @@ export default function ActivitiesPage() {
                 <AlertDialogCancel>Prekliči</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleConfirmDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
                   Izbriši
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -956,6 +956,6 @@ export default function ActivitiesPage() {
           </AlertDialog>
         </div>
       </AppLayout>
-    </ProtectedRoute>);
-
+    </ProtectedRoute>
+  );
 }

@@ -19,8 +19,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle } from
-"@/components/ui/alert-dialog";
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getActiveTeams } from "@/services/teamsService";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,7 +62,7 @@ export default function MyTeamsPage() {
   const [teamPlayers, setTeamPlayers] = useState<TeamPlayer[]>([]);
   const [availablePlayers, setAvailablePlayers] = useState<any[]>([]);
   const [selectedPlayerToAdd, setSelectedPlayerToAdd] = useState("");
-  const [playerToRemove, setPlayerToRemove] = useState<{teamPlayerId: string;playerName: string;} | null>(null);
+  const [playerToRemove, setPlayerToRemove] = useState<{ teamPlayerId: string; playerName: string } | null>(null);
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,8 +73,8 @@ export default function MyTeamsPage() {
     // Search filter
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
-    player.first_name.toLowerCase().includes(searchLower) ||
-    player.last_name.toLowerCase().includes(searchLower);
+      player.first_name.toLowerCase().includes(searchLower) ||
+      player.last_name.toLowerCase().includes(searchLower);
 
     if (!matchesSearch) return false;
 
@@ -98,17 +98,17 @@ export default function MyTeamsPage() {
   async function loadTeams() {
     try {
       setLoading(true);
-
+      
       // Fetch teams with player count
-      const { data, error } = await supabase.
-      from("teams").
-      select(`
+      const { data, error } = await supabase
+        .from("teams")
+        .select(`
           *,
           seasons(name, is_active),
           team_players(count)
-        `).
-      eq("is_archived", false).
-      order("name", { ascending: true });
+        `)
+        .eq("is_archived", false)
+        .order("name", { ascending: true });
 
       if (error) throw error;
       setTeams(data || []);
@@ -117,7 +117,7 @@ export default function MyTeamsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti selekcij"
+        description: error.message || "Ni mogoče naložiti selekcij",
       });
     } finally {
       setLoading(false);
@@ -126,9 +126,9 @@ export default function MyTeamsPage() {
 
   async function loadTeamPlayers(teamId: string) {
     try {
-      const { data, error } = await supabase.
-      from("team_players").
-      select(`
+      const { data, error } = await supabase
+        .from("team_players")
+        .select(`
           id,
           player_id,
           players(
@@ -137,16 +137,16 @@ export default function MyTeamsPage() {
             last_name,
             date_of_birth
           )
-        `).
-      eq("team_id", teamId).
-      order("players(last_name)", { ascending: true });
+        `)
+        .eq("team_id", teamId)
+        .order("players(last_name)", { ascending: true });
 
       if (error) {
         console.error("Napaka pri nalaganju igralcev selekcije:", error);
         toast({
           variant: "destructive",
           title: "Napaka",
-          description: error.message || "Ni mogoče naložiti igralcev selekcije"
+          description: error.message || "Ni mogoče naložiti igralcev selekcije",
         });
         throw error;
       }
@@ -160,9 +160,9 @@ export default function MyTeamsPage() {
 
   async function loadAllPlayers() {
     try {
-      const { data, error } = await supabase.
-      from("players").
-      select(`
+      const { data, error } = await supabase
+        .from("players")
+        .select(`
           id, 
           first_name, 
           last_name, 
@@ -171,9 +171,9 @@ export default function MyTeamsPage() {
           teams:team_players(
             teams(id, name, short_name)
           )
-        `).
-      eq("is_active", true).
-      order("last_name", { ascending: true });
+        `)
+        .eq("is_active", true)
+        .order("last_name", { ascending: true });
 
       if (error) throw error;
       setAllPlayers(data || []);
@@ -199,42 +199,42 @@ export default function MyTeamsPage() {
     try {
       if (isCurrentlySelected) {
         // Remove player - delete from DB immediately
-        const { error } = await supabase.
-        from("team_players").
-        delete().
-        eq("team_id", selectedTeam.id).
-        eq("player_id", playerId);
+        const { error } = await supabase
+          .from("team_players")
+          .delete()
+          .eq("team_id", selectedTeam.id)
+          .eq("player_id", playerId);
 
         if (error) throw error;
 
         // Update local state
-        setSelectedPlayers((prev) => prev.filter((id) => id !== playerId));
-        setTeamPlayers((prev) => prev.filter((tp) => tp.player_id !== playerId));
+        setSelectedPlayers(prev => prev.filter(id => id !== playerId));
+        setTeamPlayers(prev => prev.filter(tp => tp.player_id !== playerId));
 
         toast({
           title: "Odstranjen",
-          description: "Igralec odstranjen iz selekcije"
+          description: "Igralec odstranjen iz selekcije",
         });
       } else {
         // Add player - insert to DB immediately
-        const { error } = await supabase.
-        from("team_players").
-        insert([{
-          team_id: selectedTeam.id,
-          player_id: playerId
-        }]);
+        const { error } = await supabase
+          .from("team_players")
+          .insert([{
+            team_id: selectedTeam.id,
+            player_id: playerId,
+          }]);
 
         if (error) throw error;
 
         // Update local state
-        setSelectedPlayers((prev) => [...prev, playerId]);
-
+        setSelectedPlayers(prev => [...prev, playerId]);
+        
         // Reload team players to get full data
         await loadTeamPlayers(selectedTeam.id);
 
         toast({
           title: "Dodan",
-          description: "Igralec dodan v selekcijo"
+          description: "Igralec dodan v selekcijo",
         });
       }
     } catch (error: any) {
@@ -242,7 +242,7 @@ export default function MyTeamsPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju"
+        description: error.message || "Napaka pri shranjevanju",
       });
     }
   }
@@ -274,12 +274,12 @@ export default function MyTeamsPage() {
               <CardTitle>Seznam selekcij ({teams.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              {loading && teams.length === 0 ?
-              <p>Nalaganje...</p> :
-              teams.length === 0 ?
-              <p className="text-muted-foreground">Ni aktivnih selekcij.</p> :
-
-              <Table>
+              {loading && teams.length === 0 ? (
+                <p>Nalaganje...</p>
+              ) : teams.length === 0 ? (
+                <p className="text-muted-foreground">Ni aktivnih selekcij.</p>
+              ) : (
+                <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Naziv</TableHead>
@@ -294,9 +294,9 @@ export default function MyTeamsPage() {
                   </TableHeader>
                   <TableBody>
                     {teams.map((team) => {
-                    const isActive = !team.is_archived;
-                    return (
-                      <TableRow key={team.id}>
+                      const isActive = !team.is_archived;
+                      return (
+                        <TableRow key={team.id}>
                           <TableCell className="font-medium">{team.name}</TableCell>
                           <TableCell>{team.short_name || "-"}</TableCell>
                           <TableCell>{team.age_category || "-"}</TableCell>
@@ -308,34 +308,34 @@ export default function MyTeamsPage() {
                           </TableCell>
                           <TableCell>
                             {team.seasons?.name || "-"}
-                            {team.seasons?.is_active === false &&
-                          <Badge variant="outline" className="ml-2">Arhivirana sezona</Badge>
-                          }
+                            {team.seasons?.is_active === false && (
+                              <Badge variant="outline" className="ml-2">Arhivirana sezona</Badge>
+                            )}
                           </TableCell>
                           <TableCell>
-                            {isActive ?
-                          <Badge className="" style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>Aktivna</Badge> :
-
-                          <Badge variant="outline">Arhivirana</Badge>
-                          }
+                            {isActive ? (
+                              <Badge className="bg-green-600">Aktivna</Badge>
+                            ) : (
+                              <Badge variant="outline">Arhivirana</Badge>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleManagePlayersClick(team)}
-                            title="Upravljaj igralce" style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>
-                            
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleManagePlayersClick(team)}
+                              title="Upravljaj igralce"
+                            >
                               <Users className="h-4 w-4 mr-2" />
                               Igralci
                             </Button>
                           </TableCell>
-                        </TableRow>);
-
-                  })}
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
-              }
+              )}
             </CardContent>
           </Card>
 
@@ -370,8 +370,8 @@ export default function MyTeamsPage() {
                     placeholder="Ime ali priimek..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={handleSearchKeyDown} />
-                  
+                    onKeyDown={handleSearchKeyDown}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -391,9 +391,9 @@ export default function MyTeamsPage() {
                         <TableBody>
                           {filteredPlayers.map((player) => {
                             const isSelected = selectedPlayers.includes(player.id);
-                            const otherTeams = player.teams?.
-                            filter((tp: any) => tp.teams.id !== selectedTeam?.id).
-                            map((tp: any) => tp.teams) || [];
+                            const otherTeams = player.teams
+                              ?.filter((tp: any) => tp.teams.id !== selectedTeam?.id)
+                              .map((tp: any) => tp.teams) || [];
 
                             return (
                               <TableRow key={player.id} className="text-sm">
@@ -402,33 +402,33 @@ export default function MyTeamsPage() {
                                     type="checkbox"
                                     checked={isSelected}
                                     onChange={() => togglePlayer(player.id)}
-                                    className="h-4 w-4" />
-                                  
+                                    className="h-4 w-4"
+                                  />
                                 </TableCell>
                                 <TableCell className="font-medium py-2">
                                   {player.first_name}
                                 </TableCell>
                                 <TableCell className="py-2">{player.last_name}</TableCell>
                                 <TableCell className="py-2">
-                                  {player.date_of_birth ?
-                                  new Date(player.date_of_birth).toLocaleDateString("sl-SI") :
-                                  "N/A"}
+                                  {player.date_of_birth
+                                    ? new Date(player.date_of_birth).toLocaleDateString("sl-SI")
+                                    : "N/A"}
                                 </TableCell>
                                 <TableCell className="py-2">
                                   <div className="flex flex-wrap gap-1">
-                                    {otherTeams.length > 0 ?
-                                    otherTeams.map((team: any, idx: number) =>
-                                    <Badge key={idx} variant="outline" className="text-xs">
+                                    {otherTeams.length > 0 ? (
+                                      otherTeams.map((team: any, idx: number) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
                                           {team.short_name || team.name}
                                         </Badge>
-                                    ) :
-
-                                    <span className="text-xs text-muted-foreground">-</span>
-                                    }
+                                      ))
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">-</span>
+                                    )}
                                   </div>
                                 </TableCell>
-                              </TableRow>);
-
+                              </TableRow>
+                            );
                           })}
                         </TableBody>
                       </Table>
@@ -442,8 +442,8 @@ export default function MyTeamsPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setManagePlayersDialogOpen(false)}
-                  disabled={loading}>
-                  
+                  disabled={loading}
+                >
                   Zapri
                 </Button>
               </DialogFooter>
@@ -451,6 +451,6 @@ export default function MyTeamsPage() {
           </Dialog>
         </div>
       </AppLayout>
-    </ProtectedRoute>);
-
+    </ProtectedRoute>
+  );
 }

@@ -19,18 +19,18 @@ export default function MyVenuesPage() {
   async function loadVenues() {
     try {
       setLoading(true);
-      const { data, error } = await supabase.
-      from("venues").
-      select("*").
-      eq("is_active", true).
-      order("name", { ascending: true });
+      const { data, error } = await supabase
+        .from("venues")
+        .select("*")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
 
       if (error) {
         console.error("Napaka pri nalaganju dvoran:", error);
         toast({
           variant: "destructive",
           title: "Napaka",
-          description: error.message || "Ni mogoče naložiti dvoran"
+          description: error.message || "Ni mogoče naložiti dvoran",
         });
         throw error;
       }
@@ -57,12 +57,12 @@ export default function MyVenuesPage() {
               <CardTitle>Seznam dvoran ({venues.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              {loading ?
-              <p>Nalaganje...</p> :
-              venues.length === 0 ?
-              <p className="text-muted-foreground">Ni aktivnih dvoran.</p> :
-
-              <Table>
+              {loading ? (
+                <p>Nalaganje...</p>
+              ) : venues.length === 0 ? (
+                <p className="text-muted-foreground">Ni aktivnih dvoran.</p>
+              ) : (
+                <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Naziv</TableHead>
@@ -73,28 +73,28 @@ export default function MyVenuesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {venues.map((venue) =>
-                  <TableRow key={venue.id}>
+                    {venues.map((venue) => (
+                      <TableRow key={venue.id}>
                         <TableCell className="font-medium">{venue.name}</TableCell>
                         <TableCell>{venue.address || "-"}</TableCell>
                         <TableCell>{venue.city || "-"}</TableCell>
                         <TableCell>{venue.room_designation || "-"}</TableCell>
                         <TableCell>
-                          {venue.is_active ?
-                      <Badge className="" style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>Aktivna</Badge> :
-
-                      <Badge variant="outline">Neaktivna</Badge>
-                      }
+                          {venue.is_active ? (
+                            <Badge className="bg-green-600">Aktivna</Badge>
+                          ) : (
+                            <Badge variant="outline">Neaktivna</Badge>
+                          )}
                         </TableCell>
                       </TableRow>
-                  )}
+                    ))}
                   </TableBody>
                 </Table>
-              }
+              )}
             </CardContent>
           </Card>
         </div>
       </AppLayout>
-    </ProtectedRoute>);
-
+    </ProtectedRoute>
+  );
 }

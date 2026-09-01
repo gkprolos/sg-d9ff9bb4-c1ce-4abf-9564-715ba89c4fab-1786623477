@@ -18,8 +18,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle } from
-"@/components/ui/alert-dialog";
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UserCog, Plus, Edit, Trash2, Users } from "lucide-react";
@@ -64,8 +64,8 @@ export default function MyPlayersPage() {
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [selectedTeamForAdd, setSelectedTeamForAdd] = useState("");
-  const [teamPlayerToRemove, setTeamPlayerToRemove] = useState<{playerId: string;teamPlayerId: string;teamName: string;} | null>(null);
-
+  const [teamPlayerToRemove, setTeamPlayerToRemove] = useState<{ playerId: string; teamPlayerId: string; teamName: string } | null>(null);
+  
   const [playerForm, setPlayerForm] = useState({
     first_name: "",
     last_name: "",
@@ -80,7 +80,7 @@ export default function MyPlayersPage() {
     guardian2_name: "",
     guardian2_phone: "",
     guardian2_email: "",
-    gender: ""
+    gender: "",
   });
 
   useEffect(() => {
@@ -95,21 +95,21 @@ export default function MyPlayersPage() {
       // First, get coach's teams if not admin
       let playerIds: string[] = [];
       if (user?.id && userRole === "coach") {
-        const { data: coachTeams } = await supabase.
-        from("team_coaches").
-        select("team_id").
-        eq("coach_id", user.id).
-        eq("is_active", true);
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
 
-        const teamIds = (coachTeams || []).map((ct) => ct.team_id);
-
+        const teamIds = (coachTeams || []).map(ct => ct.team_id);
+        
         if (teamIds.length > 0) {
-          const { data: teamPlayers } = await supabase.
-          from("team_players").
-          select("player_id").
-          in("team_id", teamIds);
+          const { data: teamPlayers } = await supabase
+            .from("team_players")
+            .select("player_id")
+            .in("team_id", teamIds);
 
-          playerIds = (teamPlayers || []).map((tp) => tp.player_id);
+          playerIds = (teamPlayers || []).map(tp => tp.player_id);
         }
 
         if (playerIds.length === 0) {
@@ -119,9 +119,9 @@ export default function MyPlayersPage() {
         }
       }
 
-      let playersQuery = supabase.
-      from("players").
-      select(`
+      let playersQuery = supabase
+        .from("players")
+        .select(`
           id,
           first_name,
           last_name,
@@ -146,10 +146,10 @@ export default function MyPlayersPage() {
               name
             )
           )
-        `).
-      eq("is_active", true).
-      order("last_name", { ascending: true }).
-      order("first_name", { ascending: true });
+        `)
+        .eq("is_active", true)
+        .order("last_name", { ascending: true })
+        .order("first_name", { ascending: true });
 
       // Filter by coach's players
       if (userRole === "coach" && playerIds.length > 0) {
@@ -163,7 +163,7 @@ export default function MyPlayersPage() {
         toast({
           variant: "destructive",
           title: "Napaka",
-          description: error.message || "Ni mogoče naložiti igralcev"
+          description: error.message || "Ni mogoče naložiti igralcev",
         });
         throw error;
       }
@@ -178,11 +178,11 @@ export default function MyPlayersPage() {
 
   async function loadTeams() {
     try {
-      const { data, error } = await supabase.
-      from("teams").
-      select("id, name").
-      eq("is_archived", false).
-      order("name", { ascending: true });
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id, name")
+        .eq("is_archived", false)
+        .order("name", { ascending: true });
 
       if (error) throw error;
       setTeams(data || []);
@@ -193,22 +193,22 @@ export default function MyPlayersPage() {
 
   async function loadTeamsForPlayer() {
     try {
-      let teamsQuery = supabase.
-      from("teams").
-      select("id, name").
-      eq("is_archived", false).
-      order("name", { ascending: true });
+      let teamsQuery = supabase
+        .from("teams")
+        .select("id, name")
+        .eq("is_archived", false)
+        .order("name", { ascending: true });
 
       // For coaches, filter by their assigned teams
       if (userRole === "coach" && user?.id) {
-        const { data: coachTeams } = await supabase.
-        from("team_coaches").
-        select("team_id").
-        eq("coach_id", user.id).
-        eq("is_active", true);
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
 
-        const teamIds = (coachTeams || []).map((ct) => ct.team_id);
-
+        const teamIds = (coachTeams || []).map(ct => ct.team_id);
+        
         if (teamIds.length > 0) {
           teamsQuery = teamsQuery.in("id", teamIds);
         } else {
@@ -227,7 +227,7 @@ export default function MyPlayersPage() {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Ni mogoče naložiti selekcij"
+        description: "Ni mogoče naložiti selekcij",
       });
     }
   }
@@ -247,7 +247,7 @@ export default function MyPlayersPage() {
       guardian2_name: "",
       guardian2_phone: "",
       guardian2_email: "",
-      gender: ""
+      gender: "",
     });
   }
 
@@ -261,7 +261,7 @@ export default function MyPlayersPage() {
       toast({
         variant: "destructive",
         title: "Manjkajo podatki",
-        description: "Ime in priimek sta obvezna"
+        description: "Ime in priimek sta obvezna",
       });
       return;
     }
@@ -270,7 +270,7 @@ export default function MyPlayersPage() {
       toast({
         variant: "destructive",
         title: "Manjkajo podatki",
-        description: "Spol je obvezen"
+        description: "Spol je obvezen",
       });
       return;
     }
@@ -278,39 +278,39 @@ export default function MyPlayersPage() {
     try {
       setLoading(true);
 
-      const { error } = await supabase.
-      from("players").
-      insert({
-        first_name: playerForm.first_name.trim(),
-        last_name: playerForm.last_name.trim(),
-        date_of_birth: playerForm.date_of_birth || null,
-        phone: playerForm.phone || null,
-        address: playerForm.address || null,
-        city: playerForm.city || null,
-        postal_code: playerForm.postal_code || null,
-        guardian1_name: playerForm.guardian1_name || null,
-        guardian1_phone: playerForm.guardian1_phone || null,
-        guardian1_email: playerForm.guardian1_email || null,
-        guardian2_name: playerForm.guardian2_name || null,
-        guardian2_phone: playerForm.guardian2_phone || null,
-        guardian2_email: playerForm.guardian2_email || null,
-        gender: playerForm.gender,
-        is_active: true
-      });
+      const { error } = await supabase
+        .from("players")
+        .insert({
+          first_name: playerForm.first_name.trim(),
+          last_name: playerForm.last_name.trim(),
+          date_of_birth: playerForm.date_of_birth || null,
+          phone: playerForm.phone || null,
+          address: playerForm.address || null,
+          city: playerForm.city || null,
+          postal_code: playerForm.postal_code || null,
+          guardian1_name: playerForm.guardian1_name || null,
+          guardian1_phone: playerForm.guardian1_phone || null,
+          guardian1_email: playerForm.guardian1_email || null,
+          guardian2_name: playerForm.guardian2_name || null,
+          guardian2_phone: playerForm.guardian2_phone || null,
+          guardian2_email: playerForm.guardian2_email || null,
+          gender: playerForm.gender,
+          is_active: true,
+        });
 
       if (error) {
         console.error("Napaka pri dodajanju igralca:", error);
         toast({
           variant: "destructive",
           title: "Napaka",
-          description: error.message || "Napaka pri dodajanju igralca"
+          description: error.message || "Napaka pri dodajanju igralca",
         });
         throw error;
       }
 
       toast({
         title: "Uspešno",
-        description: `Igralec ${playerForm.first_name} ${playerForm.last_name} uspešno dodan`
+        description: `Igralec ${playerForm.first_name} ${playerForm.last_name} uspešno dodan`,
       });
 
       setAddDialogOpen(false);
@@ -338,7 +338,7 @@ export default function MyPlayersPage() {
       guardian2_name: player.guardian2_name || "",
       guardian2_phone: player.guardian2_phone || "",
       guardian2_email: player.guardian2_email || "",
-      gender: (player as any).gender
+      gender: (player as any).gender,
     });
     setEditDialogOpen(true);
   }
@@ -350,7 +350,7 @@ export default function MyPlayersPage() {
       toast({
         variant: "destructive",
         title: "Manjkajo podatki",
-        description: "Ime in priimek sta obvezna"
+        description: "Ime in priimek sta obvezna",
       });
       return;
     }
@@ -359,7 +359,7 @@ export default function MyPlayersPage() {
       toast({
         variant: "destructive",
         title: "Manjkajo podatki",
-        description: "Spol je obvezen"
+        description: "Spol je obvezen",
       });
       return;
     }
@@ -367,39 +367,39 @@ export default function MyPlayersPage() {
     try {
       setLoading(true);
 
-      const { error } = await supabase.
-      from("players").
-      update({
-        first_name: playerForm.first_name.trim(),
-        last_name: playerForm.last_name.trim(),
-        date_of_birth: playerForm.date_of_birth || null,
-        phone: playerForm.phone || null,
-        address: playerForm.address || null,
-        city: playerForm.city || null,
-        postal_code: playerForm.postal_code || null,
-        guardian1_name: playerForm.guardian1_name || null,
-        guardian1_phone: playerForm.guardian1_phone || null,
-        guardian1_email: playerForm.guardian1_email || null,
-        guardian2_name: playerForm.guardian2_name || null,
-        guardian2_phone: playerForm.guardian2_phone || null,
-        guardian2_email: playerForm.guardian2_email || null,
-        gender: playerForm.gender
-      }).
-      eq("id", selectedPlayer.id);
+      const { error } = await supabase
+        .from("players")
+        .update({
+          first_name: playerForm.first_name.trim(),
+          last_name: playerForm.last_name.trim(),
+          date_of_birth: playerForm.date_of_birth || null,
+          phone: playerForm.phone || null,
+          address: playerForm.address || null,
+          city: playerForm.city || null,
+          postal_code: playerForm.postal_code || null,
+          guardian1_name: playerForm.guardian1_name || null,
+          guardian1_phone: playerForm.guardian1_phone || null,
+          guardian1_email: playerForm.guardian1_email || null,
+          guardian2_name: playerForm.guardian2_name || null,
+          guardian2_phone: playerForm.guardian2_phone || null,
+          guardian2_email: playerForm.guardian2_email || null,
+          gender: playerForm.gender,
+        })
+        .eq("id", selectedPlayer.id);
 
       if (error) {
         console.error("Napaka pri posodabljanju igralca:", error);
         toast({
           variant: "destructive",
           title: "Napaka",
-          description: error.message || "Napaka pri posodabljanju igralca"
+          description: error.message || "Napaka pri posodabljanju igralca",
         });
         throw error;
       }
 
       toast({
         title: "Uspešno",
-        description: `Igralec ${playerForm.first_name} ${playerForm.last_name} uspešno posodobljen`
+        description: `Igralec ${playerForm.first_name} ${playerForm.last_name} uspešno posodobljen`,
       });
 
       setEditDialogOpen(false);
@@ -423,21 +423,21 @@ export default function MyPlayersPage() {
       toast({
         variant: "destructive",
         title: "Manjkajo podatki",
-        description: "Izberi selekcijo"
+        description: "Izberi selekcijo",
       });
       return;
     }
 
     // Check if player is already in this team
     const isAlreadyInTeam = selectedPlayer.team_players?.some(
-      (tp) => tp.team_id === selectedTeamForAdd
+      tp => tp.team_id === selectedTeamForAdd
     );
 
     if (isAlreadyInTeam) {
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: "Igralec je že v tej selekciji"
+        description: "Igralec je že v tej selekciji",
       });
       return;
     }
@@ -445,27 +445,27 @@ export default function MyPlayersPage() {
     try {
       setLoading(true);
 
-      const { error } = await supabase.
-      from("team_players").
-      insert({
-        team_id: selectedTeamForAdd,
-        player_id: selectedPlayer.id
-      });
+      const { error } = await supabase
+        .from("team_players")
+        .insert({
+          team_id: selectedTeamForAdd,
+          player_id: selectedPlayer.id,
+        });
 
       if (error) {
         console.error("Napaka pri dodajanju igralca v selekcijo:", error);
         toast({
           variant: "destructive",
           title: "Napaka",
-          description: error.message || "Napaka pri dodajanju igralca v selekcijo"
+          description: error.message || "Napaka pri dodajanju igralca v selekcijo",
         });
         throw error;
       }
 
-      const teamName = teams.find((t) => t.id === selectedTeamForAdd)?.name || "";
+      const teamName = teams.find(t => t.id === selectedTeamForAdd)?.name || "";
       toast({
         title: "Uspešno",
-        description: `Igralec ${selectedPlayer.first_name} ${selectedPlayer.last_name} uspešno dodan v ${teamName}`
+        description: `Igralec ${selectedPlayer.first_name} ${selectedPlayer.last_name} uspešno dodan v ${teamName}`,
       });
 
       setTeamDialogOpen(false);
@@ -481,7 +481,7 @@ export default function MyPlayersPage() {
     setTeamPlayerToRemove({
       playerId: player.id,
       teamPlayerId: teamPlayerId,
-      teamName: teamName
+      teamName: teamName,
     });
     setRemoveDialogOpen(true);
   }
@@ -492,24 +492,24 @@ export default function MyPlayersPage() {
     try {
       setLoading(true);
 
-      const { error } = await supabase.
-      from("team_players").
-      delete().
-      eq("id", teamPlayerToRemove.teamPlayerId);
+      const { error } = await supabase
+        .from("team_players")
+        .delete()
+        .eq("id", teamPlayerToRemove.teamPlayerId);
 
       if (error) {
         console.error("Napaka pri odstranjevanju igralca iz selekcije:", error);
         toast({
           variant: "destructive",
           title: "Napaka",
-          description: error.message || "Napaka pri odstranjevanju igralca iz selekcije"
+          description: error.message || "Napaka pri odstranjevanju igralca iz selekcije",
         });
         throw error;
       }
 
       toast({
         title: "Uspešno",
-        description: `Igralec uspešno odstranjen iz ${teamPlayerToRemove.teamName}`
+        description: `Igralec uspešno odstranjen iz ${teamPlayerToRemove.teamName}`,
       });
 
       setRemoveDialogOpen(false);
@@ -522,13 +522,13 @@ export default function MyPlayersPage() {
     }
   }
 
-  const filteredPlayers = players.filter((player) => {
+  const filteredPlayers = players.filter(player => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
       player.first_name.toLowerCase().includes(query) ||
-      player.last_name.toLowerCase().includes(query));
-
+      player.last_name.toLowerCase().includes(query)
+    );
   });
 
   return (
@@ -540,7 +540,7 @@ export default function MyPlayersPage() {
               <h2 className="text-3xl font-bold tracking-tight">Igralci</h2>
               <p className="text-muted-foreground">Upravljanje igralcev in njihovih selekcij</p>
             </div>
-            <Button onClick={handleAddClick} disabled={loading} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
+            <Button onClick={handleAddClick} disabled={loading}>
               <Plus className="h-4 w-4 mr-2" />
               Dodaj igralca
             </Button>
@@ -557,8 +557,8 @@ export default function MyPlayersPage() {
                   id="search"
                   placeholder="Vnesi ime ali priimek..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)} />
-                
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -571,18 +571,18 @@ export default function MyPlayersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading && players.length === 0 ?
-              <div className="text-center py-8 text-muted-foreground">Nalagam...</div> :
-              filteredPlayers.length === 0 ?
-              <div className="text-center py-12 text-muted-foreground">
+              {loading && players.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">Nalagam...</div>
+              ) : filteredPlayers.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
                   <UserCog className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium">Ni igralcev</p>
                   <p className="text-sm mt-2">
                     {searchQuery ? "Iskanje ni vrnilo rezultatov" : "Dodajte prvega igralca"}
                   </p>
-                </div> :
-
-              <div className="overflow-x-auto">
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -596,68 +596,68 @@ export default function MyPlayersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredPlayers.map((player) =>
-                    <TableRow key={player.id}>
+                      {filteredPlayers.map((player) => (
+                        <TableRow key={player.id}>
                           <TableCell className="font-medium">{player.first_name}</TableCell>
                           <TableCell>{player.last_name}</TableCell>
                           <TableCell>
-                            {player.date_of_birth ?
-                        new Date(player.date_of_birth).toLocaleDateString("sl-SI") :
-                        "-"}
+                            {player.date_of_birth
+                              ? new Date(player.date_of_birth).toLocaleDateString("sl-SI")
+                              : "-"}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {player.team_players?.map((tp) =>
-                          <Badge
-                            key={tp.id}
-                            variant="secondary"
-                            className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => handleRemoveFromTeamClick(player, tp.id, tp.teams.name)}
-                            title={`Klikni za odstranitev iz ${tp.teams.name}`}>
-                            
+                              {player.team_players?.map((tp) => (
+                                <Badge
+                                  key={tp.id}
+                                  variant="secondary"
+                                  className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                                  onClick={() => handleRemoveFromTeamClick(player, tp.id, tp.teams.name)}
+                                  title={`Klikni za odstranitev iz ${tp.teams.name}`}
+                                >
                                   {tp.teams.name}
                                   <Trash2 className="h-3 w-3 ml-1" />
                                 </Badge>
-                          )}
-                              {(!player.team_players || player.team_players.length === 0) &&
-                          <span className="text-sm text-muted-foreground">Ni v nobeni selekciji</span>
-                          }
+                              ))}
+                              {(!player.team_players || player.team_players.length === 0) && (
+                                <span className="text-sm text-muted-foreground">Ni v nobeni selekciji</span>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>{player.phone || "-"}</TableCell>
                           <TableCell>
-                            {player.is_active ?
-                        <Badge className="" style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>Aktiven</Badge> :
-
-                        <Badge variant="outline">Neaktiven</Badge>
-                        }
+                            {player.is_active ? (
+                              <Badge className="bg-green-600">Aktiven</Badge>
+                            ) : (
+                              <Badge variant="outline">Neaktiven</Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2 justify-end">
                               <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditClick(player)}
-                            title="Uredi igralca">
-                            
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditClick(player)}
+                                title="Uredi igralca"
+                              >
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAddToTeamClick(player)}
-                            title="Dodaj v selekcijo" style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>
-                            
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAddToTeamClick(player)}
+                                title="Dodaj v selekcijo"
+                              >
                                 <Users className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
-                    )}
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
-              }
+              )}
             </CardContent>
           </Card>
 
@@ -676,8 +676,8 @@ export default function MyPlayersPage() {
                       id="first_name"
                       value={playerForm.first_name}
                       onChange={(e) => setPlayerForm({ ...playerForm, first_name: e.target.value })}
-                      placeholder="Janez" />
-                    
+                      placeholder="Janez"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last_name">Priimek *</Label>
@@ -685,8 +685,8 @@ export default function MyPlayersPage() {
                       id="last_name"
                       value={playerForm.last_name}
                       onChange={(e) => setPlayerForm({ ...playerForm, last_name: e.target.value })}
-                      placeholder="Novak" />
-                    
+                      placeholder="Novak"
+                    />
                   </div>
                 </div>
 
@@ -696,16 +696,16 @@ export default function MyPlayersPage() {
                     id="date_of_birth"
                     type="date"
                     value={playerForm.date_of_birth}
-                    onChange={(e) => setPlayerForm({ ...playerForm, date_of_birth: e.target.value })} />
-                  
+                    onChange={(e) => setPlayerForm({ ...playerForm, date_of_birth: e.target.value })}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="gender">Spol *</Label>
                   <Select
                     value={playerForm.gender}
-                    onValueChange={(value) => setPlayerForm({ ...playerForm, gender: value })}>
-                    
+                    onValueChange={(value) => setPlayerForm({ ...playerForm, gender: value })}
+                  >
                     <SelectTrigger id="gender">
                       <SelectValue placeholder="Izberi spol" />
                     </SelectTrigger>
@@ -722,8 +722,8 @@ export default function MyPlayersPage() {
                     id="phone"
                     value={playerForm.phone}
                     onChange={(e) => setPlayerForm({ ...playerForm, phone: e.target.value })}
-                    placeholder="+386 40 123 456" />
-                  
+                    placeholder="+386 40 123 456"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -732,8 +732,8 @@ export default function MyPlayersPage() {
                     id="address"
                     value={playerForm.address}
                     onChange={(e) => setPlayerForm({ ...playerForm, address: e.target.value })}
-                    placeholder="Glavna ulica 1" />
-                  
+                    placeholder="Glavna ulica 1"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -743,8 +743,8 @@ export default function MyPlayersPage() {
                       id="postal_code"
                       value={playerForm.postal_code}
                       onChange={(e) => setPlayerForm({ ...playerForm, postal_code: e.target.value })}
-                      placeholder="1000" />
-                    
+                      placeholder="1000"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="city">Kraj</Label>
@@ -752,8 +752,8 @@ export default function MyPlayersPage() {
                       id="city"
                       value={playerForm.city}
                       onChange={(e) => setPlayerForm({ ...playerForm, city: e.target.value })}
-                      placeholder="Ljubljana" />
-                    
+                      placeholder="Ljubljana"
+                    />
                   </div>
                 </div>
 
@@ -766,8 +766,8 @@ export default function MyPlayersPage() {
                         id="guardian1_name"
                         value={playerForm.guardian1_name}
                         onChange={(e) => setPlayerForm({ ...playerForm, guardian1_name: e.target.value })}
-                        placeholder="Ana Novak" />
-                      
+                        placeholder="Ana Novak"
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -776,8 +776,8 @@ export default function MyPlayersPage() {
                           id="guardian1_phone"
                           value={playerForm.guardian1_phone}
                           onChange={(e) => setPlayerForm({ ...playerForm, guardian1_phone: e.target.value })}
-                          placeholder="+386 40 123 456" />
-                        
+                          placeholder="+386 40 123 456"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="guardian1_email">E-pošta</Label>
@@ -786,8 +786,8 @@ export default function MyPlayersPage() {
                           type="email"
                           value={playerForm.guardian1_email}
                           onChange={(e) => setPlayerForm({ ...playerForm, guardian1_email: e.target.value })}
-                          placeholder="ana.novak@example.com" />
-                        
+                          placeholder="ana.novak@example.com"
+                        />
                       </div>
                     </div>
                   </div>
@@ -802,8 +802,8 @@ export default function MyPlayersPage() {
                         id="guardian2_name"
                         value={playerForm.guardian2_name}
                         onChange={(e) => setPlayerForm({ ...playerForm, guardian2_name: e.target.value })}
-                        placeholder="Peter Novak" />
-                      
+                        placeholder="Peter Novak"
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -812,8 +812,8 @@ export default function MyPlayersPage() {
                           id="guardian2_phone"
                           value={playerForm.guardian2_phone}
                           onChange={(e) => setPlayerForm({ ...playerForm, guardian2_phone: e.target.value })}
-                          placeholder="+386 40 123 456" />
-                        
+                          placeholder="+386 40 123 456"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="guardian2_email">E-pošta</Label>
@@ -822,8 +822,8 @@ export default function MyPlayersPage() {
                           type="email"
                           value={playerForm.guardian2_email}
                           onChange={(e) => setPlayerForm({ ...playerForm, guardian2_email: e.target.value })}
-                          placeholder="peter.novak@example.com" />
-                        
+                          placeholder="peter.novak@example.com"
+                        />
                       </div>
                     </div>
                   </div>
@@ -835,11 +835,11 @@ export default function MyPlayersPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setAddDialogOpen(false)}
-                  disabled={loading}>
-                  
+                  disabled={loading}
+                >
                   Prekliči
                 </Button>
-                <Button onClick={handleAddPlayer} disabled={loading} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
+                <Button onClick={handleAddPlayer} disabled={loading}>
                   {loading ? "Dodajam..." : "Dodaj igralca"}
                 </Button>
               </DialogFooter>
@@ -860,16 +860,16 @@ export default function MyPlayersPage() {
                     <Input
                       id="edit_first_name"
                       value={playerForm.first_name}
-                      onChange={(e) => setPlayerForm({ ...playerForm, first_name: e.target.value })} />
-                    
+                      onChange={(e) => setPlayerForm({ ...playerForm, first_name: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="edit_last_name">Priimek *</Label>
                     <Input
                       id="edit_last_name"
                       value={playerForm.last_name}
-                      onChange={(e) => setPlayerForm({ ...playerForm, last_name: e.target.value })} />
-                    
+                      onChange={(e) => setPlayerForm({ ...playerForm, last_name: e.target.value })}
+                    />
                   </div>
                 </div>
 
@@ -879,16 +879,16 @@ export default function MyPlayersPage() {
                     id="edit_date_of_birth"
                     type="date"
                     value={playerForm.date_of_birth}
-                    onChange={(e) => setPlayerForm({ ...playerForm, date_of_birth: e.target.value })} />
-                  
+                    onChange={(e) => setPlayerForm({ ...playerForm, date_of_birth: e.target.value })}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="edit_gender">Spol *</Label>
                   <Select
                     value={playerForm.gender}
-                    onValueChange={(value) => setPlayerForm({ ...playerForm, gender: value })}>
-                    
+                    onValueChange={(value) => setPlayerForm({ ...playerForm, gender: value })}
+                  >
                     <SelectTrigger id="edit_gender">
                       <SelectValue placeholder="Izberi spol" />
                     </SelectTrigger>
@@ -904,8 +904,8 @@ export default function MyPlayersPage() {
                   <Input
                     id="edit_phone"
                     value={playerForm.phone}
-                    onChange={(e) => setPlayerForm({ ...playerForm, phone: e.target.value })} />
-                  
+                    onChange={(e) => setPlayerForm({ ...playerForm, phone: e.target.value })}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -913,8 +913,8 @@ export default function MyPlayersPage() {
                   <Input
                     id="edit_address"
                     value={playerForm.address}
-                    onChange={(e) => setPlayerForm({ ...playerForm, address: e.target.value })} />
-                  
+                    onChange={(e) => setPlayerForm({ ...playerForm, address: e.target.value })}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -923,16 +923,16 @@ export default function MyPlayersPage() {
                     <Input
                       id="edit_postal_code"
                       value={playerForm.postal_code}
-                      onChange={(e) => setPlayerForm({ ...playerForm, postal_code: e.target.value })} />
-                    
+                      onChange={(e) => setPlayerForm({ ...playerForm, postal_code: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="edit_city">Kraj</Label>
                     <Input
                       id="edit_city"
                       value={playerForm.city}
-                      onChange={(e) => setPlayerForm({ ...playerForm, city: e.target.value })} />
-                    
+                      onChange={(e) => setPlayerForm({ ...playerForm, city: e.target.value })}
+                    />
                   </div>
                 </div>
 
@@ -944,8 +944,8 @@ export default function MyPlayersPage() {
                       <Input
                         id="edit_guardian1_name"
                         value={playerForm.guardian1_name}
-                        onChange={(e) => setPlayerForm({ ...playerForm, guardian1_name: e.target.value })} />
-                      
+                        onChange={(e) => setPlayerForm({ ...playerForm, guardian1_name: e.target.value })}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -953,8 +953,8 @@ export default function MyPlayersPage() {
                         <Input
                           id="edit_guardian1_phone"
                           value={playerForm.guardian1_phone}
-                          onChange={(e) => setPlayerForm({ ...playerForm, guardian1_phone: e.target.value })} />
-                        
+                          onChange={(e) => setPlayerForm({ ...playerForm, guardian1_phone: e.target.value })}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="edit_guardian1_email">E-pošta</Label>
@@ -962,8 +962,8 @@ export default function MyPlayersPage() {
                           id="edit_guardian1_email"
                           type="email"
                           value={playerForm.guardian1_email}
-                          onChange={(e) => setPlayerForm({ ...playerForm, guardian1_email: e.target.value })} />
-                        
+                          onChange={(e) => setPlayerForm({ ...playerForm, guardian1_email: e.target.value })}
+                        />
                       </div>
                     </div>
                   </div>
@@ -977,8 +977,8 @@ export default function MyPlayersPage() {
                       <Input
                         id="edit_guardian2_name"
                         value={playerForm.guardian2_name}
-                        onChange={(e) => setPlayerForm({ ...playerForm, guardian2_name: e.target.value })} />
-                      
+                        onChange={(e) => setPlayerForm({ ...playerForm, guardian2_name: e.target.value })}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -986,8 +986,8 @@ export default function MyPlayersPage() {
                         <Input
                           id="edit_guardian2_phone"
                           value={playerForm.guardian2_phone}
-                          onChange={(e) => setPlayerForm({ ...playerForm, guardian2_phone: e.target.value })} />
-                        
+                          onChange={(e) => setPlayerForm({ ...playerForm, guardian2_phone: e.target.value })}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="edit_guardian2_email">E-pošta</Label>
@@ -995,8 +995,8 @@ export default function MyPlayersPage() {
                           id="edit_guardian2_email"
                           type="email"
                           value={playerForm.guardian2_email}
-                          onChange={(e) => setPlayerForm({ ...playerForm, guardian2_email: e.target.value })} />
-                        
+                          onChange={(e) => setPlayerForm({ ...playerForm, guardian2_email: e.target.value })}
+                        />
                       </div>
                     </div>
                   </div>
@@ -1008,11 +1008,11 @@ export default function MyPlayersPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setEditDialogOpen(false)}
-                  disabled={loading}>
-                  
+                  disabled={loading}
+                >
                   Prekliči
                 </Button>
-                <Button onClick={handleUpdatePlayer} disabled={loading} style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
+                <Button onClick={handleUpdatePlayer} disabled={loading}>
                   {loading ? "Shranjujem..." : "Shrani spremembe"}
                 </Button>
               </DialogFooter>
@@ -1038,11 +1038,11 @@ export default function MyPlayersPage() {
                       <SelectValue placeholder="Izberi selekcijo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableTeams.map((team) =>
-                      <SelectItem key={team.id} value={team.id}>
+                      {availableTeams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
                           {team.name}
                         </SelectItem>
-                      )}
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1053,8 +1053,8 @@ export default function MyPlayersPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setTeamDialogOpen(false)}
-                  disabled={loading}>
-                  
+                  disabled={loading}
+                >
                   Prekliči
                 </Button>
                 <Button onClick={handleAddToTeam} disabled={loading}>
@@ -1078,8 +1078,8 @@ export default function MyPlayersPage() {
                 <AlertDialogCancel>Prekliči</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleConfirmRemoveFromTeam}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
                   Odstrani
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -1087,6 +1087,6 @@ export default function MyPlayersPage() {
           </AlertDialog>
         </div>
       </AppLayout>
-    </ProtectedRoute>);
-
+    </ProtectedRoute>
+  );
 }

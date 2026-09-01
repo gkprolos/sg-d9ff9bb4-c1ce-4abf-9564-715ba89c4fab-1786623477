@@ -103,7 +103,7 @@ export default function LoginPage() {
                 disabled={submitting} />
               
             </div>
-            <Button type="submit" className="w-full" disabled={loading} style={{ backgroundImage: "none", backgroundColor: "#3b82f6" }}>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ?
               <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -128,7 +128,7 @@ export default function LoginPage() {
             </div>
             
             <Link href="/login/parent">
-              <Button variant="outline" className="w-full mt-4" style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>Prijava za starše
+              <Button variant="outline" className="w-full mt-4">Prijava za starše
 
               </Button>
             </Link>
