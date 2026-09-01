@@ -185,7 +185,42 @@ export default function MonthlyAttendance() {
 
       if (error) throw error;
 
-      setMonthlyData(data || []);
+      // Transform data into monthly attendance format
+      const playerMap = new Map<string, MonthlyAttendance>();
+
+      (data || []).forEach((record: any) => {
+        const playerId = record.player_id;
+        const playerName = `${record.players.first_name} ${record.players.last_name}`;
+        const day = new Date(record.activities.activity_date).getDate();
+
+        if (!playerMap.has(playerId)) {
+          playerMap.set(playerId, {
+            player_name: playerName,
+            daily_attendance: {},
+            total_activities: 0,
+            total_present: 0,
+            attendance_percentage: 0,
+          });
+        }
+
+        const playerData = playerMap.get(playerId)!;
+        playerData.daily_attendance[day] = record.status;
+        playerData.total_activities++;
+        if (record.status === 1) {
+          playerData.total_present++;
+        }
+      });
+
+      // Calculate attendance percentages
+      const transformedData = Array.from(playerMap.values()).map((player) => ({
+        ...player,
+        attendance_percentage:
+          player.total_activities > 0
+            ? Math.round((player.total_present / player.total_activities) * 100)
+            : 0,
+      }));
+
+      setMonthlyData(transformedData);
     } catch (error: any) {
       console.error("Napaka pri nalaganju prisotnosti:", error);
       toast({
