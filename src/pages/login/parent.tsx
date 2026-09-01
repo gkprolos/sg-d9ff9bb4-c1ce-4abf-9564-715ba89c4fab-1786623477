@@ -220,7 +220,7 @@ export default function ParentLogin() {
                   <Button
                   onClick={handleVerifyOtp}
                   disabled={loading || otp.some((d) => !d)}
-                  className="w-full">
+                  className="w-full" style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
                   
                     {loading ? "Preverjam..." : "Preveri kodo"}
                   </Button>
