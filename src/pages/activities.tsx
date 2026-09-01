@@ -499,17 +499,29 @@ export default function ActivitiesPage() {
     if (!editActivityId) return;
 
     try {
+      // Prepare update data - handle venue_id vs custom_location properly
+      const updateData: any = {
+        activity_date: editForm.activity_date,
+        start_time: editForm.start_time,
+        end_time: editForm.end_time,
+        activity_type_id: editForm.activity_type_id,
+        is_home_game: editForm.is_home_game,
+      };
+
+      // Handle venue_id vs custom_location (venue_xor_custom constraint)
+      if (editForm.venue_id && editForm.venue_id !== "") {
+        updateData.venue_id = editForm.venue_id;
+        updateData.custom_location = null;
+      } else {
+        updateData.venue_id = null;
+        // Keep existing custom_location or set to empty string
+        // Don't update custom_location here - it should be in the form if needed
+      }
+
       // Update activity
       const { error: activityError } = await supabase
         .from("activities")
-        .update({
-          activity_date: editForm.activity_date,
-          start_time: editForm.start_time,
-          end_time: editForm.end_time,
-          venue_id: editForm.venue_id || null,
-          activity_type_id: editForm.activity_type_id,
-          is_home_game: editForm.is_home_game,
-        })
+        .update(updateData)
         .eq("id", editActivityId);
 
       if (activityError) throw activityError;
