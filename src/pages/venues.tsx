@@ -255,7 +255,7 @@ export default function VenuesPage() {
               <h2 className="text-3xl font-bold tracking-tight">Dvorane</h2>
               <p className="text-muted-foreground">Upravljanje športnih dvoran in lokacij</p>
             </div>
-            <Button onClick={handleAdd} disabled={loading || !isAdmin}>
+            <Button onClick={handleAdd} disabled={loading || !isAdmin} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
               <Plus className="h-4 w-4 mr-2" />
               Dodaj dvorano
             </Button>
