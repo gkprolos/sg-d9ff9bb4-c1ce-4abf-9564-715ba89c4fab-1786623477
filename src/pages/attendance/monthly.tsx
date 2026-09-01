@@ -49,9 +49,9 @@ export default function MonthlyAttendance() {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
   
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
-  const [viewType, setViewType] = useState<string>("all_teams"); // "all_teams" | "team:{id}" | "player:{id}"
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [viewType, setViewType] = useState<string>("");
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
   
@@ -149,7 +149,7 @@ export default function MonthlyAttendance() {
   }
 
   async function loadMonthlyAttendance() {
-    if (!selectedTeamId || !selectedMonth || !selectedYear) return;
+    if (!selectedMonth || !selectedYear) return;
 
     try {
       setLoading(true);
@@ -158,11 +158,16 @@ export default function MonthlyAttendance() {
       const startDate = `${selectedYear}-${selectedMonth.toString().padStart(2, "0")}-01`;
       const endDate = new Date(selectedYear, selectedMonth, 0).toISOString().split("T")[0];
 
-      console.log("🔍 Loading attendance:", { selectedTeamId, startDate, endDate });
+      console.log("🔍 Loading attendance:", { 
+        selectedTeamId, 
+        viewType,
+        teamsCount: teams.length,
+        startDate, 
+        endDate 
+      });
 
-      // Load attendance records for the selected month and team
-      // FIXED: Removed redundant team_players inner join - we already filter by activities.team_id
-      const { data, error } = await supabase
+      // Build query
+      let query = supabase
         .from("attendance_records")
         .select(`
           *,
@@ -177,10 +182,28 @@ export default function MonthlyAttendance() {
             team_id
           )
         `)
-        .eq("activities.team_id", selectedTeamId)
         .gte("activities.activity_date", startDate)
         .lte("activities.activity_date", endDate)
         .order("last_name", { foreignTable: "players", ascending: true });
+
+      // Filter by team(s)
+      if (selectedTeamId && selectedTeamId !== "" && viewType !== "all_teams") {
+        // Single team selected
+        query = query.eq("activities.team_id", selectedTeamId);
+        console.log("📌 Filtering by single team:", selectedTeamId);
+      } else if (teams.length > 0) {
+        // All teams - filter by coach's assigned teams
+        const teamIds = teams.map(t => t.id);
+        query = query.in("activities.team_id", teamIds);
+        console.log("📌 Filtering by all teams:", teamIds);
+      } else {
+        console.log("⚠️ No teams available");
+        setMonthlyData([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await query;
 
       console.log("✅ Query result:", { count: data?.length, error });
 
@@ -380,28 +403,22 @@ export default function MonthlyAttendance() {
                   value={viewType}
                   onValueChange={(value) => {
                     setViewType(value);
-                    if (value.startsWith("team:")) {
-                      setSelectedTeamId(value.split(":")[1]);
-                    } else if (value.startsWith("player:")) {
-                      setSelectedPlayerId(value.split(":")[1]);
+                    if (value === "all_teams") {
+                      setSelectedTeamId("");
+                    } else if (value.startsWith("team:")) {
+                      const teamId = value.split(":")[1];
+                      setSelectedTeamId(teamId);
                     }
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className="w-[280px]">
+                    <SelectValue placeholder="Izberi selekcijo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {userRole === "admin" && (
-                      <SelectItem value="all_teams">Vse selekcije</SelectItem>
-                    )}
+                    <SelectItem value="all_teams">Vse selekcije</SelectItem>
                     {teams.map((team) => (
                       <SelectItem key={team.id} value={`team:${team.id}`}>
-                        Selekcija: {team.name}
-                      </SelectItem>
-                    ))}
-                    {players.map((player) => (
-                      <SelectItem key={player.id} value={`player:${player.id}`}>
-                        Igralec: {player.first_name} {player.last_name}
+                        {team.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
