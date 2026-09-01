@@ -324,7 +324,7 @@ export default function MyTeamsPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleManagePlayersClick(team)}
-                            title="Upravljaj igralce">
+                            title="Upravljaj igralce" style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>
                             
                               <Users className="h-4 w-4 mr-2" />
                               Igralci
