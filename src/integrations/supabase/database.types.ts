@@ -1337,6 +1337,10 @@ export type Database = {
         }
         Returns: Json
       }
+      coach_can_see_activity: {
+        Args: { activity_id: string }
+        Returns: boolean
+      }
       complete_activity: { Args: { p_activity_id: string }; Returns: Json }
       complete_activity_with_rates: {
         Args: { p_activity_id: string }

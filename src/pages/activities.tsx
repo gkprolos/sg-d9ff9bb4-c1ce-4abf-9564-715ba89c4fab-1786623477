@@ -71,6 +71,10 @@ export default function ActivitiesPage() {
   const [venues, setVenues] = useState<any[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<Activity | null>(null);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [completingActivityId, setCompletingActivityId] = useState<string | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editActivityId, setEditActivityId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     activity_date: "",
     start_time: "",
@@ -443,6 +447,54 @@ export default function ActivitiesPage() {
     }
   }
 
+  function handleCompleteActivity(activityId: string) {
+    setCompletingActivityId(activityId);
+    setShowCompleteDialog(true);
+  }
+
+  async function handleDelete(activityId: string) {
+    if (!confirm("Ali ste prepričani, da želite izbrisati to aktivnost?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("activities")
+        .delete()
+        .eq("id", activityId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Uspeh",
+        description: "Aktivnost izbrisana",
+      });
+
+      loadActivities();
+    } catch (error: any) {
+      console.error("Error deleting activity:", error);
+      toast({
+        title: "Napaka",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  }
+
+  function handleEdit(activity: any) {
+    setEditActivityId(activity.id);
+    setEditForm({
+      activity_date: activity.activity_date,
+      start_time: activity.start_time || "",
+      end_time: activity.end_time || "",
+      venue_id: activity.venues?.id || "",
+      mileage_km: activity.activity_coaches?.[0]?.mileage_km || 0,
+      activity_type_id: activity.activity_type_id,
+      is_home_game: activity.is_home_game,
+    });
+    setShowEditDialog(true);
+  }
+
   return (
     <ProtectedRoute>
       <AppLayout>
@@ -612,6 +664,11 @@ export default function ActivitiesPage() {
                     </TableHeader>
                     <TableBody>
                       {activities.map((activity) => {
+                        // Check if logged-in user is coach on this activity
+                        const isCoachOnActivity = activity.activity_coaches?.some(
+                          (ac: any) => ac.profiles?.id === user?.id
+                        ) || false;
+
                         const headCoach = activity.activity_coaches?.find((ac) => ac.role === 'head');
                         const assistants = activity.activity_coaches?.filter((ac) => ac.role === 'assistant') || [];
                         
@@ -656,51 +713,32 @@ export default function ActivitiesPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2 justify-end">
+                                {isCoachOnActivity && (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleEdit(activity)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDelete(activity.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
                                 <Button
+                                  variant="default"
                                   size="sm"
-                                  variant="outline"
                                   onClick={() => router.push(`/attendance?activity=${activity.id}`)}
-                                  title="Vnos prisotnosti"
                                 >
-                                  <ClipboardCheck className="h-4 w-4" />
+                                  <ClipboardCheck className="h-4 w-4 mr-2" />
+                                  Prisotnost
                                 </Button>
-                                {(() => {
-                                  // Check if current user is a coach on this activity
-                                  const isCoachOnActivity = activity.activity_coaches?.some(
-                                    (ac: any) => ac.profiles?.id === user?.id
-                                  );
-
-                                  // Check if activity is in current or future month (not locked)
-                                  const activityDate = new Date(activity.activity_date);
-                                  const now = new Date();
-                                  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                                  const isNotLocked = activityDate >= currentMonthStart;
-
-                                  // Admin can edit/delete all activities
-                                  // Coach can edit/delete only their activities in current/future month
-                                  const canModify = isAdmin || (isCoachOnActivity && isNotLocked);
-
-                                  return canModify ? (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleEditClick(activity)}
-                                        title="Uredi aktivnost"
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        onClick={() => handleDeleteClick(activity)}
-                                        title="Izbriši aktivnost"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </>
-                                  ) : null;
-                                })()}
                               </div>
                             </TableCell>
                           </TableRow>
