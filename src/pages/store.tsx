@@ -294,12 +294,18 @@ export default function StorePage() {
 
   function handleEdit(item: StoreItem) {
     setEditingItem(item);
+    
+    // Type assertion: Json[] to string[]
+    const sizes = Array.isArray(item.available_sizes) 
+      ? (item.available_sizes as string[])
+      : [];
+    
     setFormData({
       item_number: item.item_number,
       name: item.name,
       description: item.description || "",
       category: item.category || "",
-      available_sizes: Array.isArray(item.available_sizes) ? item.available_sizes : [],
+      available_sizes: sizes,
       price: item.price.toString(),
       quantity_in_stock: item.quantity_in_stock?.toString() || "0",
       low_stock_threshold: item.low_stock_threshold?.toString() || "5",
@@ -623,7 +629,7 @@ export default function StorePage() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {Array.isArray(item.available_sizes) && item.available_sizes.length > 0
-                          ? item.available_sizes.join(", ")
+                          ? (item.available_sizes as string[]).join(", ")
                           : "-"}
                       </TableCell>
                       <TableCell>
