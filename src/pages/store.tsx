@@ -231,7 +231,7 @@ export default function StorePage() {
         }
       }
 
-      const itemData: StoreItemInsert | StoreItemUpdate = {
+      const itemData = {
         item_number: formData.item_number.trim(),
         name: formData.name.trim(),
         description: formData.description.trim() || null,

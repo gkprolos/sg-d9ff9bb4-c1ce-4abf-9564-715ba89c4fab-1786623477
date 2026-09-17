@@ -47,6 +47,13 @@ import {
   FileText,
   Clock,
   Mail,
+  LayoutDashboard,
+  Activity,
+  ClipboardCheck,
+  Building,
+  Shield,
+  Calculator,
+  LogOut,
 } from
 "lucide-react";
 import { cn } from "@/lib/utils";
