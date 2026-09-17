@@ -56,8 +56,11 @@ CREATE TABLE store_items (
   item_number VARCHAR(50) NOT NULL UNIQUE,
   name VARCHAR(200) NOT NULL,
   description TEXT,
+  category VARCHAR(100), -- "Dresi", "Kopački", "Oprema", etc.
   available_sizes JSONB NOT NULL DEFAULT '[]', -- ["S", "M", "L", "XL"]
   price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
+  quantity_in_stock INTEGER NOT NULL DEFAULT 0 CHECK (quantity_in_stock >= 0),
+  low_stock_threshold INTEGER DEFAULT 5,
   image_url TEXT, -- Pot do slike v Supabase Storage
   external_link TEXT, -- Povezava do artikla
   is_active BOOLEAN NOT NULL DEFAULT true,
@@ -69,6 +72,8 @@ CREATE TABLE store_items (
 
 CREATE INDEX idx_store_items_active ON store_items(is_active);
 CREATE INDEX idx_store_items_number ON store_items(item_number);
+CREATE INDEX idx_store_items_category ON store_items(category);
+CREATE INDEX idx_store_items_name ON store_items(name); -- For search
 ```
 
 #### `store_orders` (Naročila)
@@ -840,19 +845,15 @@ To preprečuje spremembo cen/nazivov retroaktivno.
 
 ---
 
-## 12. ODPRTA VPRAŠANJA
+## 12. ODPRTA VPRAŠANJA - POTRJENO ✅
 
-1. **Plačila:** Ali želite integrirati plačilni gateway (Stripe, PayPal), ali je to zunaj obsega?
-2. **Email Obvestila:** Ali naj sistem pošilja email ob:
-   - Oddanem naročilu (staršu)
-   - Naročenem dobavitelju (staršu)
-   - Predanem (staršu)
-   - Računu (staršu)
-3. **Valuta:** Vedno EUR ali možnost več valut?
-4. **Količinski popusti:** Ali obstajajo količinski popusti (npr. več kot 5 dresov)?
-5. **Zalogo:** Ali želite tracking zaloge (npr. "Na voljo: 10 kosov")?
-6. **Kategorije:** Ali artikle organizirati v kategorije (Dresi, Kopački, Oprema...)?
-7. **Minimal Order:** Ali obstaja minimalni znesek naročila?
+1. **Plačila:** ❌ NE - Ročna izdelava računov v Vasco (zunaj obsega)
+2. **Email Obvestila:** ❌ NE - Starši vidijo status na dashboardu
+3. **Zaloge:** ✅ DA - Tracking količine na zalogi + urejanje količine
+4. **Kategorije:** ✅ DA - Organizacija artiklov (Dresi, Kopački, Oprema) + iskalnik po nazivu
+5. **Količinski popusti:** ❌ NE
+6. **Valuta:** EUR (fiksno)
+7. **Minimal Order:** NE (zunaj obsega)
 
 ---
 
