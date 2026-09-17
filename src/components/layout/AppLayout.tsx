@@ -28,12 +28,33 @@ import {
   DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
 import {
-  LayoutDashboard,
-  ClipboardList,
-  Calendar,
+  Home,
   Users,
-  UserCog,
+  Calendar,
+  ClipboardList,
+  BarChart3,
+  Settings,
+  Menu,
+  X,
+  MessageSquare,
+  Package,
   UserCircle,
+  Building2,
+  Trophy,
+  DollarSign,
+  UserCog,
+  MapPin,
+  FileText,
+  Clock,
+  Mail,
+  LayoutDashboard,
+  Activity,
+  ClipboardCheck,
+  Building,
+  Calculator,
+  Shield,
+  Archive,
+  UserCog,
   MapPin,
   Clock,
   Settings,
@@ -96,33 +117,44 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
 
   // Parent Navigation (only My Children)
   const parentNavigation = [
-  { name: "Moji Otroci", href: "/my-children", icon: UserCircle }];
+  { name: "Moji Otroci", href: "/my-children", icon: UserCircle },
+  { name: "Urnik", href: "/my-schedules", icon: Clock },
+  { name: "Prisotnost", href: "/attendance/monthly", icon: ClipboardList },
+  { name: "Sporočila", href: "/messaging", icon: MessageSquare },
+  { name: "Oprema", href: "/store", icon: Package }];
 
 
   // Admin Navigation
   const adminNavigation = [
-  { name: "Nadzorna plošča", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Vnos prisotnosti", href: "/attendance", icon: ClipboardList },
-  { name: "Aktivnosti", href: "/activities", icon: Activity },
+  { name: "Nadzorna plošča", href: "/dashboard", icon: Home },
   { name: "Selekcije", href: "/teams", icon: Users },
   { name: "Igralci", href: "/players", icon: UserCircle },
   { name: "Trenerji", href: "/coaches", icon: UserCog },
-  { name: "Dvorane", href: "/venues", icon: MapPin },
-  { name: "Urniki", href: "/schedules", icon: Clock },
-  { name: "Sezone", href: "/seasons", icon: Calendar },
-  { name: "Nastavitve", href: "/settings", icon: Settings }];
+  { name: "Aktivnosti", href: "/activities", icon: Calendar },
+  { name: "Prisotnost", href: "/attendance", icon: ClipboardList },
+  { name: "Urnik", href: "/schedules", icon: Clock },
+  { name: "Dvorane", href: "/venues", icon: Building2 },
+  { name: "Sezone", href: "/seasons", icon: Trophy },
+  { name: "Obračun", href: "/billing", icon: DollarSign },
+  { name: "Poročila", href: "/reports", icon: BarChart3 },
+  { name: "Sporočila", href: "/messaging", icon: MessageSquare },
+  { name: "Oprema", href: "/store", icon: Package },
+  { name: "Nastavitve", href: "/settings", icon: Settings },
+  { name: "SMTP Nastavitve", href: "/smtp-settings", icon: Mail }];
 
 
   // Coach Navigation
   const coachNavigation = [
-  { name: "Moj pregled", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Dodaj prisotnost", href: "/attendance", icon: ClipboardCheck },
-  { name: "Aktivnosti", href: "/activities", icon: Activity },
-  { name: "Moje selekcije", href: "/my-teams", icon: Users },
-  { name: "Moji igralci", href: "/my-players", icon: UserCircle },
-  { name: "Dvorane", href: "/my-venues", icon: MapPin },
-  { name: "Urniki", href: "/my-schedules", icon: Clock },
-  { name: "Nastavitve", href: "/settings", icon: Settings }];
+  { name: "Pregled", href: "/dashboard", icon: Home },
+  { name: "Moje Selekcije", href: "/my-teams", icon: Users },
+  { name: "Moji Igralci", href: "/my-players", icon: UserCircle },
+  { name: "Aktivnosti", href: "/activities", icon: Calendar },
+  { name: "Prisotnost", href: "/attendance", icon: ClipboardList },
+  { name: "Moj Urnik", href: "/my-schedules", icon: Clock },
+  { name: "Dvorane", href: "/my-venues", icon: Building2 },
+  { name: "Obračun", href: "/billing", icon: DollarSign },
+  { name: "Sporočila", href: "/messaging", icon: MessageSquare },
+  { name: "Oprema", href: "/store", icon: Package }];
 
 
   const navigation = isAdmin ?
