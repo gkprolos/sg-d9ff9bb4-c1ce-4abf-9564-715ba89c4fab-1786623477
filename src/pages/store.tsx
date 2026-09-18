@@ -114,7 +114,7 @@ const CATEGORIES = ["Dresi", "Kopački", "Oprema", "Drugo"];
 
 export default function Store() {
   const { user, userRole } = useAuth();
-  const isParent = userRole === "parent";
+  const isParent = userRole !== "admin" && userRole !== "coach";
   const isAdminOrCoach = userRole === "admin" || userRole === "coach";
 
   // Admin/Coach State
@@ -220,7 +220,14 @@ export default function Store() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setMyOrders(data || []);
+      
+      // Ensure invoice_created field exists (default to false if null)
+      const ordersWithDefaults = (data || []).map(order => ({
+        ...order,
+        invoice_created: order.invoice_created ?? false,
+      }));
+      
+      setMyOrders(ordersWithDefaults);
     } catch (error: any) {
       console.error("Napaka pri nalaganju naročil:", error);
     }
@@ -322,7 +329,7 @@ export default function Store() {
         size: item.size,
         quantity: item.quantity,
         unit_price: item.price,
-        total_price: item.price * item.quantity,
+        subtotal: item.price * item.quantity,
       }));
 
       const { error: itemsError } = await supabase
