@@ -93,7 +93,7 @@ type StoreOrder = {
   total_amount: number;
   ordered_at: string | null;
   delivered_at: string | null;
-  invoice_created: boolean;
+  invoiced_at: string | null;
   created_at: string;
 };
 
@@ -220,14 +220,7 @@ export default function Store() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
-      // Ensure invoice_created field exists (default to false if null)
-      const ordersWithDefaults = (data || []).map(order => ({
-        ...order,
-        invoice_created: order.invoice_created ?? false,
-      }));
-      
-      setMyOrders(ordersWithDefaults);
+      setMyOrders(data || []);
     } catch (error: any) {
       console.error("Napaka pri nalaganju naročil:", error);
     }
