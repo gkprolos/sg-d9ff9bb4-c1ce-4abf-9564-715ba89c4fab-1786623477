@@ -411,6 +411,7 @@ export default function Store() {
         .from("store_items")
         .select("*")
         .eq("is_active", true)
+        .is("deleted_at", null)  // Exclude deleted items
         .order("category", { ascending: true })
         .order("name", { ascending: true });
 
