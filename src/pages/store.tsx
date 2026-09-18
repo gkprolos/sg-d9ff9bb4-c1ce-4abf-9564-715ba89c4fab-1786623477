@@ -134,8 +134,11 @@ export default function Store() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [showDeleted, setShowDeleted] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<StoreItem | null>(null);
   const [editingItem, setEditingItem] = useState<StoreItem | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -334,10 +337,17 @@ export default function Store() {
   async function loadItems() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from("store_items")
         .select("*")
         .order("created_at", { ascending: false });
+
+      // Filter out deleted items unless showDeleted is true
+      if (!showDeleted) {
+        query = query.is("deleted_at", null);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setItems(data || []);
@@ -352,6 +362,46 @@ export default function Store() {
       setLoading(false);
     }
   }
+
+  // Admin: Soft delete item
+  async function handleDelete() {
+    if (!itemToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("store_items")
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user?.id,
+        })
+        .eq("id", itemToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Uspešno",
+        description: `Artikel "${itemToDelete.name}" je bil pobrisan`,
+      });
+
+      setIsDeleteDialogOpen(false);
+      setItemToDelete(null);
+      loadItems();
+    } catch (error: any) {
+      console.error("Napaka pri brisanju artikla:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče pobrisati artikla",
+      });
+    }
+  }
+
+  // Reload items when showDeleted changes
+  useEffect(() => {
+    if (isAdminOrCoach && user) {
+      loadItems();
+    }
+  }, [showDeleted]);
 
   // Parent: Load only active items
   async function loadActiveItems() {
@@ -1093,10 +1143,27 @@ export default function Store() {
                   <CardTitle>Artikli</CardTitle>
                   <CardDescription>Upravljanje kataloga opreme</CardDescription>
                 </div>
-                <Button onClick={() => setIsAddDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Dodaj artikel
-                </Button>
+                <div className="flex items-center gap-4">
+                  {userRole === "admin" && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="show-deleted"
+                        checked={showDeleted}
+                        onCheckedChange={(checked) => setShowDeleted(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="show-deleted"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Prikaži pobrisane
+                      </label>
+                    </div>
+                  )}
+                  <Button onClick={() => setIsAddDialogOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Dodaj artikel
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -1149,7 +1216,10 @@ export default function Store() {
                   </TableHeader>
                   <TableBody>
                     {filteredItems.map((item) => (
-                      <TableRow key={item.id}>
+                      <TableRow 
+                        key={item.id}
+                        className={(item as any).deleted_at ? "bg-muted/50" : ""}
+                      >
                         <TableCell className="font-mono text-sm">
                           {item.item_number}
                         </TableCell>
@@ -1170,9 +1240,14 @@ export default function Store() {
                         <TableCell>
                           <div>
                             <p className="font-medium">{item.name}</p>
-                            {!item.is_active && (
-                              <Badge variant="secondary" className="mt-1">Neaktiven</Badge>
-                            )}
+                            <div className="flex gap-2 mt-1">
+                              {!item.is_active && (
+                                <Badge variant="secondary">Neaktiven</Badge>
+                              )}
+                              {(item as any).deleted_at && (
+                                <Badge variant="destructive">Pobrisan</Badge>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -1204,20 +1279,41 @@ export default function Store() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(item)}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant={item.is_active ? "destructive" : "default"}
-                              size="sm"
-                              onClick={() => toggleActive(item)}
-                            >
-                              {item.is_active ? "Deaktiviraj" : "Aktiviraj"}
-                            </Button>
+                            {!(item as any).deleted_at && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(item)}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant={item.is_active ? "destructive" : "default"}
+                                  size="sm"
+                                  onClick={() => toggleActive(item)}
+                                >
+                                  {item.is_active ? "Deaktiviraj" : "Aktiviraj"}
+                                </Button>
+                                {userRole === "admin" && (
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => {
+                                      setItemToDelete(item);
+                                      setIsDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                            {(item as any).deleted_at && (
+                              <span className="text-xs text-muted-foreground">
+                                Pobrisan {new Date((item as any).deleted_at).toLocaleDateString("sl-SI")}
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1606,6 +1702,37 @@ export default function Store() {
             </Button>
             <Button onClick={handleSubmit}>
               {editingItem ? "Posodobi" : "Dodaj"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pobriši artikel?</DialogTitle>
+            <DialogDescription>
+              Ali ste prepričani, da želite pobrisati artikel &quot;{itemToDelete?.name}&quot;?
+              <br />
+              <br />
+              Artikel bo označen kot pobrisan in ne bo več viden strašem in trenerjem.
+              Podatki bodo ohranjeni v bazi za revizijske namene.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setItemToDelete(null);
+              }}
+            >
+              Prekliči
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Pobriši
             </Button>
           </DialogFooter>
         </DialogContent>
