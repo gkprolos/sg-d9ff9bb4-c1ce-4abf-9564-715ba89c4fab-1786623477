@@ -1175,6 +1175,8 @@ export type Database = {
           category: string | null
           created_at: string
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           external_link: string | null
           id: string
@@ -1193,6 +1195,8 @@ export type Database = {
           category?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           external_link?: string | null
           id?: string
@@ -1211,6 +1215,8 @@ export type Database = {
           category?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           external_link?: string | null
           id?: string
