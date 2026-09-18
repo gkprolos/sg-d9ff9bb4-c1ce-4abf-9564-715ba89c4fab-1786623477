@@ -55,8 +55,11 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  ArrowLeft,
+  Tag,
   ZoomIn,
 } from "lucide-react";
+import { useRouter } from "next/router";
 
 // Types
 type StoreItem = {
@@ -71,6 +74,15 @@ type StoreItem = {
   low_stock_threshold: number | null;
   image_url: string | null;
   external_link: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+type StoreCategory = {
+  id: string;
+  name: string;
+  description: string | null;
+  display_order: number;
   is_active: boolean;
   created_at: string;
 };
@@ -110,15 +122,15 @@ const AVAILABLE_SIZES = [
   "3XL",
 ];
 
-const CATEGORIES = ["Dresi", "Kopački", "Oprema", "Drugo"];
-
 export default function Store() {
   const { user, userRole } = useAuth();
+  const router = useRouter();
   const isParent = userRole !== "admin" && userRole !== "coach";
   const isAdminOrCoach = userRole === "admin" || userRole === "coach";
 
   // Admin/Coach State
   const [items, setItems] = useState<StoreItem[]>([]);
+  const [categories, setCategories] = useState<StoreCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -128,6 +140,15 @@ export default function Store() {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+
+  // Categories State
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<StoreCategory | null>(null);
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: "",
+    description: "",
+    display_order: "0",
+  });
 
   // Parent State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -153,6 +174,7 @@ export default function Store() {
   // Load data based on role
   useEffect(() => {
     if (user) {
+      loadCategories();
       if (isAdminOrCoach) {
         loadItems();
       } else if (isParent) {
@@ -161,6 +183,152 @@ export default function Store() {
       }
     }
   }, [user, isAdminOrCoach, isParent]);
+
+  // Load categories
+  async function loadCategories() {
+    try {
+      const { data, error } = await supabase
+        .from("store_categories")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju kategorij:", error);
+    }
+  }
+
+  // Admin/Coach: Load all categories (including inactive)
+  async function loadAllCategories() {
+    try {
+      const { data, error } = await supabase
+        .from("store_categories")
+        .select("*")
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju kategorij:", error);
+    }
+  }
+
+  // Admin/Coach: Save category
+  async function handleCategorySubmit() {
+    if (!categoryFormData.name) {
+      toast({
+        variant: "destructive",
+        title: "Manjkajoči podatki",
+        description: "Vnesi naziv kategorije",
+      });
+      return;
+    }
+
+    try {
+      const categoryData = {
+        name: categoryFormData.name.trim(),
+        description: categoryFormData.description.trim() || null,
+        display_order: parseInt(categoryFormData.display_order) || 0,
+        updated_at: new Date().toISOString(),
+        updated_by: user?.id,
+      };
+
+      if (editingCategory) {
+        // Update
+        const { error } = await supabase
+          .from("store_categories")
+          .update(categoryData)
+          .eq("id", editingCategory.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Uspešno",
+          description: "Kategorija posodobljena",
+        });
+      } else {
+        // Insert
+        const { error } = await supabase
+          .from("store_categories")
+          .insert({
+            ...categoryData,
+            created_by: user?.id,
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Uspešno",
+          description: "Kategorija dodana",
+        });
+      }
+
+      setIsCategoryDialogOpen(false);
+      resetCategoryForm();
+      loadAllCategories();
+      loadCategories(); // Reload active categories
+    } catch (error: any) {
+      console.error("Napaka pri shranjevanju kategorije:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Ni mogoče shraniti kategorije",
+      });
+    }
+  }
+
+  // Admin/Coach: Toggle category active status
+  async function toggleCategoryActive(category: StoreCategory) {
+    try {
+      const { error } = await supabase
+        .from("store_categories")
+        .update({
+          is_active: !category.is_active,
+          updated_at: new Date().toISOString(),
+          updated_by: user?.id,
+        })
+        .eq("id", category.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Uspešno",
+        description: category.is_active ? "Kategorija deaktivirana" : "Kategorija aktivirana",
+      });
+
+      loadAllCategories();
+      loadCategories();
+    } catch (error: any) {
+      console.error("Napaka pri spreminjanju statusa:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče spremeniti statusa",
+      });
+    }
+  }
+
+  // Admin/Coach: Edit category
+  function handleEditCategory(category: StoreCategory) {
+    setEditingCategory(category);
+    setCategoryFormData({
+      name: category.name,
+      description: category.description || "",
+      display_order: category.display_order.toString(),
+    });
+    setIsCategoryDialogOpen(true);
+  }
+
+  function resetCategoryForm() {
+    setCategoryFormData({
+      name: "",
+      description: "",
+      display_order: "0",
+    });
+    setEditingCategory(null);
+  }
 
   // Admin/Coach: Load all items
   async function loadItems() {
@@ -586,16 +754,26 @@ export default function Store() {
     }
   }
 
-  // Parent UI
+  // Parent UI (continue existing parent code with categories from database)
   if (isParent) {
     return (
       <div className="container mx-auto p-6 max-w-7xl">
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Oprema</h1>
-            <p className="text-muted-foreground mt-1">
-              Naroči opremo za svojega otroka
-            </p>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Nazaj
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Oprema</h1>
+              <p className="text-muted-foreground mt-1">
+                Naroči opremo za svojega otroka
+              </p>
+            </div>
           </div>
           <Button
             size="lg"
@@ -629,14 +807,14 @@ export default function Store() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Vse kategorije</SelectItem>
-              {CATEGORIES.map((cat) => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Product Grid */}
+        {/* Product Grid - rest of parent UI remains the same */}
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Nalaganje...</p>
@@ -733,7 +911,7 @@ export default function Store() {
           </div>
         )}
 
-        {/* My Orders Section */}
+        {/* My Orders Section - remains the same */}
         {myOrders.length > 0 && (
           <div className="mt-12">
             <h2 className="text-2xl font-bold mb-4">Moja naročila</h2>
@@ -783,7 +961,7 @@ export default function Store() {
           </div>
         )}
 
-        {/* Cart Dialog */}
+        {/* Cart Dialog - remains the same */}
         <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
@@ -873,21 +1051,36 @@ export default function Store() {
     );
   }
 
-  // Admin/Coach UI (existing code continues...)
+  // Admin/Coach UI
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Trgovina - Oprema</h1>
-          <p className="text-muted-foreground mt-1">
-            Upravljanje artiklov in naročil
-          </p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Nazaj
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Trgovina - Oprema</h1>
+            <p className="text-muted-foreground mt-1">
+              Upravljanje artiklov in naročil
+            </p>
+          </div>
         </div>
       </div>
 
-      <Tabs defaultValue="artikli" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+      <Tabs defaultValue="artikli" className="w-full" onValueChange={(value) => {
+        if (value === "kategorije") {
+          loadAllCategories(); // Load all categories (including inactive) for admin
+        }
+      }}>
+        <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="artikli">Artikli</TabsTrigger>
+          <TabsTrigger value="kategorije">Kategorije</TabsTrigger>
           <TabsTrigger value="narocila">Naročila</TabsTrigger>
           <TabsTrigger value="zbirniki">Zbirniki</TabsTrigger>
         </TabsList>
@@ -924,8 +1117,8 @@ export default function Store() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Vse kategorije</SelectItem>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1036,6 +1229,82 @@ export default function Store() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="kategorije">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Kategorije</CardTitle>
+                  <CardDescription>Upravljanje kategorij artiklov</CardDescription>
+                </div>
+                <Button onClick={() => {
+                  resetCategoryForm();
+                  setIsCategoryDialogOpen(true);
+                }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Dodaj kategorijo
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {categories.length === 0 ? (
+                <div className="text-center py-12">
+                  <Tag className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Ni kategorij</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Naziv</TableHead>
+                      <TableHead>Opis</TableHead>
+                      <TableHead>Vrstni red</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Akcije</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categories.map((category) => (
+                      <TableRow key={category.id}>
+                        <TableCell className="font-medium">{category.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {category.description || "-"}
+                        </TableCell>
+                        <TableCell>{category.display_order}</TableCell>
+                        <TableCell>
+                          {category.is_active ? (
+                            <Badge variant="default">Aktivna</Badge>
+                          ) : (
+                            <Badge variant="secondary">Neaktivna</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditCategory(category)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant={category.is_active ? "destructive" : "default"}
+                              size="sm"
+                              onClick={() => toggleCategoryActive(category)}
+                            >
+                              {category.is_active ? "Deaktiviraj" : "Aktiviraj"}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="narocila">
           <Card>
             <CardHeader>
@@ -1064,6 +1333,80 @@ export default function Store() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Category Add/Edit Dialog */}
+      <Dialog open={isCategoryDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsCategoryDialogOpen(false);
+          resetCategoryForm();
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingCategory ? "Uredi kategorijo" : "Dodaj kategorijo"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="cat_name">Naziv *</Label>
+              <Input
+                id="cat_name"
+                value={categoryFormData.name}
+                onChange={(e) =>
+                  setCategoryFormData({ ...categoryFormData, name: e.target.value })
+                }
+                placeholder="npr. Dresi"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="cat_description">Opis</Label>
+              <Textarea
+                id="cat_description"
+                value={categoryFormData.description}
+                onChange={(e) =>
+                  setCategoryFormData({ ...categoryFormData, description: e.target.value })
+                }
+                placeholder="Kratek opis kategorije..."
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="cat_order">Vrstni red</Label>
+              <Input
+                id="cat_order"
+                type="number"
+                value={categoryFormData.display_order}
+                onChange={(e) =>
+                  setCategoryFormData({ ...categoryFormData, display_order: e.target.value })
+                }
+                placeholder="0"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Nižja številka = višje v seznamu
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCategoryDialogOpen(false);
+                resetCategoryForm();
+              }}
+            >
+              Prekliči
+            </Button>
+            <Button onClick={handleCategorySubmit}>
+              {editingCategory ? "Posodobi" : "Dodaj"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Item Dialog */}
       <Dialog
@@ -1108,8 +1451,8 @@ export default function Store() {
                     <SelectValue placeholder="Izberi kategorijo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
