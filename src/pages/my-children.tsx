@@ -43,6 +43,8 @@ interface AttendanceRecord {
     activity_type_id?: number;
     home_game?: boolean;
     venue_id?: string;
+    start_time?: string;
+    end_time?: string;
     venues?: {
       name: string;
       location?: string;
@@ -54,7 +56,7 @@ interface AttendanceRecord {
 interface ScheduleTemplate {
   id: string;
   activity_name: string;
-  day_of_week: string;
+  day_of_week: number;
   start_time: string;
   end_time: string;
   location: string;
@@ -230,7 +232,7 @@ export default function MyChildren() {
     const jsDay = dateObj.getDay();
     const dbDay = jsDay === 0 ? 7 : jsDay;
 
-    return schedules.find((s) => s.day_of_week === dbDay) || null;
+    return schedules.find((s) => Number(s.day_of_week) === dbDay) || null;
   }
 
   function getActivityTypeLabel(record: AttendanceRecord | null): string | null {
@@ -302,6 +304,17 @@ export default function MyChildren() {
   };
 
   const selectedChildData = children.find((c) => c.id === selectedChild);
+
+  const daysOfWeek = ["Nedelja", "Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota"];
+
+  const groupedSchedules = schedules.reduce((acc, schedule) => {
+    const day = typeof schedule.day_of_week === 'number' 
+      ? daysOfWeek[schedule.day_of_week] 
+      : schedule.day_of_week;
+    if (!acc[day]) acc[day] = [];
+    acc[day].push(schedule);
+    return acc;
+  }, {} as Record<string, ScheduleTemplate[]>);
 
   return (
     <ProtectedRoute allowedRoles={["parent", "admin"]}>
