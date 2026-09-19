@@ -121,13 +121,19 @@ export default function ParentLogin() {
     setLoading(true);
 
     try {
+      console.log("Verifying OTP:", { email, code: otpCode }); // Debug log
+
       const response = await fetch("/api/auth/parent/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: otpCode }),
+        body: JSON.stringify({ 
+          email: email.trim(), 
+          code: otpCode.trim() 
+        }),
       });
 
       const data = await response.json();
+      console.log("Verify response:", data); // Debug log
 
       if (!response.ok) {
         throw new Error(data.error || "Napaka pri preverjanju kode");

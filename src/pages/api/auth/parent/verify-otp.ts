@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 // Initialize Supabase client with service role key (bypasses RLS)
 const supabase = createClient(
@@ -14,6 +15,11 @@ const supabase = createClient(
   }
 );
 
+// Generate secure random password
+function generateSecurePassword(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -24,6 +30,8 @@ export default async function handler(
 
   try {
     const { email, code } = req.body;
+
+    console.log("Verify OTP request:", { email, code }); // Debug log
 
     if (!email || !code) {
       return res.status(400).json({ error: "Email in koda sta obvezna" });
@@ -97,7 +105,7 @@ export default async function handler(
     }
 
     // ============================================
-    // SUPABASE AUTH INTEGRATION
+    // SUPABASE AUTH INTEGRATION - ELEGANT SOLUTION
     // ============================================
     
     const parentEmail = email.toLowerCase().trim();
@@ -115,28 +123,58 @@ export default async function handler(
     const existingUser = listData?.users?.find((u: any) => u.email === parentEmail);
 
     if (existingUser) {
-      // User exists - generate magic link tokens
+      // User exists - get their stored password from metadata or generate new one
       authUserId = existingUser.id;
       
-      const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: parentEmail,
-      });
+      let userPassword = existingUser.user_metadata?.auto_generated_password;
+      
+      if (!userPassword) {
+        // No stored password - generate new one and update metadata
+        userPassword = generateSecurePassword();
+        
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
+          authUserId,
+          {
+            password: userPassword,
+            user_metadata: {
+              ...existingUser.user_metadata,
+              auto_generated_password: userPassword,
+              is_parent: true,
+              verified_via_otp: true,
+            },
+          }
+        );
 
-      if (linkError || !linkData) {
-        console.error("Link generation error:", linkError);
-        return res.status(500).json({ error: "Napaka pri ustvarjanju seje" });
+        if (updateError) {
+          console.error("Password update error:", updateError);
+          return res.status(500).json({ error: "Napaka pri posodabljanju gesla" });
+        }
       }
 
-      accessToken = linkData.properties.action_link.split('#')[1]?.split('&')[0]?.split('=')[1] || '';
-      refreshToken = linkData.properties.action_link.split('refresh_token=')[1]?.split('&')[0] || '';
+      // Sign in with password to get valid tokens
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: parentEmail,
+        password: userPassword,
+      });
+
+      if (signInError || !signInData.session) {
+        console.error("Sign in error:", signInError);
+        return res.status(500).json({ error: "Napaka pri prijavi" });
+      }
+
+      accessToken = signInData.session.access_token;
+      refreshToken = signInData.session.refresh_token;
       
     } else {
-      // Create new auth user with email
+      // Create new auth user with auto-generated password
+      const userPassword = generateSecurePassword();
+
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: parentEmail,
+        password: userPassword,
         email_confirm: true,
         user_metadata: {
+          auto_generated_password: userPassword,
           is_parent: true,
           verified_via_otp: true,
         },
@@ -165,19 +203,19 @@ export default async function handler(
         // Continue even if profile creation fails - not critical
       }
 
-      // Generate magic link tokens for new user
-      const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-        type: 'magiclink',
+      // Sign in to get session tokens
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: parentEmail,
+        password: userPassword,
       });
 
-      if (linkError || !linkData) {
-        console.error("Link generation error:", linkError);
-        return res.status(500).json({ error: "Napaka pri ustvarjanju seje" });
+      if (signInError || !signInData.session) {
+        console.error("Sign in error:", signInError);
+        return res.status(500).json({ error: "Napaka pri prijavi" });
       }
 
-      accessToken = linkData.properties.action_link.split('#')[1]?.split('&')[0]?.split('=')[1] || '';
-      refreshToken = linkData.properties.action_link.split('refresh_token=')[1]?.split('&')[0] || '';
+      accessToken = signInData.session.access_token;
+      refreshToken = signInData.session.refresh_token;
     }
 
     // Ensure parent role exists in user_roles
@@ -202,6 +240,8 @@ export default async function handler(
         // Continue - role might already exist due to unique constraint
       }
     }
+
+    console.log("Auth success for:", parentEmail, "User ID:", authUserId); // Debug log
 
     return res.status(200).json({
       success: true,
