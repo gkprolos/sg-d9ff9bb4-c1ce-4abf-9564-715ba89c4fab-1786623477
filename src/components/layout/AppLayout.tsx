@@ -113,14 +113,6 @@ function InnerLayout({ children, userRole }: { children: React.ReactNode; userRo
                 {isParent && (
                   <>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
-                        <Link href="/dashboard">
-                          <LayoutDashboard className="w-4 h-4" />
-                          Nadzorna plošča
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname === "/my-children"}>
                         <Link href="/my-children">
                           <Users className="w-4 h-4" />

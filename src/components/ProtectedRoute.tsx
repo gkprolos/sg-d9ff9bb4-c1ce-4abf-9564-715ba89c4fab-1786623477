@@ -27,8 +27,12 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
         console.log("No user - redirecting to /login"); // Debug
         router.push("/login");
       } else if (allowedRoles && !allowedRoles.includes(userRole)) {
-        console.log(`User role ${userRole} not in allowedRoles ${allowedRoles} - redirecting to /dashboard`); // Debug
-        router.push("/dashboard");
+        console.log(`User role ${userRole} not in allowedRoles ${allowedRoles}`); // Debug
+        
+        // Redirect to role-specific default page
+        const defaultPage = userRole === "parent" ? "/my-children" : "/dashboard";
+        console.log(`Redirecting to ${defaultPage}`); // Debug
+        router.push(defaultPage);
       }
     }
   }, [user, userRole, loading, router, allowedRoles]);
