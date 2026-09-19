@@ -1,12 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 
 // Initialize Supabase client with service role key (bypasses RLS)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
 );
 
 export default async function handler(
@@ -91,10 +96,117 @@ export default async function handler(
       return res.status(404).json({ error: "Skrbnik ne obstaja" });
     }
 
+    // ============================================
+    // SUPABASE AUTH INTEGRATION
+    // ============================================
+    
+    const parentEmail = email.toLowerCase().trim();
+    let authUserId: string;
+    let sessionData: any;
+
+    // Check if user already exists in auth.users
+    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(u => u.email === parentEmail);
+
+    if (existingUser) {
+      // User exists - create session for existing user
+      authUserId = existingUser.id;
+      
+      const { data: sessionResponse, error: sessionError } = await supabase.auth.admin.createSession({
+        user_id: authUserId,
+      });
+
+      if (sessionError) {
+        console.error("Session creation error:", sessionError);
+        return res.status(500).json({ error: "Napaka pri ustvarjanju seje" });
+      }
+
+      sessionData = sessionResponse;
+    } else {
+      // Create new auth user (anonymous-style with email metadata)
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email: parentEmail,
+        email_confirm: true,
+        user_metadata: {
+          is_parent: true,
+          verified_via_otp: true,
+        },
+      });
+
+      if (createError || !newUser.user) {
+        console.error("User creation error:", createError);
+        return res.status(500).json({ error: "Napaka pri ustvarjanju uporabnika" });
+      }
+
+      authUserId = newUser.user.id;
+
+      // Create profile entry
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: authUserId,
+          email: parentEmail,
+          full_name: `Starš (${parentEmail})`,
+          role: "parent",
+          created_at: new Date().toISOString(),
+        });
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        // Continue even if profile creation fails - not critical
+      }
+
+      // Create session for new user
+      const { data: sessionResponse, error: sessionError } = await supabase.auth.admin.createSession({
+        user_id: authUserId,
+      });
+
+      if (sessionError) {
+        console.error("Session creation error:", sessionError);
+        return res.status(500).json({ error: "Napaka pri ustvarjanju seje" });
+      }
+
+      sessionData = sessionResponse;
+    }
+
+    // Ensure parent role exists in user_roles
+    const { data: existingRole } = await supabase
+      .from("user_roles")
+      .select("*")
+      .eq("user_id", authUserId)
+      .eq("role", "parent")
+      .maybeSingle();
+
+    if (!existingRole) {
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: authUserId,
+          role: "parent",
+          created_at: new Date().toISOString(),
+        });
+
+      if (roleError) {
+        console.error("Role creation error:", roleError);
+        // Continue - role might already exist due to unique constraint
+      }
+    }
+
     return res.status(200).json({
       success: true,
+      session: {
+        access_token: sessionData.access_token,
+        refresh_token: sessionData.refresh_token,
+        expires_in: sessionData.expires_in,
+        expires_at: sessionData.expires_at,
+        user: {
+          id: authUserId,
+          email: parentEmail,
+        },
+      },
       parent: {
-        email: email.toLowerCase().trim(),
+        email: parentEmail,
+        auth_user_id: authUserId,
       },
       children: players,
     });

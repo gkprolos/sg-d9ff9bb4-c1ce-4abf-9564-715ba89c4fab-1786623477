@@ -113,15 +113,16 @@ export default function ParentLogin() {
     }
   }
 
-  async function handleVerifyOtp() {
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
     setLoading(true);
 
     try {
-      const code = otp.join("");
       const response = await fetch("/api/auth/parent/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code })
+        body: JSON.stringify({ email, code: otpCode }),
       });
 
       const data = await response.json();
@@ -130,24 +131,37 @@ export default function ParentLogin() {
         throw new Error(data.error || "Napaka pri preverjanju kode");
       }
 
-      // Store parent session in sessionStorage (not localStorage)
-      sessionStorage.setItem("parentSession", JSON.stringify({
-        email: email.toLowerCase().trim(),
-        loginTime: new Date().toISOString()
-      }));
+      if (data.success && data.session) {
+        // Set Supabase session from API response
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
 
-      toast({
-        title: "Uspešna prijava",
-        description: "Dobrodošli!"
-      });
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          throw new Error("Napaka pri nastavitvi seje");
+        }
 
-      // Redirect to parent dashboard
-      router.push("/my-children");
-    } catch (error: any) {
+        // Store parent info and children in localStorage for UI
+        localStorage.setItem("parent_email", data.parent.email);
+        localStorage.setItem("parent_children", JSON.stringify(data.children));
+
+        toast({
+          title: "Prijava uspešna",
+          description: `Dobrodošli! Najdenih ${data.children.length} otrok.`,
+        });
+
+        // Redirect to parent dashboard
+        router.push("/my-children");
+      }
+    } catch (err: any) {
+      console.error("Verification error:", err);
+      setError(err.message || "Napaka pri preverjanju kode");
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message
+        description: err.message || "Napaka pri preverjanju kode",
       });
     } finally {
       setLoading(false);
@@ -218,7 +232,7 @@ export default function ParentLogin() {
                 </div>
                 <div className="space-y-2">
                   <Button
-                  onClick={handleVerifyOtp}
+                  onClick={handleVerifyCode}
                   disabled={loading || otp.some((d) => !d)}
                   className="w-full" style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
                   
