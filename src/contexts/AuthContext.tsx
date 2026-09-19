@@ -20,30 +20,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check active session
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        try {
+          const { data, error } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .maybeSingle(); // Changed from .single() to handle 0 rows gracefully
+
+          if (error) {
+            console.error("Error fetching user role:", error);
+            setUserRole("parent"); // Default fallback
+          } else {
+            // If no role found in user_roles, default to parent
+            const role = data?.role || "parent";
+            setUserRole(getUserRole([{ role }]));
+          }
+        } catch (err) {
+          console.error("Error fetching user role:", err);
+          setUserRole("parent"); // Default fallback
+        }
+      }
+      
+      setLoading(false);
+    });
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      
       if (session?.user) {
-        fetchUserRole(session.user.id);
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .maybeSingle() // Changed from .single()
+          .then(({ data, error }) => {
+            if (error) {
+              console.error("Error fetching user role:", error);
+              setUserRole("parent");
+            } else {
+              const role = data?.role || "parent";
+              setUserRole(getUserRole([{ role }]));
+            }
+            setLoading(false);
+          });
       } else {
         setLoading(false);
       }
     });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserRole(session.user.id);
-      } else {
-        setUserRole(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   async function fetchUserRole(userId: string) {
