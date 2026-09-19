@@ -219,14 +219,34 @@ export default async function handler(
     }
 
     // Ensure parent role exists in user_roles
-    const { data: existingRole } = await supabase
+    // BUT: Do NOT add parent role if user already has admin or coach role
+    const { data: existingRoles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", authUserId);
+
+    const hasAdminOrCoachRole = existingRoles?.some(
+      (r) => r.role === "admin" || r.role === "coach"
+    );
+
+    if (hasAdminOrCoachRole) {
+      // User is admin or coach - they should use regular login, not parent OTP
+      console.log("User has admin/coach role, skipping parent role creation");
+      
+      return res.status(403).json({
+        error: "Ta uporabnik ima administratorski ali trenerski dostop. Prosimo, uporabite običajno prijavo z geslom namesto OTP kode.",
+      });
+    }
+
+    // Only add parent role if user doesn't have admin/coach role
+    const { data: existingParentRole } = await supabase
       .from("user_roles")
       .select("*")
       .eq("user_id", authUserId)
       .eq("role", "parent")
       .maybeSingle();
 
-    if (!existingRole) {
+    if (!existingParentRole) {
       const { error: roleError } = await supabase
         .from("user_roles")
         .insert({
