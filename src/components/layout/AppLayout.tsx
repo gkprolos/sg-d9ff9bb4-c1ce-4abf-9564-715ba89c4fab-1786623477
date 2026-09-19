@@ -22,6 +22,13 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Home,
+  UserCircle,
+  UserCog,
+  ClipboardList,
+  Clock,
+  Building2,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -60,7 +67,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isAdmin = userRole === "admin";
   const isCoach = userRole === "coach";
-  const isParent = userRole === "parent";
+  const isParent = userRole === "parent" || !isAdmin && !isCoach; // Fallback: if not admin/coach, assume parent
   const isAdminOrCoach = isAdmin || isCoach;
 
   async function handleLogout() {
