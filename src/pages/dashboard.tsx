@@ -83,6 +83,7 @@ interface PlayerDetail {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -101,7 +102,7 @@ export default function DashboardPage() {
 
   const [seasons, setSeasons] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
-  const [selectedSeason, setSelectedSeason] = useState("");
+  const [selectedSeason, setSelectedSeason] = useState<string>("");
   const [selectedTeam, setSelectedTeam] = useState<string>("all");
   const [selectedCoach, setSelectedCoach] = useState<string>("all");
   const [showMobilePlayerAttendance, setShowMobilePlayerAttendance] = useState(false);
