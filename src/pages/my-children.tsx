@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,7 +57,7 @@ interface ScheduleTemplate {
 export default function MyChildren() {
   const router = useRouter();
   const { toast } = useToast();
-  const { userRole } = useAuth();
+  const { user, userRole } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [children, setChildren] = useState<Child[]>([]);
@@ -66,22 +68,12 @@ export default function MyChildren() {
   const [schedules, setSchedules] = useState<ScheduleTemplate[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [parentEmail, setParentEmail] = useState<string>("");
 
   useEffect(() => {
-    const session = getParentSession();
-    if (!session) {
-      router.push("/login/parent");
-      return;
-    }
-    setParentEmail(session.email);
-  }, [router]);
-
-  useEffect(() => {
-    if (parentEmail) {
+    if (user?.email) {
       loadChildren();
     }
-  }, [parentEmail]);
+  }, [user?.email]);
 
   useEffect(() => {
     if (selectedChild) {
@@ -90,21 +82,18 @@ export default function MyChildren() {
     }
   }, [selectedChild, selectedMonth, selectedYear]);
 
-  function getParentSession() {
-    const session = sessionStorage.getItem("parentSession");
-    return session ? JSON.parse(session) : null;
-  }
-
   async function loadChildren() {
+    if (!user?.email) return;
+
     try {
       setLoading(true);
 
-      console.log("Loading children for email:", parentEmail);
+      console.log("Loading children for email:", user.email);
 
       const response = await fetch("/api/parent/get-children", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ parentEmail })
+        body: JSON.stringify({ parentEmail: user.email })
       });
 
       const data = await response.json();
@@ -209,11 +198,6 @@ export default function MyChildren() {
     }
   }
 
-  function handleLogout() {
-    sessionStorage.removeItem("parentSession");
-    router.push("/login/parent");
-  }
-
   function getStatusForDate(date: string): number | null {
     const record = attendance.find(
       (a) => a.activities?.activity_date === date
@@ -297,231 +281,234 @@ export default function MyChildren() {
   const selectedChildData = children.find((c) => c.id === selectedChild);
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-6 w-6 text-primary" />
-            <h1 className="text-3xl font-bold">Prisotnost otrok</h1>
-          </div>
-          <Button onClick={handleLogout} variant="outline">
-            <LogOut className="h-4 w-4 mr-2" />
-            Odjava
-          </Button>
-        </div>
-
-        {loading && children.length === 0 ?
-        <Card>
-            <CardContent className="p-6">
-              <p className="text-center text-muted-foreground">Nalagam podatke...</p>
-            </CardContent>
-          </Card> :
-        children.length === 0 ?
-        <Card>
-            <CardContent className="p-6">
-              <p className="text-center text-muted-foreground">Ni najdenih otrok</p>
-            </CardContent>
-          </Card> :
-
-        <>
-            <Card>
-              <CardHeader>
-                <CardTitle>Izberi otroka</CardTitle>
-                <CardDescription>Prikaz prisotnosti za izbranega otroka</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Otrok</label>
-                    <Select value={selectedChild} onValueChange={setSelectedChild}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Izberi otroka" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {children.map((child) =>
-                      <SelectItem key={child.id} value={child.id}>
-                            {child.first_name} {child.last_name}
-                          </SelectItem>
-                      )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Mesec</label>
-                    <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {months.map((month, idx) =>
-                      <SelectItem key={idx} value={idx.toString()}>
-                            {month}
-                          </SelectItem>
-                      )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Leto</label>
-                    <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {years.map((year) =>
-                      <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                      )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {selectedChildData &&
-              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                    <User className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">
-                        {selectedChildData.first_name} {selectedChildData.last_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Datum rojstva: {new Date(selectedChildData.date_of_birth).toLocaleDateString("sl-SI")}
-                      </p>
-                    </div>
-                  </div>
-              }
-              </CardContent>
-            </Card>
-
-            <div className="grid gap-4 sm:grid-cols-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Prisoten</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{stats.present}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Odsoten</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{stats.absent}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Opravičen</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-yellow-600">{stats.excused}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Skupaj Aktivnosti</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.total}</div>
-                </CardContent>
-              </Card>
+    <ProtectedRoute allowedRoles={["parent", "admin"]}>
+      <AppLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-6 w-6 text-primary" />
+              <h1 className="text-3xl font-bold">Prisotnost otrok</h1>
             </div>
+            <Button onClick={handleLogout} variant="outline">
+              <LogOut className="h-4 w-4 mr-2" />
+              Odjava
+            </Button>
+          </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  Prisotnost - {months[selectedMonth]} {selectedYear}
-                </CardTitle>
-                <CardDescription>
-                  P = Prisoten, O = Odsoten, Op = Opravičen
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-7 gap-2">
-                  {["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"].map((day) =>
-                <div
-                  key={day}
-                  className="text-center text-sm font-medium p-2 bg-muted rounded">
-                  
-                      {day}
-                    </div>
-                )}
-
-                  {Array.from({ length: adjustedFirstDay }).map((_, i) =>
-                <div key={`empty-${i}`} className="p-2" />
-                )}
-
-                  {Array.from({ length: daysInMonth }).map((_, i) => {
-                  const day = i + 1;
-                  const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                  const status = getStatusForDate(dateStr);
-                  const attendanceRecord = attendance.find((a) => a.activities?.activity_date === dateStr);
-                  const schedule = getScheduleForDate(dateStr);
-                  const scheduleInfo = formatScheduleInfo(schedule);
-                  const activityType = getActivityTypeLabel(attendanceRecord);
-                  const activityVenue = getActivityVenue(attendanceRecord);
-                  const offSchedule = isOffSchedule(attendanceRecord, schedule);
-                  const isToday =
-                  day === new Date().getDate() &&
-                  selectedMonth === new Date().getMonth() &&
-                  selectedYear === new Date().getFullYear();
-
-                  return (
-                    <div
-                      key={day}
-                      className={`
-                          relative p-3 rounded-lg border transition-colors min-h-[120px]
-                          ${isToday ? "border-primary bg-primary/5" : "border-border"}
-                          ${status !== null || schedule ? "bg-muted/50" : ""}
-                        `}>
-                      
-                        <div className="flex flex-col h-full">
-                          <div className="text-sm font-medium mb-2">{day}</div>
-                          
-                          {status !== null &&
-                        <div className="mb-2 flex justify-center">
-                              {getStatusBadge(status)}
-                            </div>
-                        }
-                          
-                          {activityType &&
-                        <div className="mb-1 text-xs font-semibold text-center text-primary">
-                              {activityType}
-                            </div>
-                        }
-                          
-                          {(attendanceRecord || schedule) &&
-                        <div className="text-xs text-muted-foreground text-center space-y-1 mt-auto">
-                              <div className="font-medium">
-                                {attendanceRecord?.activities ?
-                            `${attendanceRecord.activities.start_time.slice(0, 5)}-${attendanceRecord.activities.end_time.slice(0, 5)}` :
-                            schedule ?
-                            `${schedule.start_time.slice(0, 5)}-${schedule.end_time.slice(0, 5)}` :
-                            ""}
-                              </div>
-                              <div className={`line-clamp-2 ${offSchedule ? "text-orange-600 font-medium" : ""}`}>
-                                {offSchedule && "⚠️ "}
-                                {activityVenue || schedule?.venues?.name || "N/A"}
-                              </div>
-                            </div>
-                        }
-                        </div>
-                      </div>);
-
-                })}
-                </div>
+          {loading && children.length === 0 ?
+          <Card>
+              <CardContent className="p-6">
+                <p className="text-center text-muted-foreground">Nalagam podatke...</p>
               </CardContent>
-            </Card>
-          </>
-        }
-      </div>
-    </AppLayout>);
+            </Card> :
+          children.length === 0 ?
+          <Card>
+              <CardContent className="p-6">
+                <p className="text-center text-muted-foreground">Ni najdenih otrok</p>
+              </CardContent>
+            </Card> :
+
+          <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Izberi otroka</CardTitle>
+                  <CardDescription>Prikaz prisotnosti za izbranega otroka</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Otrok</label>
+                      <Select value={selectedChild} onValueChange={setSelectedChild}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Izberi otroka" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {children.map((child) =>
+                        <SelectItem key={child.id} value={child.id}>
+                              {child.first_name} {child.last_name}
+                            </SelectItem>
+                        )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Mesec</label>
+                      <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {months.map((month, idx) =>
+                        <SelectItem key={idx} value={idx.toString()}>
+                              {month}
+                            </SelectItem>
+                        )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Leto</label>
+                      <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {years.map((year) =>
+                        <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                        )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {selectedChildData &&
+                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                      <User className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium">
+                          {selectedChildData.first_name} {selectedChildData.last_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Datum rojstva: {new Date(selectedChildData.date_of_birth).toLocaleDateString("sl-SI")}
+                        </p>
+                      </div>
+                    </div>
+                }
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-4 sm:grid-cols-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Prisoten</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600">{stats.present}</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Odsoten</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-red-600">{stats.absent}</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Opravičen</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-yellow-600">{stats.excused}</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Skupaj Aktivnosti</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.total}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    Prisotnost - {months[selectedMonth]} {selectedYear}
+                  </CardTitle>
+                  <CardDescription>
+                    P = Prisoten, O = Odsoten, Op = Opravičen
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-7 gap-2">
+                    {["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"].map((day) =>
+                  <div
+                    key={day}
+                    className="text-center text-sm font-medium p-2 bg-muted rounded">
+                    
+                        {day}
+                      </div>
+                  )}
+
+                    {Array.from({ length: adjustedFirstDay }).map((_, i) =>
+                  <div key={`empty-${i}`} className="p-2" />
+                  )}
+
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                    const status = getStatusForDate(dateStr);
+                    const attendanceRecord = attendance.find((a) => a.activities?.activity_date === dateStr);
+                    const schedule = getScheduleForDate(dateStr);
+                    const scheduleInfo = formatScheduleInfo(schedule);
+                    const activityType = getActivityTypeLabel(attendanceRecord);
+                    const activityVenue = getActivityVenue(attendanceRecord);
+                    const offSchedule = isOffSchedule(attendanceRecord, schedule);
+                    const isToday =
+                    day === new Date().getDate() &&
+                    selectedMonth === new Date().getMonth() &&
+                    selectedYear === new Date().getFullYear();
+
+                    return (
+                      <div
+                        key={day}
+                        className={`
+                            relative p-3 rounded-lg border transition-colors min-h-[120px]
+                            ${isToday ? "border-primary bg-primary/5" : "border-border"}
+                            ${status !== null || schedule ? "bg-muted/50" : ""}
+                          `}>
+                    
+                          <div className="flex flex-col h-full">
+                            <div className="text-sm font-medium mb-2">{day}</div>
+                            
+                            {status !== null &&
+                          <div className="mb-2 flex justify-center">
+                                {getStatusBadge(status)}
+                              </div>
+                          }
+                            
+                            {activityType &&
+                          <div className="mb-1 text-xs font-semibold text-center text-primary">
+                                {activityType}
+                              </div>
+                          }
+                            
+                            {(attendanceRecord || schedule) &&
+                          <div className="text-xs text-muted-foreground text-center space-y-1 mt-auto">
+                                <div className="font-medium">
+                                  {attendanceRecord?.activities ?
+                              `${attendanceRecord.activities.start_time.slice(0, 5)}-${attendanceRecord.activities.end_time.slice(0, 5)}` :
+                              schedule ?
+                              `${schedule.start_time.slice(0, 5)}-${schedule.end_time.slice(0, 5)}` :
+                              ""}
+                                </div>
+                                <div className={`line-clamp-2 ${offSchedule ? "text-orange-600 font-medium" : ""}`}>
+                                  {offSchedule && "⚠️ "}
+                                  {activityVenue || schedule?.venues?.name || "N/A"}
+                                </div>
+                              </div>
+                          }
+                          </div>
+                        </div>);
+
+                  })}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          }
+        </div>
+      </AppLayout>
+    </ProtectedRoute>
+  );
 
 }
