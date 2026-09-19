@@ -1,57 +1,56 @@
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Settings,
+  User,
+  ClipboardCheck,
+  FileText,
+  MessageSquare,
+  DollarSign,
+  Package,
+  ShoppingBag,
+  MapPin,
+  Trophy,
+  Shield,
+  Mail,
+  Menu,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Home,
-  Users,
-  Calendar,
-  ClipboardList,
-  BarChart3,
-  Settings,
-  Menu,
-  X,
-  MessageSquare,
-  Package,
-  UserCircle,
-  Building2,
-  Trophy,
-  DollarSign,
-  UserCog,
-  MapPin,
-  FileText,
-  Clock,
-  Mail,
-  LayoutDashboard,
-  Activity,
-  ClipboardCheck,
-  Building,
-  Shield,
-  Calculator,
-  LogOut,
-  User,
-  ShoppingBag,
-} from "lucide-react";
-import { useState } from "react";
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import supabase from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { user, userRole, signOut } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const pathname = router.pathname;
+  const { pathname } = router;
+  const { user, userRole, logout } = useAuth();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const isAdmin = userRoles.some(role => role.role === "admin");
-  const isCoach = userRoles.some(role => role.role === "coach");
-  const isParent = userRoles.some(role => role.role === "parent");
+  const isAdmin = userRole.some(role => role.role === "admin");
+  const isCoach = userRole.some(role => role.role === "coach");
+  const isParent = userRole.some(role => role.role === "parent");
   const isAdminOrCoach = isAdmin || isCoach;
 
   const adminNavigation = [
@@ -101,7 +100,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       : parentNavigation;
 
   const handleSignOut = async () => {
-    await signOut();
+    await logout();
     router.push("/login");
   };
 
