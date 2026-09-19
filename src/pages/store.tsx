@@ -107,6 +107,21 @@ type StoreOrder = {
   delivered_at: string | null;
   invoiced_at: string | null;
   created_at: string;
+  parent_name?: string;
+  parent_email?: string;
+  parent_phone?: string;
+};
+
+type StoreOrderItem = {
+  id: string;
+  order_id: string;
+  item_id: string;
+  item_number: string;
+  item_name: string;
+  size: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
 };
 
 const AVAILABLE_SIZES = [
@@ -160,6 +175,22 @@ export default function Store() {
   const [selectedSize, setSelectedSize] = useState<{ [key: string]: string }>({});
   const [parentSearchQuery, setParentSearchQuery] = useState("");
   const [parentCategoryFilter, setParentCategoryFilter] = useState<string>("all");
+
+  // Admin Orders State
+  const [allOrders, setAllOrders] = useState<StoreOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("all");
+  const [orderParentFilter, setOrderParentFilter] = useState<string>("all");
+  const [isOrderStatusDialogOpen, setIsOrderStatusDialogOpen] = useState(false);
+  const [isOrderItemsDialogOpen, setIsOrderItemsDialogOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<StoreOrder | null>(null);
+  const [orderItems, setOrderItems] = useState<StoreOrderItem[]>([]);
+  const [orderStatusFormData, setOrderStatusFormData] = useState({
+    status: "",
+    ordered_at: "",
+    delivered_at: "",
+    invoiced_at: "",
+  });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -443,6 +474,142 @@ export default function Store() {
     } catch (error: any) {
       console.error("Napaka pri nalaganju naročil:", error);
     }
+  }
+
+  // Admin/Coach: Load all orders with parent info
+  async function loadAllOrders() {
+    try {
+      setOrdersLoading(true);
+      
+      // Get all orders
+      const { data: ordersData, error: ordersError } = await supabase
+        .from("store_orders")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (ordersError) throw ordersError;
+
+      // Get parent profiles for each order
+      const parentIds = [...new Set(ordersData?.map(o => o.parent_id) || [])];
+      
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, phone")
+        .in("id", parentIds);
+
+      if (profilesError) throw profilesError;
+
+      // Merge parent info into orders
+      const ordersWithParents = (ordersData || []).map(order => {
+        const parent = profilesData?.find(p => p.id === order.parent_id);
+        return {
+          ...order,
+          parent_name: parent?.full_name || "Neznan starš",
+          parent_email: parent?.email || "",
+          parent_phone: parent?.phone || "",
+        };
+      });
+
+      setAllOrders(ordersWithParents);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju naročil:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče naložiti naročil",
+      });
+    } finally {
+      setOrdersLoading(false);
+    }
+  }
+
+  // Admin/Coach: Load order items
+  async function loadOrderItems(orderId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("store_order_items")
+        .select("*")
+        .eq("order_id", orderId)
+        .order("item_name", { ascending: true });
+
+      if (error) throw error;
+      setOrderItems(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju postavk:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče naložiti postavk naročila",
+      });
+    }
+  }
+
+  // Admin/Coach: Update order status
+  async function handleOrderStatusUpdate() {
+    if (!editingOrder) return;
+
+    try {
+      const updateData: any = {
+        status: orderStatusFormData.status,
+        updated_at: new Date().toISOString(),
+        updated_by: user?.id,
+      };
+
+      // Update dates based on status
+      if (orderStatusFormData.status === "ordered" && orderStatusFormData.ordered_at) {
+        updateData.ordered_at = new Date(orderStatusFormData.ordered_at).toISOString();
+      }
+
+      if (orderStatusFormData.status === "delivered" && orderStatusFormData.delivered_at) {
+        updateData.delivered_at = new Date(orderStatusFormData.delivered_at).toISOString();
+      }
+
+      if (orderStatusFormData.invoiced_at) {
+        updateData.invoiced_at = new Date(orderStatusFormData.invoiced_at).toISOString();
+      } else {
+        updateData.invoiced_at = null;
+      }
+
+      const { error } = await supabase
+        .from("store_orders")
+        .update(updateData)
+        .eq("id", editingOrder.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Uspešno",
+        description: "Status naročila posodobljen",
+      });
+
+      setIsOrderStatusDialogOpen(false);
+      setEditingOrder(null);
+      loadAllOrders();
+    } catch (error: any) {
+      console.error("Napaka pri posodabljanju statusa:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče posodobiti statusa",
+      });
+    }
+  }
+
+  function handleEditOrderStatus(order: StoreOrder) {
+    setEditingOrder(order);
+    setOrderStatusFormData({
+      status: order.status,
+      ordered_at: order.ordered_at ? new Date(order.ordered_at).toISOString().split("T")[0] : "",
+      delivered_at: order.delivered_at ? new Date(order.delivered_at).toISOString().split("T")[0] : "",
+      invoiced_at: order.invoiced_at ? new Date(order.invoiced_at).toISOString().split("T")[0] : "",
+    });
+    setIsOrderStatusDialogOpen(true);
+  }
+
+  function handleViewOrderItems(order: StoreOrder) {
+    setEditingOrder(order);
+    loadOrderItems(order.id);
+    setIsOrderItemsDialogOpen(true);
   }
 
   // Parent: Add to cart
@@ -1402,16 +1569,157 @@ export default function Store() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="narocila">
+        <TabsContent value="narocila" onFocus={() => loadAllOrders()}>
           <Card>
             <CardHeader>
-              <CardTitle>Naročila</CardTitle>
-              <CardDescription>Pregled vseh naročil staršev</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Naročila</CardTitle>
+                  <CardDescription>Pregled vseh naročil staršev</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground text-center py-12">
-                Pregled naročil bo implementiran v Fazi 4
-              </p>
+              {/* Filters */}
+              <div className="flex gap-4 mb-6">
+                <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Vsi statusi</SelectItem>
+                    <SelectItem value="open">Odprto</SelectItem>
+                    <SelectItem value="ordered">Naročeno</SelectItem>
+                    <SelectItem value="delivered">Predano</SelectItem>
+                    <SelectItem value="cancelled">Preklicano</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={orderParentFilter} onValueChange={setOrderParentFilter}>
+                  <SelectTrigger className="w-[250px]">
+                    <SelectValue placeholder="Vsi starši" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Vsi starši</SelectItem>
+                    {[...new Set(allOrders.map(o => o.parent_name))].sort().map((name) => (
+                      <SelectItem key={name} value={name || ""}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button variant="outline" onClick={loadAllOrders}>
+                  Osveži
+                </Button>
+              </div>
+
+              {ordersLoading ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Nalaganje...</p>
+                </div>
+              ) : allOrders.filter(order => {
+                const matchesStatus = orderStatusFilter === "all" || order.status === orderStatusFilter;
+                const matchesParent = orderParentFilter === "all" || order.parent_name === orderParentFilter;
+                return matchesStatus && matchesParent;
+              }).length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Ni naročil</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Številka</TableHead>
+                      <TableHead>Starš</TableHead>
+                      <TableHead>Datum</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Znesek</TableHead>
+                      <TableHead>Račun</TableHead>
+                      <TableHead className="text-right">Akcije</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allOrders
+                      .filter(order => {
+                        const matchesStatus = orderStatusFilter === "all" || order.status === orderStatusFilter;
+                        const matchesParent = orderParentFilter === "all" || order.parent_name === orderParentFilter;
+                        return matchesStatus && matchesParent;
+                      })
+                      .map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-mono text-sm font-medium">
+                            {order.order_number}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{order.parent_name}</p>
+                              <p className="text-sm text-muted-foreground">{order.parent_email}</p>
+                              {order.parent_phone && (
+                                <p className="text-sm text-muted-foreground">{order.parent_phone}</p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="text-sm">
+                                {new Date(order.created_at).toLocaleDateString("sl-SI", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(order.created_at).toLocaleTimeString("sl-SI", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(order.status)}</TableCell>
+                          <TableCell className="font-semibold">
+                            {order.total_amount.toFixed(2)} €
+                          </TableCell>
+                          <TableCell>
+                            {order.invoiced_at ? (
+                              <Badge variant="default" className="bg-green-600">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                {new Date(order.invoiced_at).toLocaleDateString("sl-SI", {
+                                  day: "numeric",
+                                  month: "short",
+                                })}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">
+                                <X className="w-3 h-3 mr-1" />
+                                Ni računa
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewOrderItems(order)}
+                              >
+                                Postavke
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleEditOrderStatus(order)}
+                              >
+                                <Pencil className="w-4 h-4 mr-2" />
+                                Uredi
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1734,6 +2042,172 @@ export default function Store() {
             <Button variant="destructive" onClick={handleDelete}>
               <Trash2 className="w-4 h-4 mr-2" />
               Pobriši
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Order Status Edit Dialog */}
+      <Dialog open={isOrderStatusDialogOpen} onOpenChange={setIsOrderStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Uredi status naročila</DialogTitle>
+            <DialogDescription>
+              Naročilo: {editingOrder?.order_number} • {editingOrder?.parent_name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="order_status">Status *</Label>
+              <Select
+                value={orderStatusFormData.status}
+                onValueChange={(value) =>
+                  setOrderStatusFormData({ ...orderStatusFormData, status: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">Odprto</SelectItem>
+                  <SelectItem value="ordered">Naročeno</SelectItem>
+                  <SelectItem value="delivered">Predano</SelectItem>
+                  <SelectItem value="cancelled">Preklicano</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {orderStatusFormData.status === "ordered" && (
+              <div>
+                <Label htmlFor="ordered_at">Datum naročila pri dobavitelju</Label>
+                <Input
+                  id="ordered_at"
+                  type="date"
+                  value={orderStatusFormData.ordered_at}
+                  onChange={(e) =>
+                    setOrderStatusFormData({ ...orderStatusFormData, ordered_at: e.target.value })
+                  }
+                />
+              </div>
+            )}
+
+            {orderStatusFormData.status === "delivered" && (
+              <div>
+                <Label htmlFor="delivered_at">Datum predaje</Label>
+                <Input
+                  id="delivered_at"
+                  type="date"
+                  value={orderStatusFormData.delivered_at}
+                  onChange={(e) =>
+                    setOrderStatusFormData({ ...orderStatusFormData, delivered_at: e.target.value })
+                  }
+                />
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="invoiced_at">Datum računa</Label>
+              <Input
+                id="invoiced_at"
+                type="date"
+                value={orderStatusFormData.invoiced_at}
+                onChange={(e) =>
+                  setOrderStatusFormData({ ...orderStatusFormData, invoiced_at: e.target.value })
+                }
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Če pustite prazno, račun še ni izdelan
+              </p>
+            </div>
+
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-sm font-medium mb-2">Skupni znesek naročila:</p>
+              <p className="text-2xl font-bold">{editingOrder?.total_amount.toFixed(2)} €</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsOrderStatusDialogOpen(false);
+                setEditingOrder(null);
+              }}
+            >
+              Prekliči
+            </Button>
+            <Button onClick={handleOrderStatusUpdate}>
+              Shrani
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Order Items Dialog */}
+      <Dialog open={isOrderItemsDialogOpen} onOpenChange={setIsOrderItemsDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Postavke naročila</DialogTitle>
+            <DialogDescription>
+              Naročilo: {editingOrder?.order_number} • {editingOrder?.parent_name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {orderItems.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Ni postavk</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Št.</TableHead>
+                    <TableHead>Artikel</TableHead>
+                    <TableHead>Velikost</TableHead>
+                    <TableHead className="text-right">Količina</TableHead>
+                    <TableHead className="text-right">Cena</TableHead>
+                    <TableHead className="text-right">Skupaj</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orderItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-mono text-sm">
+                        {item.item_number}
+                      </TableCell>
+                      <TableCell className="font-medium">{item.item_name}</TableCell>
+                      <TableCell>{item.size}</TableCell>
+                      <TableCell className="text-right">{item.quantity}</TableCell>
+                      <TableCell className="text-right">
+                        {item.unit_price.toFixed(2)} €
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {item.subtotal.toFixed(2)} €
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-right font-semibold">
+                      Skupaj:
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-lg">
+                      {orderItems.reduce((sum, item) => sum + item.subtotal, 0).toFixed(2)} €
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setIsOrderItemsDialogOpen(false);
+                setEditingOrder(null);
+                setOrderItems([]);
+              }}
+            >
+              Zapri
             </Button>
           </DialogFooter>
         </DialogContent>
