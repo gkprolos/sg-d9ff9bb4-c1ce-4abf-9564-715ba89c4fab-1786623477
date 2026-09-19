@@ -21,9 +21,18 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -39,19 +48,25 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import supabase from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { pathname } = router;
-  const { user, userRole, logout } = useAuth();
+  const { user, userRole } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const isAdmin = userRole.some(role => role.role === "admin");
-  const isCoach = userRole.some(role => role.role === "coach");
-  const isParent = userRole.some(role => role.role === "parent");
+  const isAdmin = userRole === "admin";
+  const isCoach = userRole === "coach";
+  const isParent = userRole === "parent";
   const isAdminOrCoach = isAdmin || isCoach;
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
 
   const adminNavigation = [
     { name: "Nadzorna plošča", href: "/dashboard", icon: Home },
@@ -100,7 +115,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       : parentNavigation;
 
   const handleSignOut = async () => {
-    await logout();
+    await handleLogout();
     router.push("/login");
   };
 
@@ -174,9 +189,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <span>Nastavitve</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Odjava</span>
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Odjava
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
