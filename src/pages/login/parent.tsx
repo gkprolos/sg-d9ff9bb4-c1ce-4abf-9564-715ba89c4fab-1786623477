@@ -104,6 +104,9 @@ export default function ParentLogin() {
           throw new Error("Napaka pri nastavitvi seje");
         }
 
+        // Wait for session to be fully established in AuthContext
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         localStorage.setItem("parent_email", data.parent.email);
         localStorage.setItem("parent_children", JSON.stringify(data.children));
 
@@ -112,7 +115,8 @@ export default function ParentLogin() {
           description: `Dobrodošli! Najdenih ${data.children.length} otrok.`,
         });
 
-        router.push("/my-children");
+        // Use window.location for hard navigation to ensure session is recognized
+        window.location.href = "/my-children";
       }
     } catch (err: any) {
       console.error("Verification error:", err);
