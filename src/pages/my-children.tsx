@@ -55,10 +55,13 @@ interface ScheduleTemplate {
 export default function MyChildren() {
   const router = useRouter();
   const { toast } = useToast();
+  const { userRole } = useAuth();
 
   const [loading, setLoading] = useState(true);
-  const [children, setChildren] = useState<Player[]>([]);
-  const [selectedChild, setSelectedChild] = useState<string>("");
+  const [children, setChildren] = useState<Child[]>([]);
+  const [selectedChild, setSelectedChild] = useState<Child | null>(null);
+  const [showSchedules, setShowSchedules] = useState(false);
+  const [showAttendance, setShowAttendance] = useState(false);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [schedules, setSchedules] = useState<ScheduleTemplate[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
