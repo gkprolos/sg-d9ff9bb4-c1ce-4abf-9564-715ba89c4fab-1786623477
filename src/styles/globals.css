@@ -8,6 +8,87 @@
   }
 }
 
+/* Print Styles for Collection Items */
+@media print {
+  @page {
+    size: A4;
+    margin: 2cm;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print\:hidden,
+  .print-hidden,
+  button,
+  nav,
+  aside,
+  header:not(.print-header),
+  footer:not(.print-footer),
+  [role="dialog"] > div:first-child,
+  [role="dialog"] > div:last-child {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
+  }
+
+  .print\:text-2xl {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+
+  .print\:text-base {
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  .print\:text-foreground {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .print\:max-w-full {
+    max-width: 100% !important;
+  }
+
+  .print\:bg-white {
+    background-color: white !important;
+  }
+
+  .print\:border {
+    border: 1px solid #e5e7eb !important;
+  }
+
+  .print-content {
+    page-break-inside: avoid;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  /* Hide dialog backdrop */
+  [data-radix-popper-content-wrapper] {
+    background: white !important;
+  }
+}
+
 @layer base {
   :root {
     --radius: 0.55rem;

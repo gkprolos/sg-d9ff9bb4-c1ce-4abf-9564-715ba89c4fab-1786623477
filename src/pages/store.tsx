@@ -60,6 +60,16 @@ import {
   ZoomIn,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 // Types
 type StoreItem = {
@@ -149,6 +159,27 @@ type StoreCollectionItem = {
   unit_price: number;
 };
 
+type StoreStats = {
+  total_orders: number;
+  total_revenue: number;
+  avg_order_value: number;
+};
+
+type TopItem = {
+  item_number: string;
+  item_name: string;
+  total_sold: number;
+  collections_count: number;
+  total_revenue: number;
+};
+
+type MonthlyRevenue = {
+  month: string;
+  orders_count: number;
+  total_revenue: number;
+  avg_order_value: number;
+};
+
 const AVAILABLE_SIZES = [
   "11/12",
   "13/14",
@@ -235,6 +266,16 @@ export default function Store() {
     ordered_at: "",
     notes: "",
   });
+
+  // Stats State
+  const [stats, setStats] = useState<StoreStats>({
+    total_orders: 0,
+    total_revenue: 0,
+    avg_order_value: 0,
+  });
+  const [topItems, setTopItems] = useState<TopItem[]>([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -985,6 +1026,124 @@ export default function Store() {
       title: "Izvoženo",
       description: "CSV datoteka prenesena",
     });
+  }
+
+  // Admin: Load stats
+  async function loadStats() {
+    try {
+      setStatsLoading(true);
+
+      // Overall stats
+      const { data: ordersData, error: ordersError } = await supabase
+        .from("store_orders")
+        .select("total_amount")
+        .in("status", ["ordered", "delivered"]);
+
+      if (ordersError) throw ordersError;
+
+      const totalOrders = ordersData?.length || 0;
+      const totalRevenue = ordersData?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
+      const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+      setStats({
+        total_orders: totalOrders,
+        total_revenue: totalRevenue,
+        avg_order_value: avgOrderValue,
+      });
+
+      // Top items
+      const { data: topItemsData, error: topItemsError } = await supabase
+        .from("store_collection_items")
+        .select("item_number, item_name, total_quantity, unit_price, collection_id")
+        .order("total_quantity", { ascending: false });
+
+      if (topItemsError) throw topItemsError;
+
+      // Aggregate by item_number
+      const aggregated = (topItemsData || []).reduce((acc: any, item) => {
+        if (!acc[item.item_number]) {
+          acc[item.item_number] = {
+            item_number: item.item_number,
+            item_name: item.item_name,
+            total_sold: 0,
+            collections_count: new Set(),
+            total_revenue: 0,
+          };
+        }
+        acc[item.item_number].total_sold += item.total_quantity;
+        acc[item.item_number].collections_count.add(item.collection_id);
+        acc[item.item_number].total_revenue += item.total_quantity * item.unit_price;
+        return acc;
+      }, {});
+
+      const topItemsArray = Object.values(aggregated).map((item: any) => ({
+        item_number: item.item_number,
+        item_name: item.item_name,
+        total_sold: item.total_sold,
+        collections_count: item.collections_count.size,
+        total_revenue: item.total_revenue,
+      })) as TopItem[];
+
+      topItemsArray.sort((a, b) => b.total_sold - a.total_sold);
+      setTopItems(topItemsArray.slice(0, 5));
+
+      // Monthly revenue (last 6 months)
+      const { data: collectionsData, error: collectionsError } = await supabase
+        .from("store_collections")
+        .select("id, collection_date, status")
+        .in("status", ["ordered", "received"])
+        .gte("collection_date", new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString())
+        .order("collection_date", { ascending: true });
+
+      if (collectionsError) throw collectionsError;
+
+      const monthlyData: { [key: string]: MonthlyRevenue } = {};
+
+      for (const collection of collectionsData || []) {
+        const month = new Date(collection.collection_date).toLocaleDateString("sl-SI", {
+          month: "short",
+          year: "numeric",
+        });
+
+        if (!monthlyData[month]) {
+          monthlyData[month] = {
+            month,
+            orders_count: 0,
+            total_revenue: 0,
+            avg_order_value: 0,
+          };
+        }
+
+        // Get orders for this collection
+        const { data: ordersInCollection } = await supabase
+          .from("store_orders")
+          .select("total_amount")
+          .eq("collection_id", collection.id);
+
+        const ordersCount = ordersInCollection?.length || 0;
+        const revenue = ordersInCollection?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
+
+        monthlyData[month].orders_count += ordersCount;
+        monthlyData[month].total_revenue += revenue;
+      }
+
+      // Calculate avg order value
+      const monthlyArray = Object.values(monthlyData).map((m) => ({
+        ...m,
+        avg_order_value: m.orders_count > 0 ? m.total_revenue / m.orders_count : 0,
+      }));
+
+      setMonthlyRevenue(monthlyArray);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju statistike:", error);
+    } finally {
+      setStatsLoading(false);
+    }
+  }
+
+  // Print collection
+  function printCollection() {
+    window.print();
   }
 
   // Parent: Add to cart
@@ -2099,149 +2258,272 @@ export default function Store() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="zbirniki" onFocus={() => loadCollections()}>
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Zbirniki</CardTitle>
-                  <CardDescription>
-                    Periodično združevanje naročil (1. in 15. dan v mesecu)
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      loadOpenOrdersPreview();
-                      setIsCreateCollectionDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Ustvari zbirnik
-                  </Button>
-                  <Button variant="outline" onClick={loadCollections}>
-                    Osveži
-                  </Button>
-                </div>
+        <TabsContent value="zbirniki" onFocus={() => {
+          loadCollections();
+          loadStats();
+        }}>
+          <div className="space-y-6">
+            {/* Stats Dashboard */}
+            {isAdminOrCoach && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Skupno naročil</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">{stats.total_orders}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Naročena in predana
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Skupni promet</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">
+                      {stats.total_revenue.toFixed(2)} €
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Vsi potrjeni zbirniki
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Povprečno naročilo</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">
+                      {stats.avg_order_value.toFixed(2)} €
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Na naročilo
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
-            </CardHeader>
-            <CardContent>
-              {collectionsLoading ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">Nalaganje...</p>
-                </div>
-              ) : collections.length === 0 ? (
-                <div className="text-center py-12">
-                  <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground mb-4">Ni zbirnikov</p>
-                  <Button
-                    onClick={() => {
-                      loadOpenOrdersPreview();
-                      setIsCreateCollectionDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Ustvari prvi zbirnik
-                  </Button>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Številka</TableHead>
-                      <TableHead>Datum</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Naročil</TableHead>
-                      <TableHead>Artiklov</TableHead>
-                      <TableHead>Znesek</TableHead>
-                      <TableHead>Naročeno</TableHead>
-                      <TableHead className="text-right">Akcije</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {collections.map((collection) => (
-                      <TableRow key={collection.id}>
-                        <TableCell className="font-mono text-sm font-medium">
-                          {collection.collection_number}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(collection.collection_date).toLocaleDateString("sl-SI", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })}
-                        </TableCell>
-                        <TableCell>
-                          {collection.status === "draft" && (
-                            <Badge variant="outline">
-                              <Clock className="w-3 h-3 mr-1" />
-                              Osnutek
-                            </Badge>
-                          )}
-                          {collection.status === "ordered" && (
-                            <Badge className="bg-blue-500">
-                              <Package className="w-3 h-3 mr-1" />
-                              Naročeno
-                            </Badge>
-                          )}
-                          {collection.status === "received" && (
-                            <Badge className="bg-green-500">
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Prejeto
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {collection.total_orders || 0}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {collection.total_items || 0}
-                        </TableCell>
-                        <TableCell className="font-semibold">
-                          {(collection.total_amount || 0).toFixed(2)} €
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {collection.ordered_at
-                            ? new Date(collection.ordered_at).toLocaleDateString("sl-SI")
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewCollectionItems(collection)}
-                            >
-                              Postavke
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                handleViewCollectionItems(collection);
-                                setTimeout(() => exportCollectionToCSV(collection), 500);
-                              }}
-                            >
-                              Export
-                            </Button>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleEditCollectionStatus(collection)}
-                            >
-                              <Pencil className="w-4 h-4 mr-2" />
-                              Uredi
-                            </Button>
+            )}
+
+            {/* Top Items & Revenue Chart */}
+            {isAdminOrCoach && (topItems.length > 0 || monthlyRevenue.length > 0) && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Top Items */}
+                {topItems.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Top 5 Artiklov</CardTitle>
+                      <CardDescription>Najbolj prodajani po količini</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {topItems.map((item, index) => (
+                          <div key={item.item_number} className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
+                                {index + 1}
+                              </div>
+                              <div>
+                                <p className="font-medium">{item.item_name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.item_number}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold">{item.total_sold} kos</p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.total_revenue.toFixed(2)} €
+                              </p>
+                            </div>
                           </div>
-                        </TableCell>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Monthly Revenue Chart */}
+                {monthlyRevenue.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Mesečni promet</CardTitle>
+                      <CardDescription>Zadnjih 6 mesecev</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={250}>
+                        <BarChart data={monthlyRevenue}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip
+                            formatter={(value: number) => `${value.toFixed(2)} €`}
+                            labelStyle={{ color: "#000" }}
+                          />
+                          <Legend />
+                          <Bar
+                            dataKey="total_revenue"
+                            fill="hsl(var(--primary))"
+                            name="Promet"
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* Collections Table */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Zbirniki</CardTitle>
+                    <CardDescription>
+                      Periodično združevanje naročil (1. in 15. dan v mesecu)
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        loadOpenOrdersPreview();
+                        setIsCreateCollectionDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Ustvari zbirnik
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      loadCollections();
+                      loadStats();
+                    }}>
+                      Osveži
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {collectionsLoading ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">Nalaganje...</p>
+                  </div>
+                ) : collections.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-4">Ni zbirnikov</p>
+                    <Button
+                      onClick={() => {
+                        loadOpenOrdersPreview();
+                        setIsCreateCollectionDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Ustvari prvi zbirnik
+                    </Button>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Številka</TableHead>
+                        <TableHead>Datum</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Naročil</TableHead>
+                        <TableHead>Artiklov</TableHead>
+                        <TableHead>Znesek</TableHead>
+                        <TableHead>Naročeno</TableHead>
+                        <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {collections.map((collection) => (
+                        <TableRow key={collection.id}>
+                          <TableCell className="font-mono text-sm font-medium">
+                            {collection.collection_number}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(collection.collection_date).toLocaleDateString("sl-SI", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            {collection.status === "draft" && (
+                              <Badge variant="outline">
+                                <Clock className="w-3 h-3 mr-1" />
+                                Osnutek
+                              </Badge>
+                            )}
+                            {collection.status === "ordered" && (
+                              <Badge className="bg-blue-500">
+                                <Package className="w-3 h-3 mr-1" />
+                                Naročeno
+                              </Badge>
+                            )}
+                            {collection.status === "received" && (
+                              <Badge className="bg-green-500">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Prejeto
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {collection.total_orders || 0}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {collection.total_items || 0}
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            {(collection.total_amount || 0).toFixed(2)} €
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {collection.ordered_at
+                              ? new Date(collection.ordered_at).toLocaleDateString("sl-SI")
+                              : "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewCollectionItems(collection)}
+                              >
+                                Postavke
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  handleViewCollectionItems(collection);
+                                  setTimeout(() => exportCollectionToCSV(collection), 500);
+                                }}
+                              >
+                                Export
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleEditCollectionStatus(collection)}
+                              >
+                                <Pencil className="w-4 h-4 mr-2" />
+                                Uredi
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -2832,17 +3114,17 @@ export default function Store() {
 
       {/* Collection Items Dialog */}
       <Dialog open={isCollectionItemsDialogOpen} onOpenChange={setIsCollectionItemsDialogOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Postavke zbirnika</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-w-4xl print:max-w-full">
+          <DialogHeader className="print:block">
+            <DialogTitle className="print:text-2xl">Postavke zbirnika</DialogTitle>
+            <DialogDescription className="print:text-base print:text-foreground">
               Zbirnik: {selectedCollection?.collection_number} •{" "}
               {selectedCollection?.collection_date &&
                 new Date(selectedCollection.collection_date).toLocaleDateString("sl-SI")}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 print-content">
             {collectionItems.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Ni postavk</p>
             ) : (
@@ -2895,27 +3177,37 @@ export default function Store() {
                   </TableBody>
                 </Table>
 
-                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-muted rounded-lg print:bg-white print:border">
                   <div>
-                    <p className="text-sm text-muted-foreground">Naročil v zbirniku:</p>
+                    <p className="text-sm text-muted-foreground print:text-foreground">Naročil v zbirniku:</p>
                     <p className="text-2xl font-bold">{selectedCollection?.total_orders || 0}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Različnih artiklov:</p>
+                    <p className="text-sm text-muted-foreground print:text-foreground">Različnih artiklov:</p>
                     <p className="text-2xl font-bold">{collectionItems.length}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Skupaj kosov:</p>
+                    <p className="text-sm text-muted-foreground print:text-foreground">Skupaj kosov:</p>
                     <p className="text-2xl font-bold">
                       {collectionItems.reduce((sum, item) => sum + item.total_quantity, 0)}
                     </p>
                   </div>
                 </div>
+
+                <div className="print:hidden text-sm text-muted-foreground border-t pt-4">
+                  <p>Datum tiska: {new Date().toLocaleString("sl-SI")}</p>
+                </div>
               </>
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="print:hidden">
+            <Button
+              variant="outline"
+              onClick={printCollection}
+            >
+              🖨️ Natisni
+            </Button>
             <Button
               variant="outline"
               onClick={() => selectedCollection && exportCollectionToCSV(selectedCollection)}
