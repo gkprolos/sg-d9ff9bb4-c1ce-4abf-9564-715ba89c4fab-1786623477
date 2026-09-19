@@ -9,49 +9,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calendar, LogOut, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-interface Player {
+// Type definitions
+interface Child {
   id: string;
   first_name: string;
   last_name: string;
-  date_of_birth: string;
-  gender: "male" | "female";
+  birth_date: string;
+  guardian1_email: string;
+  guardian2_email?: string;
 }
 
 interface AttendanceRecord {
-  id: string;
-  player_id: string;
-  status: number;
-  activities: {
-    id: string;
-    activity_date: string;
-    start_time: string;
-    end_time: string;
-    activity_type_id: number;
-    home_game: boolean | null;
-    venue_id: string;
-    venues: {
-      id: string;
-      name: string;
-      city?: string;
-    } | null;
-  } | null;
+  date: string;
+  status: string;
+  activity_name: string;
 }
 
 interface ScheduleTemplate {
   id: string;
-  team_id: string;
-  venue_id: string;
-  day_of_week: number;
+  activity_name: string;
+  day_of_week: string;
   start_time: string;
   end_time: string;
-  default_activity_type_id: number;
-  is_active: boolean;
-  venues: {
-    id: string;
-    name: string;
-    city?: string;
-  } | null;
+  location: string;
 }
 
 export default function MyChildren() {
@@ -277,6 +259,11 @@ export default function MyChildren() {
 
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login/parent");
+  };
 
   const selectedChildData = children.find((c) => c.id === selectedChild);
 
