@@ -129,14 +129,6 @@ function InnerLayout({ children, userRole }: { children: React.ReactNode; userRo
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname === "/my-schedules"}>
-                        <Link href="/my-schedules">
-                          <Calendar className="w-4 h-4" />
-                          Urnik
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname === "/messaging"}>
                         <Link href="/messaging">
                           <MessageSquare className="w-4 h-4" />
