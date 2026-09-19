@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 
 interface AuthContextType {
   user: User | null;
-  userRole: "admin" | "coach" | null;
+  userRole: "admin" | "coach" | "parent";
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<"admin" | "coach" | null>(null);
+  const [userRole, setUserRole] = useState<"admin" | "coach" | "parent" | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) throw error;
-      setUserRole(data.role as "admin" | "coach");
+      setUserRole(data.role as "admin" | "coach" | "parent");
     } catch (error) {
       console.error("Error fetching user role:", error);
       setUserRole(null);
@@ -91,4 +91,15 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
+}
+
+function getUserRole(roles: any[]): "admin" | "coach" | "parent" {
+  if (!roles || roles.length === 0) return "parent"; // Default to parent if no roles
+  
+  // Priority: admin > coach > parent
+  if (roles.some((r) => r.role === "admin")) return "admin";
+  if (roles.some((r) => r.role === "coach")) return "coach";
+  if (roles.some((r) => r.role === "parent")) return "parent";
+  
+  return "parent"; // Default fallback
 }
