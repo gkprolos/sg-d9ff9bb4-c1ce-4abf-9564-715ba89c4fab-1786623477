@@ -1515,7 +1515,7 @@ export default function Store() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.back()}
+              onClick={() => router.push("/dashboard")}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Nazaj
@@ -1811,7 +1811,7 @@ export default function Store() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.back()}
+            onClick={() => router.push("/dashboard")}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Nazaj
