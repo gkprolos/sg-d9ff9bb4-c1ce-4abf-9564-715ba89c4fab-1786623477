@@ -1,21 +1,19 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, ArrowLeft, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
-import Link from "next/link";
+import supabase from "@/integrations/supabase/client";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 type AuthStep = "email" | "otp" | "password" | "complete";
 
 export default function ParentLogin() {
   const router = useRouter();
-  const { login } = useAuth();
   const { toast } = useToast();
 
   const [step, setStep] = useState<"email" | "code">("email");
@@ -47,24 +45,16 @@ export default function ParentLogin() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  async function handleSendOTP(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-
-    if (!email || !email.includes("@")) {
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: "Vnesite veljaven email naslov"
-      });
-      return;
-    }
+  async function handleSendOTP(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
-      setLoading(true);
       const response = await fetch("/api/auth/parent/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email: email.trim() }),
       });
 
       const data = await response.json();
@@ -73,22 +63,22 @@ export default function ParentLogin() {
         throw new Error(data.error || "Napaka pri pošiljanju kode");
       }
 
-      setStep("code");
-      setCountdown(180); // 3 minutes
-      setTimeout(() => setCountdown(0), 60000); // Allow resend after 1 min
-
-      toast({
-        title: "Koda poslana",
-        description: `4-mestna koda poslana na ${email}`
-      });
-
-      // Focus first OTP input
-      setTimeout(() => otpRefs[0].current?.focus(), 100);
-    } catch (error: any) {
+      if (data.success) {
+        setStep("code");
+        setOtpCode(""); // Clear any previous code
+        setCountdown(60);
+        toast({
+          title: "Koda poslana",
+          description: `4-mestna koda je bila poslana na ${email}`,
+        });
+      }
+    } catch (err: any) {
+      console.error("Send OTP error:", err);
+      setError(err.message || "Napaka pri pošiljanju kode");
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri pošiljanju kode"
+        description: err.message || "Napaka pri pošiljanju kode",
       });
     } finally {
       setLoading(false);
@@ -222,7 +212,7 @@ export default function ParentLogin() {
                 <div className="space-y-2">
                   <Label>Vnesite 4-mestno kodo</Label>
                   <div className="flex gap-2 justify-center">
-                    {otp.map((digit, index) =>
+                    {otpCode.map((digit, index) =>
                   <Input
                     key={index}
                     id={`otp-${index}`}
@@ -240,7 +230,7 @@ export default function ParentLogin() {
                 <div className="space-y-2">
                   <Button
                   onClick={handleVerifyCode}
-                  disabled={loading || otp.some((d) => !d)}
+                  disabled={loading || otpCode.some((d) => !d)}
                   className="w-full" style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
                   
                     {loading ? "Preverjam..." : "Preveri kodo"}
