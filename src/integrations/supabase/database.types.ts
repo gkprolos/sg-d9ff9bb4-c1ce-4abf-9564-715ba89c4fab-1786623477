@@ -1670,7 +1670,25 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      store_stats_monthly_revenue: {
+        Row: {
+          avg_order_value: number | null
+          month: string | null
+          orders_count: number | null
+          total_revenue: number | null
+        }
+        Relationships: []
+      }
+      store_stats_top_items: {
+        Row: {
+          collections_count: number | null
+          item_name: string | null
+          item_number: string | null
+          total_revenue: number | null
+          total_sold: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_recalculate_activity: {
