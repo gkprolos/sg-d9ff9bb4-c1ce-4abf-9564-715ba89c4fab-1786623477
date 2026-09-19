@@ -11,17 +11,30 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   const router = useRouter();
   const { user, userRole, loading } = useAuth();
 
+  console.log("ProtectedRoute Debug:", { 
+    pathname: router.pathname,
+    user: user?.email,
+    userRole, 
+    loading,
+    allowedRoles 
+  }); // Debug log
+
   useEffect(() => {
     if (!loading) {
+      console.log("ProtectedRoute Effect:", { user: !!user, userRole, pathname: router.pathname }); // Debug
+      
       if (!user) {
+        console.log("No user - redirecting to /login"); // Debug
         router.push("/login");
       } else if (allowedRoles && !allowedRoles.includes(userRole)) {
+        console.log(`User role ${userRole} not in allowedRoles ${allowedRoles} - redirecting to /dashboard`); // Debug
         router.push("/dashboard");
       }
     }
-  }, [user, userRole, loading, allowedRoles, router]);
+  }, [user, userRole, loading, router, allowedRoles]);
 
   if (loading) {
+    console.log("ProtectedRoute: Loading state"); // Debug
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -33,12 +46,10 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (!user) {
+    console.log("ProtectedRoute: No user, returning null"); // Debug
     return null;
   }
 
-  if (allowedRoles && !allowedRoles.includes(userRole)) {
-    return null;
-  }
-
+  console.log("ProtectedRoute: Rendering children"); // Debug
   return <>{children}</>;
 }
