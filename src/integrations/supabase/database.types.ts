@@ -1139,6 +1139,57 @@ export type Database = {
         }
         Relationships: []
       }
+      store_collection_items: {
+        Row: {
+          collection_id: string
+          created_at: string
+          id: string
+          item_id: string | null
+          item_name: string
+          item_number: string
+          size: string
+          total_quantity: number
+          unit_price: number
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_name: string
+          item_number: string
+          size: string
+          total_quantity?: number
+          unit_price: number
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_name?: string
+          item_number?: string
+          size?: string
+          total_quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_collection_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "store_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_collection_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_collection_periods: {
         Row: {
           created_at: string
@@ -1166,6 +1217,48 @@ export type Database = {
           ordered_by?: string | null
           period_date?: string
           status?: string
+        }
+        Relationships: []
+      }
+      store_collections: {
+        Row: {
+          collection_date: string
+          collection_number: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          ordered_at: string | null
+          ordered_by: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          collection_date: string
+          collection_number: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          ordered_at?: string | null
+          ordered_by?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          collection_date?: string
+          collection_number?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          ordered_at?: string | null
+          ordered_by?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -1290,6 +1383,7 @@ export type Database = {
         Row: {
           cancelled_at: string | null
           cancelled_by: string | null
+          collection_id: string | null
           created_at: string
           delivered_at: string | null
           delivered_by: string | null
@@ -1308,6 +1402,7 @@ export type Database = {
         Insert: {
           cancelled_at?: string | null
           cancelled_by?: string | null
+          collection_id?: string | null
           created_at?: string
           delivered_at?: string | null
           delivered_by?: string | null
@@ -1326,6 +1421,7 @@ export type Database = {
         Update: {
           cancelled_at?: string | null
           cancelled_by?: string | null
+          collection_id?: string | null
           created_at?: string
           delivered_at?: string | null
           delivered_by?: string | null
@@ -1341,7 +1437,15 @@ export type Database = {
           total_amount?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "store_orders_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "store_collections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_coaches: {
         Row: {
