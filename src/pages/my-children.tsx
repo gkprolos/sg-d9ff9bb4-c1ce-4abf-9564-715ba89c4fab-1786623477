@@ -26,6 +26,9 @@ interface Player {
   id: string;
   first_name: string;
   last_name: string;
+  birth_date?: string;
+  guardian1_email?: string;
+  guardian2_email?: string;
 }
 
 interface AttendanceRecord {
@@ -36,13 +39,22 @@ interface AttendanceRecord {
   player_id: string;
   activities?: {
     name: string;
+    activity_date?: string;
+    activity_type_id?: number;
+    home_game?: boolean;
+    venue_id?: string;
+    venues?: {
+      name: string;
+      location?: string;
+      city?: string;
+    };
   };
 }
 
 interface ScheduleTemplate {
   id: string;
   activity_name: string;
-  day_of_week: number;
+  day_of_week: string;
   start_time: string;
   end_time: string;
   location: string;
@@ -50,6 +62,12 @@ interface ScheduleTemplate {
   venues?: {
     name: string;
     location?: string;
+    city?: string;
+  };
+  activities?: {
+    name: string;
+    start_time?: string;
+    end_time?: string;
   };
 }
 
@@ -103,12 +121,13 @@ export default function MyChildren() {
 
       console.log("Children from API:", data.children);
 
-      setChildren(data.children as Player[]);
-      if (data.children && data.children.length > 0) {
-        console.log("Setting selected child to:", data.children[0].id);
-        setSelectedChild(data.children[0].id);
+      if (data.children && Array.isArray(data.children)) {
+        console.log("Children data received:", data.children);
+        // API returns Player[] structure, cast to Child[]
+        setChildren(data.children as Child[]);
+        setLoading(false);
       } else {
-        console.log("No children found!");
+        throw new Error("Neveljaven odgovor strežnika");
       }
     } catch (error: any) {
       console.error("Napaka pri nalaganju otrok:", error);
