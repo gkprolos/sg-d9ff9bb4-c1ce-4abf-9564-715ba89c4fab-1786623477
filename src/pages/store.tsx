@@ -124,6 +124,31 @@ type StoreOrderItem = {
   subtotal: number;
 };
 
+type StoreCollection = {
+  id: string;
+  collection_number: string;
+  collection_date: string;
+  ordered_at: string | null;
+  ordered_by: string | null;
+  notes: string | null;
+  status: string;
+  created_at: string;
+  total_orders?: number;
+  total_items?: number;
+  total_amount?: number;
+};
+
+type StoreCollectionItem = {
+  id: string;
+  collection_id: string;
+  item_id: string | null;
+  item_number: string;
+  item_name: string;
+  size: string;
+  total_quantity: number;
+  unit_price: number;
+};
+
 const AVAILABLE_SIZES = [
   "11/12",
   "13/14",
@@ -190,6 +215,25 @@ export default function Store() {
     ordered_at: "",
     delivered_at: "",
     invoiced_at: "",
+  });
+
+  // Collections State
+  const [collections, setCollections] = useState<StoreCollection[]>([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(false);
+  const [isCreateCollectionDialogOpen, setIsCreateCollectionDialogOpen] = useState(false);
+  const [isCollectionItemsDialogOpen, setIsCollectionItemsDialogOpen] = useState(false);
+  const [isCollectionStatusDialogOpen, setIsCollectionStatusDialogOpen] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState<StoreCollection | null>(null);
+  const [collectionItems, setCollectionItems] = useState<StoreCollectionItem[]>([]);
+  const [openOrdersPreview, setOpenOrdersPreview] = useState<StoreOrder[]>([]);
+  const [collectionFormData, setCollectionFormData] = useState({
+    collection_date: "",
+    notes: "",
+  });
+  const [collectionStatusFormData, setCollectionStatusFormData] = useState({
+    status: "",
+    ordered_at: "",
+    notes: "",
   });
 
   // Form State
@@ -610,6 +654,332 @@ export default function Store() {
     setEditingOrder(order);
     loadOrderItems(order.id);
     setIsOrderItemsDialogOpen(true);
+  }
+
+  // Admin: Load all collections
+  async function loadCollections() {
+    try {
+      setCollectionsLoading(true);
+
+      const { data: collectionsData, error: collectionsError } = await supabase
+        .from("store_collections")
+        .select("*")
+        .order("collection_date", { ascending: false });
+
+      if (collectionsError) throw collectionsError;
+
+      // Get stats for each collection
+      const collectionsWithStats = await Promise.all(
+        (collectionsData || []).map(async (collection) => {
+          // Count orders in collection
+          const { count: ordersCount } = await supabase
+            .from("store_orders")
+            .select("*", { count: "exact", head: true })
+            .eq("collection_id", collection.id);
+
+          // Get total items and amount
+          const { data: itemsData } = await supabase
+            .from("store_collection_items")
+            .select("total_quantity, unit_price")
+            .eq("collection_id", collection.id);
+
+          const totalItems = itemsData?.reduce((sum, item) => sum + item.total_quantity, 0) || 0;
+          const totalAmount = itemsData?.reduce((sum, item) => sum + (item.total_quantity * item.unit_price), 0) || 0;
+
+          return {
+            ...collection,
+            total_orders: ordersCount || 0,
+            total_items: totalItems,
+            total_amount: totalAmount,
+          };
+        })
+      );
+
+      setCollections(collectionsWithStats);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju zbirnikov:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče naložiti zbirnikov",
+      });
+    } finally {
+      setCollectionsLoading(false);
+    }
+  }
+
+  // Admin: Load open orders for preview
+  async function loadOpenOrdersPreview() {
+    try {
+      const { data: ordersData, error: ordersError } = await supabase
+        .from("store_orders")
+        .select("*")
+        .eq("status", "open")
+        .is("collection_id", null)
+        .order("created_at", { ascending: false });
+
+      if (ordersError) throw ordersError;
+
+      // Get parent profiles
+      const parentIds = [...new Set(ordersData?.map(o => o.parent_id) || [])];
+      
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", parentIds);
+
+      const ordersWithParents = (ordersData || []).map(order => {
+        const parent = profilesData?.find(p => p.id === order.parent_id);
+        return {
+          ...order,
+          parent_name: parent?.full_name || "Neznan",
+          parent_email: parent?.email || "",
+        };
+      });
+
+      setOpenOrdersPreview(ordersWithParents);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju odprtih naročil:", error);
+    }
+  }
+
+  // Admin: Create collection
+  async function handleCreateCollection() {
+    if (!collectionFormData.collection_date) {
+      toast({
+        variant: "destructive",
+        title: "Manjkajoči podatki",
+        description: "Vnesi datum zbirnika",
+      });
+      return;
+    }
+
+    try {
+      // Create collection
+      const { data: collectionData, error: collectionError } = await supabase
+        .from("store_collections")
+        .insert({
+          collection_date: collectionFormData.collection_date,
+          notes: collectionFormData.notes || null,
+          status: "draft",
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (collectionError) throw collectionError;
+
+      // Get all open orders (not yet in a collection)
+      const { data: openOrders, error: ordersError } = await supabase
+        .from("store_orders")
+        .select("id")
+        .eq("status", "open")
+        .is("collection_id", null);
+
+      if (ordersError) throw ordersError;
+
+      if (!openOrders || openOrders.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Ni odprtih naročil",
+          description: "Ni naročil za združevanje v zbirnik",
+        });
+        return;
+      }
+
+      // Link orders to collection
+      const { error: linkError } = await supabase
+        .from("store_orders")
+        .update({ collection_id: collectionData.id })
+        .in("id", openOrders.map(o => o.id));
+
+      if (linkError) throw linkError;
+
+      // Aggregate order items
+      const { data: orderItems, error: itemsError } = await supabase
+        .from("store_order_items")
+        .select("*")
+        .in("order_id", openOrders.map(o => o.id));
+
+      if (itemsError) throw itemsError;
+
+      // Group by item_number + size
+      const aggregated = (orderItems || []).reduce((acc: any, item) => {
+        const key = `${item.item_number}-${item.size}`;
+        if (!acc[key]) {
+          acc[key] = {
+            collection_id: collectionData.id,
+            item_id: item.item_id,
+            item_number: item.item_number,
+            item_name: item.item_name,
+            size: item.size,
+            total_quantity: 0,
+            unit_price: item.unit_price,
+          };
+        }
+        acc[key].total_quantity += item.quantity;
+        return acc;
+      }, {});
+
+      // Insert aggregated items
+      const { error: insertError } = await supabase
+        .from("store_collection_items")
+        .insert(Object.values(aggregated));
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Uspešno",
+        description: `Zbirnik ${collectionData.collection_number} ustvarjen z ${openOrders.length} naročili`,
+      });
+
+      setIsCreateCollectionDialogOpen(false);
+      setCollectionFormData({ collection_date: "", notes: "" });
+      setOpenOrdersPreview([]);
+      loadCollections();
+    } catch (error: any) {
+      console.error("Napaka pri ustvarjanju zbirnika:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Ni mogoče ustvariti zbirnika",
+      });
+    }
+  }
+
+  // Admin: Load collection items
+  async function loadCollectionItems(collectionId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("store_collection_items")
+        .select("*")
+        .eq("collection_id", collectionId)
+        .order("item_number", { ascending: true })
+        .order("size", { ascending: true });
+
+      if (error) throw error;
+      setCollectionItems(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju postavk zbirnika:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče naložiti postavk zbirnika",
+      });
+    }
+  }
+
+  // Admin: Update collection status
+  async function handleCollectionStatusUpdate() {
+    if (!selectedCollection) return;
+
+    try {
+      const updateData: any = {
+        status: collectionStatusFormData.status,
+        notes: collectionStatusFormData.notes || null,
+        updated_at: new Date().toISOString(),
+        updated_by: user?.id,
+      };
+
+      if (collectionStatusFormData.status === "ordered" && collectionStatusFormData.ordered_at) {
+        updateData.ordered_at = new Date(collectionStatusFormData.ordered_at).toISOString();
+        updateData.ordered_by = user?.id;
+
+        // Update all orders in this collection to "ordered" status
+        const { error: ordersError } = await supabase
+          .from("store_orders")
+          .update({ 
+            status: "ordered",
+            ordered_at: updateData.ordered_at,
+          })
+          .eq("collection_id", selectedCollection.id);
+
+        if (ordersError) throw ordersError;
+      }
+
+      const { error } = await supabase
+        .from("store_collections")
+        .update(updateData)
+        .eq("id", selectedCollection.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Uspešno",
+        description: "Status zbirnika posodobljen",
+      });
+
+      setIsCollectionStatusDialogOpen(false);
+      setSelectedCollection(null);
+      loadCollections();
+    } catch (error: any) {
+      console.error("Napaka pri posodabljanju statusa:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: "Ni mogoče posodobiti statusa",
+      });
+    }
+  }
+
+  function handleViewCollectionItems(collection: StoreCollection) {
+    setSelectedCollection(collection);
+    loadCollectionItems(collection.id);
+    setIsCollectionItemsDialogOpen(true);
+  }
+
+  function handleEditCollectionStatus(collection: StoreCollection) {
+    setSelectedCollection(collection);
+    setCollectionStatusFormData({
+      status: collection.status,
+      ordered_at: collection.ordered_at ? new Date(collection.ordered_at).toISOString().split("T")[0] : "",
+      notes: collection.notes || "",
+    });
+    setIsCollectionStatusDialogOpen(true);
+  }
+
+  // Export collection to CSV
+  function exportCollectionToCSV(collection: StoreCollection) {
+    if (collectionItems.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Ni podatkov",
+        description: "Naloži postavke zbirnika najprej",
+      });
+      return;
+    }
+
+    const headers = ["Številka", "Artikel", "Velikost", "Količina", "Cena", "Skupaj"];
+    const rows = collectionItems.map(item => [
+      item.item_number,
+      item.item_name,
+      item.size,
+      item.total_quantity,
+      item.unit_price.toFixed(2),
+      (item.total_quantity * item.unit_price).toFixed(2),
+    ]);
+
+    const csvContent = [
+      `Zbirnik: ${collection.collection_number}`,
+      `Datum: ${new Date(collection.collection_date).toLocaleDateString("sl-SI")}`,
+      "",
+      headers.join(","),
+      ...rows.map(row => row.join(",")),
+      "",
+      `Skupaj artiklov: ${collectionItems.reduce((sum, item) => sum + item.total_quantity, 0)}`,
+      `Skupaj znesek: ${collectionItems.reduce((sum, item) => sum + (item.total_quantity * item.unit_price), 0).toFixed(2)} EUR`,
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${collection.collection_number}.csv`;
+    link.click();
+
+    toast({
+      title: "Izvoženo",
+      description: "CSV datoteka prenesena",
+    });
   }
 
   // Parent: Add to cart
@@ -1724,16 +2094,147 @@ export default function Store() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="zbirniki">
+        <TabsContent value="zbirniki" onFocus={() => loadCollections()}>
           <Card>
             <CardHeader>
-              <CardTitle>Zbirniki</CardTitle>
-              <CardDescription>Pregled zbirnikov (1. in 15. dan v mesecu)</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Zbirniki</CardTitle>
+                  <CardDescription>
+                    Periodično združevanje naročil (1. in 15. dan v mesecu)
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      loadOpenOrdersPreview();
+                      setIsCreateCollectionDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ustvari zbirnik
+                  </Button>
+                  <Button variant="outline" onClick={loadCollections}>
+                    Osveži
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground text-center py-12">
-                Pregled zbirnikov bo implementiran v Fazi 5
-              </p>
+              {collectionsLoading ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Nalaganje...</p>
+                </div>
+              ) : collections.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground mb-4">Ni zbirnikov</p>
+                  <Button
+                    onClick={() => {
+                      loadOpenOrdersPreview();
+                      setIsCreateCollectionDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ustvari prvi zbirnik
+                  </Button>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Številka</TableHead>
+                      <TableHead>Datum</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Naročil</TableHead>
+                      <TableHead>Artiklov</TableHead>
+                      <TableHead>Znesek</TableHead>
+                      <TableHead>Naročeno</TableHead>
+                      <TableHead className="text-right">Akcije</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {collections.map((collection) => (
+                      <TableRow key={collection.id}>
+                        <TableCell className="font-mono text-sm font-medium">
+                          {collection.collection_number}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(collection.collection_date).toLocaleDateString("sl-SI", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          {collection.status === "draft" && (
+                            <Badge variant="outline">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Osnutek
+                            </Badge>
+                          )}
+                          {collection.status === "ordered" && (
+                            <Badge className="bg-blue-500">
+                              <Package className="w-3 h-3 mr-1" />
+                              Naročeno
+                            </Badge>
+                          )}
+                          {collection.status === "received" && (
+                            <Badge className="bg-green-500">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Prejeto
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {collection.total_orders || 0}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {collection.total_items || 0}
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          {(collection.total_amount || 0).toFixed(2)} €
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {collection.ordered_at
+                            ? new Date(collection.ordered_at).toLocaleDateString("sl-SI")
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewCollectionItems(collection)}
+                            >
+                              Postavke
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                handleViewCollectionItems(collection);
+                                setTimeout(() => exportCollectionToCSV(collection), 500);
+                              }}
+                            >
+                              Export
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleEditCollectionStatus(collection)}
+                            >
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Uredi
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -2209,6 +2710,319 @@ export default function Store() {
             >
               Zapri
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Collection Dialog */}
+      <Dialog open={isCreateCollectionDialogOpen} onOpenChange={setIsCreateCollectionDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Ustvari nov zbirnik</DialogTitle>
+            <DialogDescription>
+              Združi vsa odprta naročila v zbirnik
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="collection_date">Datum zbirnika *</Label>
+              <Input
+                id="collection_date"
+                type="date"
+                value={collectionFormData.collection_date}
+                onChange={(e) =>
+                  setCollectionFormData({ ...collectionFormData, collection_date: e.target.value })
+                }
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Priporočeno: 1. ali 15. dan v mesecu
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="collection_notes">Opombe</Label>
+              <Textarea
+                id="collection_notes"
+                value={collectionFormData.notes}
+                onChange={(e) =>
+                  setCollectionFormData({ ...collectionFormData, notes: e.target.value })
+                }
+                placeholder="Dodatne opombe za ta zbirnik..."
+                rows={2}
+              />
+            </div>
+
+            <div className="border rounded-lg p-4 bg-muted/50">
+              <h4 className="font-semibold mb-3">
+                Predogled odprtih naročil ({openOrdersPreview.length})
+              </h4>
+              {openOrdersPreview.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Ni odprtih naročil za združevanje
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {openOrdersPreview.map((order) => (
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between p-2 bg-background rounded"
+                    >
+                      <div>
+                        <p className="font-mono text-sm">{order.order_number}</p>
+                        <p className="text-xs text-muted-foreground">{order.parent_name}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{order.total_amount.toFixed(2)} €</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(order.created_at).toLocaleDateString("sl-SI")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {openOrdersPreview.length > 0 && (
+              <div className="bg-primary/10 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">Skupaj:</span>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">
+                      {openOrdersPreview
+                        .reduce((sum, order) => sum + order.total_amount, 0)
+                        .toFixed(2)}{" "}
+                      €
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {openOrdersPreview.length} naročil
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreateCollectionDialogOpen(false);
+                setCollectionFormData({ collection_date: "", notes: "" });
+                setOpenOrdersPreview([]);
+              }}
+            >
+              Prekliči
+            </Button>
+            <Button
+              onClick={handleCreateCollection}
+              disabled={openOrdersPreview.length === 0}
+            >
+              Ustvari zbirnik
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Collection Items Dialog */}
+      <Dialog open={isCollectionItemsDialogOpen} onOpenChange={setIsCollectionItemsDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Postavke zbirnika</DialogTitle>
+            <DialogDescription>
+              Zbirnik: {selectedCollection?.collection_number} •{" "}
+              {selectedCollection?.collection_date &&
+                new Date(selectedCollection.collection_date).toLocaleDateString("sl-SI")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {collectionItems.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Ni postavk</p>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Št. artikla</TableHead>
+                      <TableHead>Naziv</TableHead>
+                      <TableHead>Velikost</TableHead>
+                      <TableHead className="text-right">Skupna količina</TableHead>
+                      <TableHead className="text-right">Cena</TableHead>
+                      <TableHead className="text-right">Skupaj</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {collectionItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono text-sm">
+                          {item.item_number}
+                        </TableCell>
+                        <TableCell className="font-medium">{item.item_name}</TableCell>
+                        <TableCell>{item.size}</TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {item.total_quantity}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {item.unit_price.toFixed(2)} €
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {(item.total_quantity * item.unit_price).toFixed(2)} €
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-right font-semibold">
+                        Skupaj:
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-lg">
+                        {collectionItems.reduce((sum, item) => sum + item.total_quantity, 0)}
+                      </TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="text-right font-bold text-lg">
+                        {collectionItems
+                          .reduce((sum, item) => sum + item.total_quantity * item.unit_price, 0)
+                          .toFixed(2)}{" "}
+                        €
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+
+                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Naročil v zbirniku:</p>
+                    <p className="text-2xl font-bold">{selectedCollection?.total_orders || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Različnih artiklov:</p>
+                    <p className="text-2xl font-bold">{collectionItems.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Skupaj kosov:</p>
+                    <p className="text-2xl font-bold">
+                      {collectionItems.reduce((sum, item) => sum + item.total_quantity, 0)}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => selectedCollection && exportCollectionToCSV(selectedCollection)}
+            >
+              Izvozi CSV
+            </Button>
+            <Button
+              onClick={() => {
+                setIsCollectionItemsDialogOpen(false);
+                setSelectedCollection(null);
+                setCollectionItems([]);
+              }}
+            >
+              Zapri
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Collection Status Edit Dialog */}
+      <Dialog open={isCollectionStatusDialogOpen} onOpenChange={setIsCollectionStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Uredi status zbirnika</DialogTitle>
+            <DialogDescription>
+              Zbirnik: {selectedCollection?.collection_number}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="collection_status">Status *</Label>
+              <Select
+                value={collectionStatusFormData.status}
+                onValueChange={(value) =>
+                  setCollectionStatusFormData({ ...collectionStatusFormData, status: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Osnutek</SelectItem>
+                  <SelectItem value="ordered">Naročeno</SelectItem>
+                  <SelectItem value="received">Prejeto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {collectionStatusFormData.status === "ordered" && (
+              <div>
+                <Label htmlFor="coll_ordered_at">Datum naročila pri dobavitelju *</Label>
+                <Input
+                  id="coll_ordered_at"
+                  type="date"
+                  value={collectionStatusFormData.ordered_at}
+                  onChange={(e) =>
+                    setCollectionStatusFormData({
+                      ...collectionStatusFormData,
+                      ordered_at: e.target.value,
+                    })
+                  }
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Vsa naročila v zbirniku bodo označena kot &quot;naročena&quot;
+                </p>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="coll_notes">Opombe</Label>
+              <Textarea
+                id="coll_notes"
+                value={collectionStatusFormData.notes}
+                onChange={(e) =>
+                  setCollectionStatusFormData({
+                    ...collectionStatusFormData,
+                    notes: e.target.value,
+                  })
+                }
+                placeholder="Dodatne opombe..."
+                rows={3}
+              />
+            </div>
+
+            <div className="bg-muted p-4 rounded-lg">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Naročil:</p>
+                  <p className="text-xl font-bold">{selectedCollection?.total_orders || 0}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Znesek:</p>
+                  <p className="text-xl font-bold">
+                    {(selectedCollection?.total_amount || 0).toFixed(2)} €
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCollectionStatusDialogOpen(false);
+                setSelectedCollection(null);
+              }}
+            >
+              Prekliči
+            </Button>
+            <Button onClick={handleCollectionStatusUpdate}>Shrani</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
