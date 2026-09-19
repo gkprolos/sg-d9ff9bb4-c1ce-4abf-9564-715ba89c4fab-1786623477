@@ -88,12 +88,24 @@ export default async function handler(
       console.error("OTP update error:", updateError);
     }
 
+    // Normalize email once for consistency
+    const parentEmail = email.toLowerCase().trim();
+    console.log("Normalized parent email:", parentEmail); // Debug log
+
     // Find players where this email is guardian1_email or guardian2_email
+    console.log("Looking up players for parent email:", parentEmail); // Debug log
+    
     const { data: players, error: playersError } = await supabase
       .from("players")
-      .select("id, first_name, last_name, date_of_birth, guardian1_email, guardian2_email")
-      .or(`guardian1_email.eq.${email.toLowerCase().trim()},guardian2_email.eq.${email.toLowerCase().trim()}`)
+      .select("id, first_name, last_name, date_of_birth, guardian1_email, guardian2_email, is_active")
+      .or(`guardian1_email.eq.${parentEmail},guardian2_email.eq.${parentEmail}`)
       .eq("is_active", true);
+
+    console.log("Players query result:", { 
+      players, 
+      playersError,
+      count: players?.length 
+    }); // Debug log
 
     if (playersError) {
       console.error("Players lookup error:", playersError);
@@ -101,14 +113,16 @@ export default async function handler(
     }
 
     if (!players || players.length === 0) {
+      console.error("No players found for email:", parentEmail); // Debug log
       return res.status(404).json({ error: "Skrbnik ne obstaja" });
     }
+
+    console.log(`Found ${players.length} children for parent:`, parentEmail); // Debug log
 
     // ============================================
     // SUPABASE AUTH INTEGRATION - ELEGANT SOLUTION
     // ============================================
     
-    const parentEmail = email.toLowerCase().trim();
     let authUserId: string;
     let accessToken: string;
     let refreshToken: string;
