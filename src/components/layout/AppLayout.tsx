@@ -49,6 +49,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = router.pathname;
 
+  const isAdmin = userRoles.some(role => role.role === "admin");
+  const isCoach = userRoles.some(role => role.role === "coach");
+  const isParent = userRoles.some(role => role.role === "parent");
+  const isAdminOrCoach = isAdmin || isCoach;
+
   const adminNavigation = [
     { name: "Nadzorna plošča", href: "/dashboard", icon: Home },
     { name: "Selekcije", href: "/teams", icon: Users },
