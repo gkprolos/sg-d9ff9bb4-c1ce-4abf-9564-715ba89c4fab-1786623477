@@ -17,23 +17,40 @@ interface Child {
   first_name: string;
   last_name: string;
   birth_date: string;
+  date_of_birth?: string;
   guardian1_email: string;
   guardian2_email?: string;
 }
 
+interface Player {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
 interface AttendanceRecord {
+  id: string;
   date: string;
   status: string;
   activity_name: string;
+  player_id: string;
+  activities?: {
+    name: string;
+  };
 }
 
 interface ScheduleTemplate {
   id: string;
   activity_name: string;
-  day_of_week: string;
+  day_of_week: number;
   start_time: string;
   end_time: string;
   location: string;
+  venue_id?: string;
+  venues?: {
+    name: string;
+    location?: string;
+  };
 }
 
 export default function MyChildren() {
@@ -43,7 +60,7 @@ export default function MyChildren() {
 
   const [loading, setLoading] = useState(true);
   const [children, setChildren] = useState<Child[]>([]);
-  const [selectedChild, setSelectedChild] = useState<Child | null>(null);
+  const [selectedChild, setSelectedChild] = useState<string>("");
   const [showSchedules, setShowSchedules] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
