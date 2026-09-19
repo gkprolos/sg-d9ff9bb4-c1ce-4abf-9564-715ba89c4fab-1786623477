@@ -7,23 +7,23 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, ArrowLeft, CheckCircle } from "lucide-react";
+import { Loader2, Mail, Lock, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 type AuthStep = "email" | "otp" | "password" | "complete";
 
 export default function ParentLogin() {
   const router = useRouter();
+  const { login } = useAuth();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<"email" | "otp">("email");
+  const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState(["", "", "", ""]);
-  const [loading, setLoading] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [canResend, setCanResend] = useState(true);
-  const [error, setError] = useState("");
   const [otpCode, setOtpCode] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   const otpRefs = [
   useRef<HTMLInputElement>(null),
@@ -34,11 +34,11 @@ export default function ParentLogin() {
 
   // OTP expiry countdown
   useEffect(() => {
-    if (timeRemaining > 0) {
-      const timer = setTimeout(() => setTimeRemaining(timeRemaining - 1), 1000);
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     }
-  }, [timeRemaining]);
+  }, [countdown]);
 
   // Format time remaining (MM:SS)
   const formatTime = (seconds: number) => {
@@ -73,10 +73,9 @@ export default function ParentLogin() {
         throw new Error(data.error || "Napaka pri pošiljanju kode");
       }
 
-      setStep("otp");
-      setTimeRemaining(180); // 3 minutes
-      setCanResend(false);
-      setTimeout(() => setCanResend(true), 60000); // Allow resend after 1 min
+      setStep("code");
+      setCountdown(180); // 3 minutes
+      setTimeout(() => setCountdown(0), 60000); // Allow resend after 1 min
 
       toast({
         title: "Koda poslana",
@@ -191,7 +190,7 @@ export default function ParentLogin() {
             <CardTitle>Prijava za starše</CardTitle>
             <CardDescription>
               {step === "email" && "Vnesite vaš email naslov"}
-              {step === "otp" && "Vnesite 4-mestno kodo"}
+              {step === "code" && "Vnesite 4-mestno kodo"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -218,7 +217,7 @@ export default function ParentLogin() {
               </>
             }
 
-            {step === "otp" &&
+            {step === "code" &&
             <>
                 <div className="space-y-2">
                   <Label>Vnesite 4-mestno kodo</Label>
