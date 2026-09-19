@@ -53,7 +53,6 @@ import {
   SidebarMenuButton,
   SidebarProvider,
   SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -62,12 +61,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { pathname } = router;
   const { user, userRole } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isAdmin = userRole === "admin";
   const isCoach = userRole === "coach";
-  const isParent = userRole === "parent" || !isAdmin && !isCoach; // Fallback: if not admin/coach, assume parent
+  const isParent = userRole === "parent" || (!isAdmin && !isCoach);
   const isAdminOrCoach = isAdmin || isCoach;
 
   async function handleLogout() {
@@ -75,285 +73,305 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }
 
-  const adminNavigation = [
-    { name: "Nadzorna plošča", href: "/dashboard", icon: Home },
-    { name: "Selekcije", href: "/teams", icon: Users },
-    { name: "Igralci", href: "/players", icon: UserCircle },
-    { name: "Trenerji", href: "/coaches", icon: UserCog },
-    { name: "Aktivnosti", href: "/activities", icon: Calendar },
-    { name: "Prisotnost", href: "/attendance", icon: ClipboardList },
-    { name: "Urnik", href: "/schedules", icon: Clock },
-    { name: "Dvorane", href: "/venues", icon: Building2 },
-    { name: "Sezone", href: "/seasons", icon: Trophy },
-    { name: "Obračun", href: "/billing", icon: DollarSign },
-    { name: "Poročila", href: "/reports", icon: BarChart3 },
-    { name: "Sporočila", href: "/messaging", icon: MessageSquare },
-    { name: "Oprema", href: "/store", icon: Package },
-    { name: "Nastavitve", href: "/settings", icon: Settings },
-    { name: "SMTP Nastavitve", href: "/smtp-settings", icon: Mail },
-  ];
-
-  const coachNavigation = [
-    { name: "Pregled", href: "/dashboard", icon: Home },
-    { name: "Moje Selekcije", href: "/my-teams", icon: Users },
-    { name: "Moji Igralci", href: "/my-players", icon: UserCircle },
-    { name: "Aktivnosti", href: "/activities", icon: Calendar },
-    { name: "Prisotnost", href: "/attendance", icon: ClipboardList },
-    { name: "Moj Urnik", href: "/my-schedules", icon: Clock },
-    { name: "Dvorane", href: "/my-venues", icon: Building2 },
-    { name: "Obračun", href: "/billing", icon: DollarSign },
-    { name: "Sporočila", href: "/messaging", icon: MessageSquare },
-    { name: "Oprema", href: "/store", icon: Package },
-  ];
-
-  const parentNavigation = [
-    { name: "Moji Otroci", href: "/my-children", icon: UserCircle },
-    { name: "Urnik", href: "/my-schedules", icon: Clock },
-    { name: "Prisotnost", href: "/attendance/monthly", icon: ClipboardList },
-    { name: "Sporočila", href: "/messaging", icon: MessageSquare },
-    { name: "Oprema", href: "/store", icon: Package },
-  ];
-
-  const navigation =
-    userRole === "admin"
-      ? adminNavigation
-      : userRole === "coach"
-      ? coachNavigation
-      : parentNavigation;
-
-  const handleSignOut = async () => {
-    await handleLogout();
-    router.push("/login");
-  };
-
-  const getInitials = (email: string) => {
-    return email.substring(0, 2).toUpperCase();
-  };
+  if (!user) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center px-4">
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden mr-2"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </Button>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <Sidebar>
+          <SidebarHeader className="border-b px-6 py-4">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-6 w-6 text-primary" />
+              <span className="text-lg font-bold">Klub Manager</span>
+            </div>
+          </SidebarHeader>
 
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">K</span>
-              </div>
-              <span className="font-bold text-xl hidden sm:inline-block">
-                Klub
-              </span>
-            </Link>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Navigacija</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {/* Parent Navigation */}
+                  {isParent && (
+                    <>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
+                          <Link href="/dashboard">
+                            <LayoutDashboard className="w-4 h-4" />
+                            Nadzorna plošča
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/my-children"}>
+                          <Link href="/my-children">
+                            <Users className="w-4 h-4" />
+                            Moji otroci
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/my-schedules"}>
+                          <Link href="/my-schedules">
+                            <Calendar className="w-4 h-4" />
+                            Urnik
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/messaging"}>
+                          <Link href="/messaging">
+                            <MessageSquare className="w-4 h-4" />
+                            Sporočila
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/store"}>
+                          <Link href="/store">
+                            <ShoppingBag className="w-4 h-4" />
+                            Oprema
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </>
+                  )}
+
+                  {/* Coach Navigation */}
+                  {isCoach && !isParent && (
+                    <>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
+                          <Link href="/dashboard">
+                            <LayoutDashboard className="w-4 h-4" />
+                            Nadzorna plošča
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/my-teams"}>
+                          <Link href="/my-teams">
+                            <Users className="w-4 h-4" />
+                            Moje ekipe
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/my-players"}>
+                          <Link href="/my-players">
+                            <User className="w-4 h-4" />
+                            Moji igralci
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/attendance"}>
+                          <Link href="/attendance">
+                            <ClipboardCheck className="w-4 h-4" />
+                            Prisotnost
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/my-schedules"}>
+                          <Link href="/my-schedules">
+                            <Calendar className="w-4 h-4" />
+                            Urnik
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/messaging"}>
+                          <Link href="/messaging">
+                            <MessageSquare className="w-4 h-4" />
+                            Sporočila
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/store"}>
+                          <Link href="/store">
+                            <ShoppingBag className="w-4 h-4" />
+                            Oprema
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </>
+                  )}
+
+                  {/* Admin Navigation */}
+                  {isAdmin && (
+                    <>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
+                          <Link href="/dashboard">
+                            <Home className="w-4 h-4" />
+                            Domov
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/activities"}>
+                          <Link href="/activities">
+                            <Trophy className="w-4 h-4" />
+                            Aktivnosti
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/attendance"}>
+                          <Link href="/attendance">
+                            <ClipboardCheck className="w-4 h-4" />
+                            Prisotnost
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/teams"}>
+                          <Link href="/teams">
+                            <Users className="w-4 h-4" />
+                            Selekcije
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/players"}>
+                          <Link href="/players">
+                            <User className="w-4 h-4" />
+                            Igralci
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/coaches"}>
+                          <Link href="/coaches">
+                            <UserCircle className="w-4 h-4" />
+                            Trenerji
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/schedules"}>
+                          <Link href="/schedules">
+                            <Calendar className="w-4 h-4" />
+                            Urnik
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/venues"}>
+                          <Link href="/venues">
+                            <Building2 className="w-4 h-4" />
+                            Dvorane
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/seasons"}>
+                          <Link href="/seasons">
+                            <Clock className="w-4 h-4" />
+                            Sezone
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/billing"}>
+                          <Link href="/billing">
+                            <DollarSign className="w-4 h-4" />
+                            Obračun
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/reports"}>
+                          <Link href="/reports">
+                            <BarChart3 className="w-4 h-4" />
+                            Poročila
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/messaging"}>
+                          <Link href="/messaging">
+                            <MessageSquare className="w-4 h-4" />
+                            Sporočila
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/store"}>
+                          <Link href="/store">
+                            <ShoppingBag className="w-4 h-4" />
+                            Oprema
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/smtp-settings"}>
+                          <Link href="/smtp-settings">
+                            <Mail className="w-4 h-4" />
+                            SMTP
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === "/settings"}>
+                          <Link href="/settings">
+                            <Settings className="w-4 h-4" />
+                            Nastavitve
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </>
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+
+          <SidebarFooter className="border-t p-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>
+                      {user?.email?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start text-sm">
+                    <span className="font-medium truncate max-w-[150px]">
+                      {user?.email}
+                    </span>
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {userRole}
+                    </span>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Moj račun</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Odjava
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarFooter>
+        </Sidebar>
+
+        <main className="flex-1 overflow-y-auto">
+          <div className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
+            <SidebarTrigger />
+            <div className="flex-1" />
           </div>
-
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {user?.email ? getInitials(user.email) : "U"}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {user?.email}
-                  </p>
-                  <p className="text-xs leading-none text-muted-foreground capitalize">
-                    {userRole === "admin"
-                      ? "Administrator"
-                      : userRole === "coach"
-                      ? "Trener"
-                      : "Starš"}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push("/settings")}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Nastavitve</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Odjava
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
-
-      <div className="flex">
-        {/* Desktop Sidebar */}
-        <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:pt-16 border-r bg-background">
-          <div className="flex flex-col gap-1 p-4 overflow-y-auto">
-            {isParent && (
-              <>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
-                    <Link href="/dashboard">
-                      <LayoutDashboard className="w-4 h-4" />
-                      Nadzorna plošča
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/my-children"}>
-                    <Link href="/my-children">
-                      <Users className="w-4 h-4" />
-                      Moji otroci
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/my-schedules"}>
-                    <Link href="/my-schedules">
-                      <Calendar className="w-4 h-4" />
-                      Urnik
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/messaging"}>
-                    <Link href="/messaging">
-                      <MessageSquare className="w-4 h-4" />
-                      Sporočila
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/store"}>
-                    <Link href="/store">
-                      <ShoppingBag className="w-4 h-4" />
-                      Oprema
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </>
-            )}
-
-            {isCoach && !isParent && (
-              <>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
-                    <Link href="/dashboard">
-                      <LayoutDashboard className="w-4 h-4" />
-                      Nadzorna plošča
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/my-teams"}>
-                    <Link href="/my-teams">
-                      <Users className="w-4 h-4" />
-                      Moje ekipe
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/my-players"}>
-                    <Link href="/my-players">
-                      <User className="w-4 h-4" />
-                      Moji igralci
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/attendance"}>
-                    <Link href="/attendance">
-                      <ClipboardCheck className="w-4 h-4" />
-                      Prisotnost
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/my-schedules"}>
-                    <Link href="/my-schedules">
-                      <Calendar className="w-4 h-4" />
-                      Urnik
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/messaging"}>
-                    <Link href="/messaging">
-                      <MessageSquare className="w-4 h-4" />
-                      Sporočila
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/store"}>
-                    <Link href="/store">
-                      <ShoppingBag className="w-4 h-4" />
-                      Oprema
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </>
-            )}
+          <div className="p-4 sm:p-6">
+            {children}
           </div>
-        </aside>
-
-        {/* Mobile Sidebar */}
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-40 md:hidden">
-            <div
-              className="fixed inset-0 bg-background/80 backdrop-blur-sm"
-              onClick={() => setIsMobileMenuOpen(false)}
-            />
-            <aside className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-background pt-16">
-              <div className="flex flex-col gap-1 p-4 overflow-y-auto">
-                {navigation.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                      }`}
-                    >
-                      <item.icon className="h-5 w-5 flex-shrink-0" />
-                      <span className="flex-1">{item.name}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </aside>
-          </div>
-        )}
-
-        {/* Main Content */}
-        <main className="flex-1 md:pl-64 pt-16">
-          <div className="container mx-auto p-6">{children}</div>
         </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
