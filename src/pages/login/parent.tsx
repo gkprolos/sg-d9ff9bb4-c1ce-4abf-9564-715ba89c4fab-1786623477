@@ -22,6 +22,8 @@ export default function ParentLogin() {
   const [loading, setLoading] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [canResend, setCanResend] = useState(true);
+  const [error, setError] = useState("");
+  const [otpCode, setOtpCode] = useState("");
 
   const otpRefs = [
   useRef<HTMLInputElement>(null),

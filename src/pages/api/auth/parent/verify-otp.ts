@@ -102,28 +102,37 @@ export default async function handler(
     
     const parentEmail = email.toLowerCase().trim();
     let authUserId: string;
-    let sessionData: any;
+    let accessToken: string;
+    let refreshToken: string;
 
     // Check if user already exists in auth.users
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(u => u.email === parentEmail);
+    const { data: listData, error: listError } = await supabase.auth.admin.listUsers();
+    
+    if (listError) {
+      console.error("List users error:", listError);
+    }
+
+    const existingUser = listData?.users?.find((u: any) => u.email === parentEmail);
 
     if (existingUser) {
-      // User exists - create session for existing user
+      // User exists - generate magic link tokens
       authUserId = existingUser.id;
       
-      const { data: sessionResponse, error: sessionError } = await supabase.auth.admin.createSession({
-        user_id: authUserId,
+      const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: parentEmail,
       });
 
-      if (sessionError) {
-        console.error("Session creation error:", sessionError);
+      if (linkError || !linkData) {
+        console.error("Link generation error:", linkError);
         return res.status(500).json({ error: "Napaka pri ustvarjanju seje" });
       }
 
-      sessionData = sessionResponse;
+      accessToken = linkData.properties.action_link.split('#')[1]?.split('&')[0]?.split('=')[1] || '';
+      refreshToken = linkData.properties.action_link.split('refresh_token=')[1]?.split('&')[0] || '';
+      
     } else {
-      // Create new auth user (anonymous-style with email metadata)
+      // Create new auth user with email
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: parentEmail,
         email_confirm: true,
@@ -156,17 +165,19 @@ export default async function handler(
         // Continue even if profile creation fails - not critical
       }
 
-      // Create session for new user
-      const { data: sessionResponse, error: sessionError } = await supabase.auth.admin.createSession({
-        user_id: authUserId,
+      // Generate magic link tokens for new user
+      const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: parentEmail,
       });
 
-      if (sessionError) {
-        console.error("Session creation error:", sessionError);
+      if (linkError || !linkData) {
+        console.error("Link generation error:", linkError);
         return res.status(500).json({ error: "Napaka pri ustvarjanju seje" });
       }
 
-      sessionData = sessionResponse;
+      accessToken = linkData.properties.action_link.split('#')[1]?.split('&')[0]?.split('=')[1] || '';
+      refreshToken = linkData.properties.action_link.split('refresh_token=')[1]?.split('&')[0] || '';
     }
 
     // Ensure parent role exists in user_roles
@@ -195,10 +206,8 @@ export default async function handler(
     return res.status(200).json({
       success: true,
       session: {
-        access_token: sessionData.access_token,
-        refresh_token: sessionData.refresh_token,
-        expires_in: sessionData.expires_in,
-        expires_at: sessionData.expires_at,
+        access_token: accessToken,
+        refresh_token: refreshToken,
         user: {
           id: authUserId,
           email: parentEmail,
