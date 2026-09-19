@@ -172,7 +172,11 @@ export default function ParentLogin() {
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button 
+                type="submit" 
+                className="w-full bg-lime-500 hover:bg-lime-600 text-white" 
+                disabled={loading}
+              >
                 {loading ? "Pošiljam..." : "Pošlji kodo"}
               </Button>
             </form>
@@ -224,7 +228,7 @@ export default function ParentLogin() {
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full bg-lime-500 hover:bg-lime-600 text-white"
                   disabled={loading || otpCode.length !== 4}
                 >
                   {loading ? "Preverjam..." : "Preveri kodo"}
