@@ -3442,6 +3442,7 @@ async function handleSubmitOrder() {
     console.log("Step 2: Creating order...");
     const orderData = {
       player_id: selectedChild,
+      parent_id: user?.id || null, // Add parent_id (required field)
       collection_period_id: period.id,
       total_amount: calculateTotal(),
       status: "pending",
