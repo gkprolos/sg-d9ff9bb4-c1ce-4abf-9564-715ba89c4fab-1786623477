@@ -29,7 +29,7 @@ export default function ParentLogin() {
         email: trimmedEmail,
         options: {
           emailRedirectTo: "https://klub.oklubnik.si/my-children",
-          shouldCreateUser: false, // Only allow existing parent users
+          shouldCreateUser: true, // Allow parent signup via magic link
         },
       });
 
