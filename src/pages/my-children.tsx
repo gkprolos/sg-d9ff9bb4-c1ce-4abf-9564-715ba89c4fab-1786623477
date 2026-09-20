@@ -405,36 +405,25 @@ export default function MyChildren() {
                     </div>
                   </div>
 
-                  {selectedChild && (() => {
+                  {selectedChild && selectedChildData && (() => {
                     // Calculate child's age from date of birth
-                    const childAge: number | null = child.date_of_birth
+                    const childAge: number | null = selectedChildData.date_of_birth
                       ? Math.floor(
-                          (new Date().getTime() - new Date(child.date_of_birth).getTime()) /
+                          (new Date().getTime() - new Date(selectedChildData.date_of_birth).getTime()) /
                             (1000 * 60 * 60 * 24 * 365.25)
                         )
                       : null;
 
-                    const isChildMinor = childAge !== null && childAge < 18;
-                    
-                    const childData: ChildData = {
-                      name: `${child.first_name} ${child.last_name}`,
-                      age: childAge, // number | null type
-                      birthDate: child.date_of_birth,
-                      teams: [],
-                      schedules: [],
-                      attendance: [],
-                      isMinor: isChildMinor,
-                    };
-                    return selectedData && selectedData.age !== null && selectedData.age !== undefined && (
+                    return childAge !== null && (
                       <div className="text-sm space-y-1">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>{selectedData.age} let</span>
+                          <span>{childAge} let</span>
                         </div>
-                        {selectedData.age >= 18 && (
+                        {childAge >= 18 && (
                           <Badge variant="secondary">Polnoleten</Badge>
                         )}
-                        {selectedData.age < 18 && (
+                        {childAge < 18 && (
                           <Badge variant="outline">Mladoletnik</Badge>
                         )}
                       </div>
