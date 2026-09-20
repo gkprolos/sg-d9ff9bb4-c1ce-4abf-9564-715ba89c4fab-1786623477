@@ -1,130 +1,66 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, ArrowLeft, Mail } from "lucide-react";
+import { AlertCircle, Mail, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export default function ParentLogin() {
-  const router = useRouter();
   const { toast } = useToast();
-  const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
-  const [otpCode, setOtpCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+  const [emailSent, setEmailSent] = useState(false);
 
-  // Countdown timer for resend button
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [countdown]);
-
-  async function handleSendOTP(e: React.FormEvent) {
+  async function handleSendMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const response = await fetch("/api/auth/parent/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+      const trimmedEmail = email.trim().toLowerCase();
+
+      // Send magic link via Supabase
+      const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/my-children`,
+          shouldCreateUser: false, // Only allow existing parent users
+        },
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Napaka pri pošiljanju kode");
+      if (magicLinkError) {
+        throw magicLinkError;
       }
 
-      if (data.success) {
-        setStep("code");
-        setOtpCode("");
-        setCountdown(60);
-        toast({
-          title: "Koda poslana",
-          description: `4-mestna koda je bila poslana na ${email}`,
-        });
-      }
+      setEmailSent(true);
+      toast({
+        title: "Povezava poslana",
+        description: `Preverite email ${trimmedEmail} in kliknite povezavo za prijavo.`,
+      });
     } catch (err: any) {
-      console.error("Send OTP error:", err);
-      setError(err.message || "Napaka pri pošiljanju kode");
+      console.error("Magic link error:", err);
+      
+      // User-friendly error messages
+      let errorMessage = "Napaka pri pošiljanju povezave";
+      
+      if (err.message?.includes("Email not allowed")) {
+        errorMessage = "Ta email ni registriran kot skrbnik. Obrnite se na administratorja.";
+      } else if (err.message?.includes("User not found")) {
+        errorMessage = "Ta email ni registriran. Obrnite se na administratorja.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: err.message || "Napaka pri pošiljanju kode",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleVerifyCode(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      console.log("Verifying OTP:", { email, code: otpCode });
-
-      const response = await fetch("/api/auth/parent/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          email: email.trim(), 
-          code: otpCode.trim() 
-        }),
-      });
-
-      const data = await response.json();
-      console.log("Verify response:", data);
-
-      if (!response.ok) {
-        throw new Error(data.error || "Napaka pri preverjanju kode");
-      }
-
-      if (data.success && data.session) {
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
-
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          throw new Error("Napaka pri nastavitvi seje");
-        }
-
-        // Wait for session to be fully established in AuthContext
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        localStorage.setItem("parent_email", data.parent.email);
-        localStorage.setItem("parent_children", JSON.stringify(data.children));
-
-        toast({
-          title: "Prijava uspešna",
-          description: `Dobrodošli! Najdenih ${data.children.length} otrok.`,
-        });
-
-        // Use window.location for hard navigation to ensure session is recognized
-        window.location.href = "/my-children";
-      }
-    } catch (err: any) {
-      console.error("Verification error:", err);
-      setError(err.message || "Napaka pri preverjanju kode");
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: err.message || "Napaka pri preverjanju kode",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -137,21 +73,21 @@ export default function ParentLogin() {
         <CardHeader>
           <CardTitle className="text-2xl text-center">Prijava za Starše</CardTitle>
           <CardDescription className="text-center">
-            {step === "email" ? (
+            {!emailSent ? (
               <p className="text-sm text-muted-foreground">
                 Vnesite e-poštni naslov, ki je vnesen kot skrbnik pri vašem otroku
               </p>
             ) : (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
-                <AlertCircle className="w-4 h-4" />
-                <span>4-mestna koda je veljavna 5 minut</span>
+              <div className="flex items-center gap-2 text-sm text-green-600 justify-center">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Povezava za prijavo poslana!</span>
               </div>
             )}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === "email" ? (
-            <form onSubmit={handleSendOTP} className="space-y-6">
+          {!emailSent ? (
+            <form onSubmit={handleSendMagicLink} className="space-y-6">
               <div>
                 <Label htmlFor="email">E-poštni naslov</Label>
                 <div className="relative">
@@ -165,6 +101,7 @@ export default function ParentLogin() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={loading}
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -181,77 +118,41 @@ export default function ParentLogin() {
                 className="w-full bg-lime-500 hover:bg-lime-600 text-white" 
                 disabled={loading}
               >
-                {loading ? "Pošiljam..." : "Pošlji kodo"}
+                {loading ? "Pošiljam..." : "Pošlji povezavo za prijavo"}
               </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Povezava bo poslana na vaš email in bo veljavna 60 minut
+              </p>
             </form>
           ) : (
             <div className="space-y-6">
+              <Alert>
+                <Mail className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="space-y-2">
+                    <p className="font-medium">Preverite vašo e-pošto!</p>
+                    <p className="text-sm">
+                      Povezavo za prijavo smo poslali na <strong>{email}</strong>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Kliknite povezavo v emailu za avtomatično prijavo. Povezava je veljavna 60 minut.
+                    </p>
+                  </div>
+                </AlertDescription>
+              </Alert>
+
               <Button
-                variant="ghost"
-                size="sm"
+                variant="outline"
                 onClick={() => {
-                  setStep("email");
-                  setOtpCode("");
+                  setEmailSent(false);
+                  setEmail("");
                   setError("");
                 }}
-                className="mb-4"
+                className="w-full"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Nazaj
+                Nazaj na vnos emaila
               </Button>
-
-              <form onSubmit={handleVerifyCode} className="space-y-6">
-                <div>
-                  <Label htmlFor="otp">Vnesite 4-mestno kodo</Label>
-                  <div className="flex justify-center mt-2">
-                    <InputOTP
-                      maxLength={4}
-                      value={otpCode}
-                      onChange={(value) => setOtpCode(value)}
-                      onComplete={(value) => setOtpCode(value)}
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2 text-center">
-                    Koda je bila poslana na {email}
-                  </p>
-                </div>
-
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <Button
-                  type="submit"
-                  className="w-full bg-lime-500 hover:bg-lime-600 text-white"
-                  disabled={loading || otpCode.length !== 4}
-                >
-                  {loading ? "Preverjam..." : "Preveri kodo"}
-                </Button>
-
-                <div className="text-center">
-                  <Button
-                    type="button"
-                    variant="link"
-                    onClick={handleSendOTP}
-                    disabled={countdown > 0 || loading}
-                    className="text-sm"
-                  >
-                    {countdown > 0
-                      ? `Ponovno pošlji kodo čez ${countdown}s`
-                      : "Ponovno pošlji kodo"}
-                  </Button>
-                </div>
-              </form>
             </div>
           )}
 

@@ -20,7 +20,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state change:", event, session?.user?.email);
+      
       setUser(session?.user ?? null);
       
       if (session?.user) {
@@ -29,20 +31,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .from("user_roles")
             .select("role")
             .eq("user_id", session.user.id)
-            .maybeSingle(); // Changed from .single() to handle 0 rows gracefully
+            .maybeSingle();
 
           if (error) {
             console.error("Error fetching user role:", error);
-            setUserRole("parent"); // Default fallback
+            setUserRole("parent");
           } else {
-            // If no role found in user_roles, default to parent
             const role = data?.role || "parent";
             setUserRole(getUserRole([{ role }]));
+            
+            // For parent users (magic link), store email in localStorage
+            if (role === "parent") {
+              localStorage.setItem("parent_email", session.user.email || "");
+              
+              // Fetch and store parent's children
+              const { data: children } = await supabase
+                .from("players")
+                .select("id, first_name, last_name")
+                .or(`guardian1_email.eq.${session.user.email},guardian2_email.eq.${session.user.email}`);
+              
+              if (children) {
+                localStorage.setItem("parent_children", JSON.stringify(children));
+              }
+            }
           }
         } catch (err) {
           console.error("Error fetching user role:", err);
-          setUserRole("parent"); // Default fallback
+          setUserRole("parent");
         }
+      } else {
+        // Clear parent data on logout
+        localStorage.removeItem("parent_email");
+        localStorage.removeItem("parent_children");
       }
       
       setLoading(false);
@@ -56,14 +76,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
-          .maybeSingle() // Changed from .single()
-          .then(({ data, error }) => {
+          .maybeSingle()
+          .then(async ({ data, error }) => {
             if (error) {
               console.error("Error fetching user role:", error);
               setUserRole("parent");
             } else {
               const role = data?.role || "parent";
               setUserRole(getUserRole([{ role }]));
+              
+              // For parent users, store email and children
+              if (role === "parent" && session.user.email) {
+                localStorage.setItem("parent_email", session.user.email);
+                
+                const { data: children } = await supabase
+                  .from("players")
+                  .select("id, first_name, last_name")
+                  .or(`guardian1_email.eq.${session.user.email},guardian2_email.eq.${session.user.email}`);
+                
+                if (children) {
+                  localStorage.setItem("parent_children", JSON.stringify(children));
+                }
+              }
             }
             setLoading(false);
           });
