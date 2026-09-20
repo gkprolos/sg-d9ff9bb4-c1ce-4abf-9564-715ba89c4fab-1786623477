@@ -406,10 +406,25 @@ export default function MyChildren() {
                   </div>
 
                   {selectedChild && (() => {
-                    const selectedData = childrenData.find(c => {
-                      const child = children.find(ch => ch.id === selectedChild);
-                      return child && c.name === `${child.first_name} ${child.last_name}`;
-                    });
+                    // Calculate child's age from date of birth
+                    const childAge: number | null = child.date_of_birth
+                      ? Math.floor(
+                          (new Date().getTime() - new Date(child.date_of_birth).getTime()) /
+                            (1000 * 60 * 60 * 24 * 365.25)
+                        )
+                      : null;
+
+                    const isChildMinor = childAge !== null && childAge < 18;
+                    
+                    const childData: ChildData = {
+                      name: `${child.first_name} ${child.last_name}`,
+                      age: childAge, // number | null type
+                      birthDate: child.date_of_birth,
+                      teams: [],
+                      schedules: [],
+                      attendance: [],
+                      isMinor: isChildMinor,
+                    };
                     return selectedData && selectedData.age !== null && selectedData.age !== undefined && (
                       <div className="text-sm space-y-1">
                         <div className="flex items-center gap-2">
