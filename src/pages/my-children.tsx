@@ -308,9 +308,10 @@ export default function MyChildren() {
   const daysOfWeek = ["Nedelja", "Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota"];
 
   const groupedSchedules = schedules.reduce((acc, schedule) => {
-    const day = typeof schedule.day_of_week === 'number' 
-      ? daysOfWeek[schedule.day_of_week] 
-      : schedule.day_of_week;
+    const dayNum = typeof schedule.day_of_week === 'number' 
+      ? schedule.day_of_week 
+      : parseInt(String(schedule.day_of_week), 10);
+    const day = daysOfWeek[dayNum] || String(schedule.day_of_week);
     if (!acc[day]) acc[day] = [];
     acc[day].push(schedule);
     return acc;
@@ -371,15 +372,15 @@ export default function MyChildren() {
                     <div>
                       <label className="text-sm font-medium mb-2 block">Mesec</label>
                       <Select
-                        value={selectedMonth.toString()}
-                        onValueChange={(value) => setSelectedMonth(Number(value))}
+                        value={String(selectedMonth)}
+                        onValueChange={(value) => setSelectedMonth(parseInt(value, 10))}
                       >
                         <SelectTrigger className="w-[180px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((month) => (
-                            <SelectItem key={month} value={month.toString()}>
+                            <SelectItem key={month} value={String(month)}>
                               {months[month] || "N/A"}
                             </SelectItem>
                           ))}
