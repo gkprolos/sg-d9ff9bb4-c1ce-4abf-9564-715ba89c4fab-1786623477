@@ -28,7 +28,7 @@ export default function ParentLogin() {
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: trimmedEmail,
         options: {
-          emailRedirectTo: "https://klub.oklubnik.si/my-children",
+          emailRedirectTo: `${window.location.origin}/my-children`,
           shouldCreateUser: true, // Allow parent signup via magic link
         },
       });
