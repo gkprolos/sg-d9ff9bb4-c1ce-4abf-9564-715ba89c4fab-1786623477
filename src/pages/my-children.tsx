@@ -418,6 +418,20 @@ export default function MyChildren() {
                       </div>
                     </div>
                 }
+                {selectedChildData.age !== null && (
+                  <div className="text-sm space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>{selectedChildData.age} let</span>
+                    </div>
+                    {selectedChildData.age >= 18 && (
+                      <Badge variant="secondary">Polnoleten</Badge>
+                    )}
+                    {selectedChildData.age < 18 && (
+                      <Badge variant="outline">Mladoletnik</Badge>
+                    )}
+                  </div>
+                )}
                 </CardContent>
               </Card>
 
