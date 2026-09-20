@@ -382,7 +382,7 @@ export default function MyChildren() {
                             <SelectItem key={month} value={month.toString()}>
                               {months[month] || "N/A"}
                             </SelectItem>
-                          )}
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
