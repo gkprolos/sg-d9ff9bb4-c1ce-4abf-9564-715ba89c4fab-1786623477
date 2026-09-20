@@ -196,8 +196,30 @@ const AVAILABLE_SIZES = [
 export default function Store() {
   const { user, userRole } = useAuth();
   const router = useRouter();
-  const isParent = userRole !== "admin" && userRole !== "coach";
-  const isAdminOrCoach = userRole === "admin" || userRole === "coach";
+  
+  // Parent session detection (for OTP login)
+  const [parentEmail, setParentEmail] = useState<string | null>(null);
+  const [effectiveRole, setEffectiveRole] = useState<"admin" | "coach" | "parent" | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (user && userRole) {
+        setEffectiveRole(userRole);
+        setParentEmail(null);
+      } else {
+        // Check localStorage for parent email (set during OTP login)
+        const storedEmail = localStorage.getItem("parent_email");
+        if (storedEmail) {
+          setParentEmail(storedEmail);
+          setEffectiveRole("parent");
+          console.log("Parent session detected from localStorage:", storedEmail);
+        }
+      }
+    }
+  }, [user, userRole]);
+
+  const isParent = effectiveRole === "parent";
+  const isAdminOrCoach = effectiveRole === "admin" || effectiveRole === "coach";
 
   // Admin/Coach State
   const [items, setItems] = useState<StoreItem[]>([]);
@@ -292,16 +314,18 @@ export default function Store() {
 
   // Load data based on role
   useEffect(() => {
-    if (user) {
+    if (effectiveRole) {
       loadCategories();
       if (isAdminOrCoach) {
         loadItems();
       } else if (isParent) {
         loadActiveItems();
-        loadMyOrders();
+        if (user?.id) {
+          loadMyOrders(); // Only load orders if we have actual Supabase user
+        }
       }
     }
-  }, [user, isAdminOrCoach, isParent]);
+  }, [effectiveRole, isAdminOrCoach, isParent, user]);
 
   // Load categories
   async function loadCategories() {
