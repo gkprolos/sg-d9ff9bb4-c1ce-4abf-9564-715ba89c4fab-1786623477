@@ -790,14 +790,16 @@ export default function MessagingPage() {
           <div className="w-1/3 flex flex-col gap-4">
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5" />
-                    {isAdmin ? "Sporočila" : isCoach ? "Moja Sporočila" : "Sporočila"}
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="flex items-center gap-2 flex-1 min-w-0">
+                    <MessageSquare className="h-5 w-5 flex-shrink-0" />
+                    <span className="truncate">
+                      {isAdmin ? "Sporočila" : isCoach ? "Moja Sporočila" : "Sporočila"}
+                    </span>
                   </CardTitle>
                   <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
                     <DialogTrigger asChild>
-                      <Button size="sm" onClick={() => loadAvailableContacts()} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
+                      <Button size="sm" onClick={() => loadAvailableContacts()} className="flex-shrink-0" style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                         <Plus className="h-4 w-4 mr-2" />
                         Nov Pogovor
                       </Button>
