@@ -418,7 +418,7 @@ export default function MyChildren() {
                       </div>
                     </div>
                 }
-                {selectedChildData.age !== null && (
+                {selectedChildData?.age !== null && selectedChildData?.age !== undefined && (
                   <div className="text-sm space-y-1">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
