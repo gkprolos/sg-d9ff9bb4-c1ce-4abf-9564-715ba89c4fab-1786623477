@@ -405,20 +405,26 @@ export default function MyChildren() {
                     </div>
                   </div>
 
-                  {selectedChildData && selectedChildData.age !== null && selectedChildData.age !== undefined && (
-                    <div className="text-sm space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>{selectedChildData.age} let</span>
+                  {selectedChild && (() => {
+                    const selectedData = childrenData.find(c => {
+                      const child = children.find(ch => ch.id === selectedChild);
+                      return child && c.name === `${child.first_name} ${child.last_name}`;
+                    });
+                    return selectedData && selectedData.age !== null && selectedData.age !== undefined && (
+                      <div className="text-sm space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span>{selectedData.age} let</span>
+                        </div>
+                        {selectedData.age >= 18 && (
+                          <Badge variant="secondary">Polnoleten</Badge>
+                        )}
+                        {selectedData.age < 18 && (
+                          <Badge variant="outline">Mladoletnik</Badge>
+                        )}
                       </div>
-                      {selectedChildData.age >= 18 && (
-                        <Badge variant="secondary">Polnoleten</Badge>
-                      )}
-                      {selectedChildData.age < 18 && (
-                        <Badge variant="outline">Mladoletnik</Badge>
-                      )}
-                    </div>
-                  )}
+                    );
+                  })()}
                 </CardContent>
               </Card>
 
