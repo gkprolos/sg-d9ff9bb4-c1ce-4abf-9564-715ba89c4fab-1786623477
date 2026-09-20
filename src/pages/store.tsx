@@ -544,6 +544,7 @@ export default function Store() {
   }, [showDeleted]);
 
   // Parent: Load only active items
+  // Load active items (for parents)
   async function loadActiveItems() {
     try {
       setLoading(true);
@@ -553,11 +554,10 @@ export default function Store() {
 
       const { data, error } = await supabase
         .from("store_items")
-        .select("*, store_categories(name)")
-        .eq("is_active", true)
-        .is("deleted_at", null)  // Exclude deleted items
-        .order("category", { ascending: true })
-        .order("name", { ascending: true });
+        .select("*")
+        .eq("active", true)
+        .is("deleted_at", null)
+        .order("name");
 
       console.log("store_items query result:", { data, error });
 
@@ -567,8 +567,9 @@ export default function Store() {
       }
 
       setItems(data || []);
+      setFilteredItems(data || []);
       console.log("Active items loaded:", data?.length || 0);
-    } catch (error: any) {
+    } catch (error) {
       console.error("loadActiveItems error:", error);
       toast({
         title: "Napaka",
