@@ -418,16 +418,16 @@ export default function MyChildren() {
                       </div>
                     </div>
                 }
-                {selectedChildData?.age !== null && selectedChildData?.age !== undefined && (
+                {selectedChild && childrenData.find(c => c.name === `${children.find(ch => ch.id === selectedChild)?.first_name} ${children.find(ch => ch.id === selectedChild)?.last_name}`)?.age !== null && childrenData.find(c => c.name === `${children.find(ch => ch.id === selectedChild)?.first_name} ${children.find(ch => ch.id === selectedChild)?.last_name}`)?.age !== undefined && (
                   <div className="text-sm space-y-1">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{selectedChildData.age} let</span>
+                      <span>{childrenData.find(c => c.name === `${children.find(ch => ch.id === selectedChild)?.first_name} ${children.find(ch => ch.id === selectedChild)?.last_name}`)?.age} let</span>
                     </div>
-                    {selectedChildData.age >= 18 && (
+                    {(childrenData.find(c => c.name === `${children.find(ch => ch.id === selectedChild)?.first_name} ${children.find(ch => ch.id === selectedChild)?.last_name}`)?.age ?? 0) >= 18 && (
                       <Badge variant="secondary">Polnoleten</Badge>
                     )}
-                    {selectedChildData.age < 18 && (
+                    {(childrenData.find(c => c.name === `${children.find(ch => ch.id === selectedChild)?.first_name} ${children.find(ch => ch.id === selectedChild)?.last_name}`)?.age ?? 0) < 18 && (
                       <Badge variant="outline">Mladoletnik</Badge>
                     )}
                   </div>
