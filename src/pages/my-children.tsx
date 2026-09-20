@@ -405,33 +405,20 @@ export default function MyChildren() {
                     </div>
                   </div>
 
-                  {selectedChildData &&
-                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                      <User className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="font-medium">
-                          {selectedChildData.first_name} {selectedChildData.last_name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Datum rojstva: {new Date(selectedChildData.date_of_birth).toLocaleDateString("sl-SI")}
-                        </p>
+                  {selectedChildData && selectedChildData.age !== null && selectedChildData.age !== undefined && (
+                    <div className="text-sm space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{selectedChildData.age} let</span>
                       </div>
+                      {selectedChildData.age >= 18 && (
+                        <Badge variant="secondary">Polnoleten</Badge>
+                      )}
+                      {selectedChildData.age < 18 && (
+                        <Badge variant="outline">Mladoletnik</Badge>
+                      )}
                     </div>
-                }
-                {selectedChild && childrenData.find(c => c.name === `${children.find(ch => ch.id === selectedChild)?.first_name} ${children.find(ch => ch.id === selectedChild)?.last_name}`)?.age !== null && childrenData.find(c => c.name === `${children.find(ch => ch.id === selectedChild)?.first_name} ${children.find(ch => ch.id === selectedChild)?.last_name}`)?.age !== undefined && (
-                  <div className="text-sm space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{childrenData.find(c => c.name === `${children.find(ch => ch.id === selectedChild)?.first_name} ${children.find(ch => ch.id === selectedChild)?.last_name}`)?.age} let</span>
-                    </div>
-                    {(childrenData.find(c => c.name === `${children.find(ch => ch.id === selectedChild)?.first_name} ${children.find(ch => ch.id === selectedChild)?.last_name}`)?.age ?? 0) >= 18 && (
-                      <Badge variant="secondary">Polnoleten</Badge>
-                    )}
-                    {(childrenData.find(c => c.name === `${children.find(ch => ch.id === selectedChild)?.first_name} ${children.find(ch => ch.id === selectedChild)?.last_name}`)?.age ?? 0) < 18 && (
-                      <Badge variant="outline">Mladoletnik</Badge>
-                    )}
-                  </div>
-                )}
+                  )}
                 </CardContent>
               </Card>
 
