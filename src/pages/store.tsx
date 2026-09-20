@@ -547,22 +547,33 @@ export default function Store() {
   async function loadActiveItems() {
     try {
       setLoading(true);
+      console.log("loadActiveItems() called for parent user");
+      console.log("Parent email:", parentEmail);
+      console.log("Effective role:", effectiveRole);
+
       const { data, error } = await supabase
         .from("store_items")
-        .select("*")
+        .select("*, store_categories(name)")
         .eq("is_active", true)
         .is("deleted_at", null)  // Exclude deleted items
         .order("category", { ascending: true })
         .order("name", { ascending: true });
 
-      if (error) throw error;
+      console.log("store_items query result:", { data, error });
+
+      if (error) {
+        console.error("Error loading active items:", error);
+        throw error;
+      }
+
       setItems(data || []);
+      console.log("Active items loaded:", data?.length || 0);
     } catch (error: any) {
-      console.error("Napaka pri nalaganju artiklov:", error);
+      console.error("loadActiveItems error:", error);
       toast({
-        variant: "destructive",
         title: "Napaka",
-        description: "Ni mogoče naložiti artiklov",
+        description: "Napaka pri nalaganju artiklov.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
