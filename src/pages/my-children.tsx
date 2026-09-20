@@ -370,16 +370,19 @@ export default function MyChildren() {
 
                     <div>
                       <label className="text-sm font-medium mb-2 block">Mesec</label>
-                      <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
-                        <SelectTrigger>
+                      <Select
+                        value={selectedMonth.toString()}
+                        onValueChange={(value) => setSelectedMonth(Number(value))}
+                      >
+                        <SelectTrigger className="w-[180px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {months.map((month, idx) =>
-                        <SelectItem key={idx} value={idx.toString()}>
-                              {month}
+                          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((month) => (
+                            <SelectItem key={month} value={month.toString()}>
+                              {months[month] || "N/A"}
                             </SelectItem>
-                        )}
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
