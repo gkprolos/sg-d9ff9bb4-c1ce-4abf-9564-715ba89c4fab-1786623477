@@ -555,7 +555,7 @@ export default function Store() {
       const { data, error } = await supabase
         .from("store_items")
         .select("*")
-        .eq("active", true)
+        .eq("is_active", true)
         .is("deleted_at", null)
         .order("name");
 
@@ -567,7 +567,6 @@ export default function Store() {
       }
 
       setItems(data || []);
-      setFilteredItems(data || []);
       console.log("Active items loaded:", data?.length || 0);
     } catch (error) {
       console.error("loadActiveItems error:", error);
