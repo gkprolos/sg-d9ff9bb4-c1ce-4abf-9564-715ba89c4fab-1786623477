@@ -149,10 +149,6 @@ export default function Store() {
     delivered_at: "",
     invoiced_at: "",
   });
-  const [isItemsDialogOpen, setIsItemsDialogOpen] = useState(false);
-  const [selectedOrderItems, setSelectedOrderItems] = useState<StoreOrderItem[]>([]);
-  const [isEditStatusDialogOpen, setIsEditStatusDialogOpen] = useState(false);
-  const [newStatus, setNewStatus] = useState<string>("");
 
   // Collections State
   const [collections, setCollections] = useState<StoreCollection[]>([]);
