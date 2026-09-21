@@ -3456,7 +3456,9 @@ export default function Store() {
               <TableBody>
                 {selectedOrderItems.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-mono">{item.item_number}</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {item.item_number}
+                    </TableCell>
                     <TableCell>{item.item_name}</TableCell>
                     <TableCell>{item.size}</TableCell>
                     <TableCell>{item.quantity}</TableCell>
