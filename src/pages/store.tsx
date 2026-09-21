@@ -3,14 +3,22 @@ import { useRouter } from "next/router";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/database.types";
 import { useAuth } from "@/contexts/AuthContext";
-import AppLayout from "@/components/layout/AppLayout";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Plus, Minus, Trash2, Package, AlertCircle, ChevronDown, ChevronUp, Edit, Eye } from "lucide-react";
+import { 
+  ShoppingCart, Plus, Minus, Trash2, Package, AlertCircle, 
+  ChevronDown, ChevronUp, Edit, Eye, Clock, CheckCircle, 
+  XCircle, ArrowLeft, Search, ImageIcon, ExternalLink, 
+  X, Pencil, Tag 
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -35,12 +43,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 type StoreOrder = Database["public"]["Tables"]["store_orders"]["Row"];
 type StoreOrderItem = Database["public"]["Tables"]["store_order_items"]["Row"];
 type StoreItem = Database["public"]["Tables"]["store_items"]["Row"];
 type StoreCollectionPeriod = Database["public"]["Tables"]["store_collection_periods"]["Row"];
 type Child = Database["public"]["Tables"]["children"]["Row"];
+
+type StoreCategory = Database["public"]["Tables"]["store_categories"]["Row"];
+type StoreCollection = Database["public"]["Tables"]["store_collections"]["Row"];
+type StoreCollectionItem = Database["public"]["Tables"]["store_collection_items"]["Row"];
 
 interface CartItem {
   item_id: string;
@@ -59,6 +81,25 @@ interface Order extends StoreOrder {
   store_collection_periods?: { period_name: string };
 }
 
+interface StoreStats {
+  totalOrders: number;
+  totalRevenue: number;
+  pendingOrders: number;
+  activeCollections: number;
+}
+
+interface TopItem {
+  item_number: string;
+  item_name: string;
+  total_quantity: number;
+  total_revenue: number;
+}
+
+interface MonthlyRevenue {
+  month: string;
+  revenue: number;
+}
+
 const ORDER_STATUSES = [
   { value: "open", label: "Odprto" },
   { value: "sprejeto", label: "Sprejeto" },
@@ -67,9 +108,12 @@ const ORDER_STATUSES = [
   { value: "račun", label: "Račun" },
 ];
 
+const AVAILABLE_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"];
+
 export default function Store() {
-  const { user, userRole } = useAuth();
   const router = useRouter();
+  const { user, userRole } = useAuth();
+  const { toast } = useToast();
   
   // Parent session detection (for OTP login)
   const [parentEmail, setParentEmail] = useState<string | null>(null);
@@ -122,6 +166,7 @@ export default function Store() {
 
   // Parent State
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedChild, setSelectedChild] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [myOrders, setMyOrders] = useState<Order[]>([]);
