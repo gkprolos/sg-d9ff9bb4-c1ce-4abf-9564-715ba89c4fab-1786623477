@@ -235,6 +235,7 @@ export default function Store() {
     totalRevenue: 0,
     pendingOrders: 0,
     activeCollections: 0,
+    avgOrderValue: 0,
   });
   const [topItems, setTopItems] = useState<TopItem[]>([]);
   const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
@@ -1196,7 +1197,8 @@ export default function Store() {
           .eq("collection_id", collection.id);
 
         const ordersCount = ordersInCollection?.length || 0;
-        const revenue = ordersInCollection?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
+        const total_revenue = ordersInCollection?.reduce((sum, o) => sum + o.total_amount, 0) || 0;
+        const revenue = total_revenue;
 
         monthlyData[month].orders_count += ordersCount;
         monthlyData[month].total_revenue += revenue;
@@ -1206,6 +1208,7 @@ export default function Store() {
       const monthlyArray = Object.values(monthlyData).map((m) => ({
         ...m,
         avg_order_value: m.orders_count > 0 ? m.total_revenue / m.orders_count : 0,
+        revenue: m.total_revenue,
       }));
 
       setMonthlyRevenue(monthlyArray);
@@ -2259,7 +2262,7 @@ export default function Store() {
                       </TableRow>
                     ) : (
                       myOrders.map((order) => {
-                        const items = orderItems[order.id] || [];
+                        const items = orderItems[order.id] && orderItems[order.id].length > 0 ? orderItems[order.id] : [];
                         const isExpanded = expandedOrders.has(order.id);
                         
                         return (
@@ -2308,7 +2311,7 @@ export default function Store() {
                                       onClick={() => openItemsDialog(order.id)}
                                     >
                                       <Eye className="h-4 w-4 mr-1" />
-                                      Postavke
+                                      Postavke ({items.length})
                                     </Button>
                                   )}
                                   <Button
@@ -2539,7 +2542,7 @@ export default function Store() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {collections.map((collection) => (
+                      {collections.map((collection: CollectionWithStats) => (
                         <TableRow key={collection.id}>
                           <TableCell className="font-mono text-sm font-medium">
                             {collection.collection_number}
@@ -3090,7 +3093,7 @@ export default function Store() {
               onClick={() => {
                 setIsOrderItemsDialogOpen(false);
                 setEditingOrder(null);
-                setOrderItems([]);
+                setOrderItems({});
               }}
             >
               Zapri
