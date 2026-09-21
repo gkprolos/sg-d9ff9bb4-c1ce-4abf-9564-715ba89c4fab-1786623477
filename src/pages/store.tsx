@@ -64,6 +64,12 @@ type StoreCategory = Database["public"]["Tables"]["store_categories"]["Row"];
 type StoreCollection = Database["public"]["Tables"]["store_collections"]["Row"];
 type StoreCollectionItem = Database["public"]["Tables"]["store_collection_items"]["Row"];
 
+interface CollectionWithStats extends StoreCollection {
+  total_orders?: number;
+  total_items?: number;
+  total_amount?: number;
+}
+
 interface CartItem {
   item_id: string;
   item_number: string;
@@ -79,6 +85,9 @@ interface CartItem {
 interface Order extends StoreOrder {
   children?: { first_name: string; last_name: string };
   store_collection_periods?: { period_name: string };
+  parent_name?: string;
+  parent_email?: string;
+  parent_phone?: string;
 }
 
 interface StoreStats {
@@ -86,18 +95,24 @@ interface StoreStats {
   totalRevenue: number;
   pendingOrders: number;
   activeCollections: number;
+  avgOrderValue: number;
 }
 
 interface TopItem {
   item_number: string;
   item_name: string;
-  total_quantity: number;
+  total_quantity?: number;
+  total_sold: number;
   total_revenue: number;
+  collections_count?: number;
 }
 
 interface MonthlyRevenue {
   month: string;
   revenue: number;
+  orders_count: number;
+  total_revenue: number;
+  avg_order_value: number;
 }
 
 const ORDER_STATUSES = [
@@ -196,7 +211,7 @@ export default function Store() {
   });
 
   // Collections State
-  const [collections, setCollections] = useState<StoreCollection[]>([]);
+  const [collections, setCollections] = useState<CollectionWithStats[]>([]);
   const [collectionsLoading, setCollectionsLoading] = useState(false);
   const [isCreateCollectionDialogOpen, setIsCreateCollectionDialogOpen] = useState(false);
   const [isCollectionItemsDialogOpen, setIsCollectionItemsDialogOpen] = useState(false);
@@ -216,9 +231,10 @@ export default function Store() {
 
   // Stats State
   const [stats, setStats] = useState<StoreStats>({
-    total_orders: 0,
-    total_revenue: 0,
-    avg_order_value: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    pendingOrders: 0,
+    activeCollections: 0,
   });
   const [topItems, setTopItems] = useState<TopItem[]>([]);
   const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
@@ -1102,9 +1118,11 @@ export default function Store() {
       const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
       setStats({
-        total_orders: totalOrders,
-        total_revenue: totalRevenue,
-        avg_order_value: avgOrderValue,
+        totalOrders: totalOrders,
+        totalRevenue: totalRevenue,
+        pendingOrders: 0,
+        activeCollections: 0,
+        avgOrderValue: avgOrderValue,
       });
 
       // Top items
@@ -1135,6 +1153,7 @@ export default function Store() {
       const topItemsArray = Object.values(aggregated).map((item: any) => ({
         item_number: item.item_number,
         item_name: item.item_name,
+        total_quantity: item.total_sold,
         total_sold: item.total_sold,
         collections_count: item.collections_count.size,
         total_revenue: item.total_revenue,
@@ -1230,11 +1249,13 @@ export default function Store() {
         {
           item_id: item.id,
           item_number: item.item_number,
+          item_name: item.name,
           name: item.name,
+          item_price: item.price,
           size,
           quantity: 1,
           price: item.price,
-          image_url: item.image_url,
+          image_url: item.image_url || "",
         },
       ]);
     }
@@ -2348,7 +2369,7 @@ export default function Store() {
                     <CardDescription>Skupno naročil</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{stats.total_orders}</div>
+                    <div className="text-3xl font-bold">{stats.totalOrders}</div>
                     <p className="text-xs text-muted-foreground mt-1">
                       Naročena in predana
                     </p>
@@ -2361,7 +2382,7 @@ export default function Store() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">
-                      {stats.total_revenue.toFixed(2)} €
+                      {stats.totalRevenue.toFixed(2)} €
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       Vsi potrjeni zbirniki
@@ -2375,7 +2396,7 @@ export default function Store() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">
-                      {stats.avg_order_value.toFixed(2)} €
+                      {stats.avgOrderValue.toFixed(2)} €
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       Na naročilo
