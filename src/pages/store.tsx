@@ -1,26 +1,16 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/router";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/database.types";
+import { useAuth } from "@/contexts/AuthContext";
+import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { ShoppingCart, Plus, Minus, Trash2, Package, AlertCircle, ChevronDown, ChevronUp, Edit, Eye } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -29,183 +19,45 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
-  Plus,
-  Pencil,
-  Image as ImageIcon,
-  Search,
-  Filter,
-  ShoppingCart,
-  Trash2,
-  ExternalLink,
-  Package,
-  Minus,
-  X,
-  CheckCircle,
-  Clock,
-  XCircle,
-  ArrowLeft,
-  Tag,
-  ZoomIn,
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  Edit,
-  Eye,
-} from "lucide-react";
-import { useRouter } from "next/router";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-// Types
-type StoreItem = {
-  id: string;
-  item_number: string;
-  name: string;
-  description: string | null;
-  category: string | null;
-  available_sizes: any;
-  price: number;
-  quantity_in_stock: number | null;
-  low_stock_threshold: number | null;
-  image_url: string | null;
-  external_link: string | null;
-  is_active: boolean;
-  created_at: string;
-};
-
-type StoreCategory = {
-  id: string;
-  name: string;
-  description: string | null;
-  display_order: number;
-  is_active: boolean;
-  created_at: string;
-};
+type StoreOrder = Database["public"]["Tables"]["store_orders"]["Row"];
+type StoreOrderItem = Database["public"]["Tables"]["store_order_items"]["Row"];
+type StoreItem = Database["public"]["Tables"]["store_items"]["Row"];
+type StoreCollectionPeriod = Database["public"]["Tables"]["store_collection_periods"]["Row"];
+type Child = Database["public"]["Tables"]["children"]["Row"];
 
 interface CartItem {
+  item_id: string;
   item_number: string;
   item_name: string;
+  name: string;
   item_price: number;
+  price: number;
   size: string;
   quantity: number;
+  image_url: string;
 }
 
-type StoreOrder = {
-  id: string;
-  order_number: string;
-  parent_id: string;
-  status: string;
-  total_amount: number;
-  ordered_at: string | null;
-  delivered_at: string | null;
-  invoiced_at: string | null;
-  created_at: string;
-  parent_name?: string;
-  parent_email?: string;
-  parent_phone?: string;
-};
-
-interface Order {
-  id: string;
-  order_number: string;
-  status: string;
-  total_amount: number;
-  created_at: string;
-  child_id: string;
-  collection_period_id: string;
+interface Order extends StoreOrder {
   children?: { first_name: string; last_name: string };
   store_collection_periods?: { period_name: string };
 }
-
-interface OrderItem {
-  id: string;
-  order_id: string;
-  item_number: string;
-  item_name: string;
-  size: string;
-  quantity: number;
-  unit_price: number;
-  status?: string;
-}
-
-type StoreCollection = {
-  id: string;
-  collection_number: string;
-  collection_date: string;
-  ordered_at: string | null;
-  ordered_by: string | null;
-  notes: string | null;
-  status: string;
-  created_at: string;
-  total_orders?: number;
-  total_items?: number;
-  total_amount?: number;
-};
-
-type StoreCollectionItem = {
-  id: string;
-  collection_id: string;
-  item_id: string | null;
-  item_number: string;
-  item_name: string;
-  size: string;
-  total_quantity: number;
-  unit_price: number;
-};
-
-type StoreStats = {
-  total_orders: number;
-  total_revenue: number;
-  avg_order_value: number;
-};
-
-type TopItem = {
-  item_number: string;
-  item_name: string;
-  total_sold: number;
-  collections_count: number;
-  total_revenue: number;
-};
-
-type MonthlyRevenue = {
-  month: string;
-  orders_count: number;
-  total_revenue: number;
-  avg_order_value: number;
-};
-
-const AVAILABLE_SIZES = [
-  "11/12",
-  "13/14",
-  "XXS",
-  "XS",
-  "S",
-  "M",
-  "L",
-  "XL",
-  "XXL",
-  "3XL",
-];
 
 const ORDER_STATUSES = [
   { value: "open", label: "Odprto" },
@@ -272,8 +124,14 @@ export default function Store() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedChild, setSelectedChild] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [myOrders, setMyOrders] = useState<StoreOrder[]>([]);
+  const [myOrders, setMyOrders] = useState<Order[]>([]);
+  const [orderItems, setOrderItems] = useState<Record<string, StoreOrderItem[]>>({});
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [isItemsDialogOpen, setIsItemsDialogOpen] = useState(false);
+  const [selectedOrderItems, setSelectedOrderItems] = useState<StoreOrderItem[]>([]);
+  const [isEditStatusDialogOpen, setIsEditStatusDialogOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [newStatus, setNewStatus] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<{ [key: string]: string }>({});
   const [parentSearchQuery, setParentSearchQuery] = useState("");
   const [parentCategoryFilter, setParentCategoryFilter] = useState<string>("all");
@@ -285,8 +143,6 @@ export default function Store() {
   const [orderParentFilter, setOrderParentFilter] = useState<string>("all");
   const [isOrderStatusDialogOpen, setIsOrderStatusDialogOpen] = useState(false);
   const [isOrderItemsDialogOpen, setIsOrderItemsDialogOpen] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<StoreOrder | null>(null);
-  const [orderItems, setOrderItems] = useState<Record<string, StoreOrderItem[]>>({});
   const [orderStatusFormData, setOrderStatusFormData] = useState({
     status: "",
     ordered_at: "",
@@ -705,7 +561,7 @@ export default function Store() {
 
       if (ordersError) throw ordersError;
 
-      setOrders(ordersData || []);
+      setMyOrders(ordersData || []);
 
       // Fetch items for all orders
       if (ordersData && ordersData.length > 0) {
@@ -718,12 +574,12 @@ export default function Store() {
         if (itemsError) throw itemsError;
 
         // Group items by order_id
-        const itemsByOrder: Record<string, OrderItem[]> = {};
+        const itemsByOrder: Record<string, StoreOrderItem[]> = {};
         itemsData?.forEach(item => {
           if (!itemsByOrder[item.order_id]) {
             itemsByOrder[item.order_id] = [];
           }
-          itemsByOrder[item.order_id].push(item);
+          itemsByOrder[item.order_id].push(item as StoreOrderItem);
         });
 
         setOrderItems(itemsByOrder);
@@ -799,16 +655,6 @@ export default function Store() {
         .eq("id", editingOrder.id);
 
       if (orderError) throw orderError;
-
-      // If status is "naročeno", also update all items in this order
-      if (newStatus === "naročeno") {
-        const { error: itemsError } = await supabase
-          .from("store_order_items")
-          .update({ status: "naročeno" })
-          .eq("order_id", editingOrder.id);
-
-        if (itemsError) throw itemsError;
-      }
 
       toast({
         title: "Status posodobljen",
@@ -2343,14 +2189,14 @@ export default function Store() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders.length === 0 ? (
+                    {myOrders.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center text-muted-foreground">
                           Ni naročil
                         </TableCell>
                       </TableRow>
                     ) : (
-                      orders.map((order) => {
+                      myOrders.map((order) => {
                         const items = orderItems[order.id] || [];
                         const isExpanded = expandedOrders.has(order.id);
                         
