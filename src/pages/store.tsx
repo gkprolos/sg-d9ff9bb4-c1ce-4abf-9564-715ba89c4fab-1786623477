@@ -58,6 +58,11 @@ import {
   ArrowLeft,
   Tag,
   ZoomIn,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Edit,
+  Eye,
 } from "lucide-react";
 import { useRouter } from "next/router";
 import {
@@ -97,15 +102,13 @@ type StoreCategory = {
   created_at: string;
 };
 
-type CartItem = {
-  item_id: string;
+interface CartItem {
   item_number: string;
-  name: string;
+  item_name: string;
+  item_price: number;
   size: string;
   quantity: number;
-  price: number;
-  image_url: string | null;
-};
+}
 
 type StoreOrder = {
   id: string;
@@ -122,17 +125,28 @@ type StoreOrder = {
   parent_phone?: string;
 };
 
-type StoreOrderItem = {
+interface Order {
+  id: string;
+  order_number: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  child_id: string;
+  collection_period_id: string;
+  children?: { first_name: string; last_name: string };
+  store_collection_periods?: { period_name: string };
+}
+
+interface OrderItem {
   id: string;
   order_id: string;
-  item_id: string;
   item_number: string;
   item_name: string;
   size: string;
   quantity: number;
   unit_price: number;
-  subtotal: number;
-};
+  status?: string;
+}
 
 type StoreCollection = {
   id: string;
@@ -193,6 +207,14 @@ const AVAILABLE_SIZES = [
   "3XL",
 ];
 
+const ORDER_STATUSES = [
+  { value: "open", label: "Odprto" },
+  { value: "sprejeto", label: "Sprejeto" },
+  { value: "naročeno", label: "Naročeno" },
+  { value: "dobavljeno", label: "Dobavljeno" },
+  { value: "račun", label: "Račun" },
+];
+
 export default function Store() {
   const { user, userRole } = useAuth();
   const router = useRouter();
@@ -248,6 +270,8 @@ export default function Store() {
 
   // Parent State
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedChild, setSelectedChild] = useState<string>("");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [myOrders, setMyOrders] = useState<StoreOrder[]>([]);
   const [selectedSize, setSelectedSize] = useState<{ [key: string]: string }>({});
@@ -262,13 +286,17 @@ export default function Store() {
   const [isOrderStatusDialogOpen, setIsOrderStatusDialogOpen] = useState(false);
   const [isOrderItemsDialogOpen, setIsOrderItemsDialogOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<StoreOrder | null>(null);
-  const [orderItems, setOrderItems] = useState<StoreOrderItem[]>([]);
+  const [orderItems, setOrderItems] = useState<Record<string, StoreOrderItem[]>>({});
   const [orderStatusFormData, setOrderStatusFormData] = useState({
     status: "",
     ordered_at: "",
     delivered_at: "",
     invoiced_at: "",
   });
+  const [isItemsDialogOpen, setIsItemsDialogOpen] = useState(false);
+  const [selectedOrderItems, setSelectedOrderItems] = useState<StoreOrderItem[]>([]);
+  const [isEditStatusDialogOpen, setIsEditStatusDialogOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState<string>("");
 
   // Collections State
   const [collections, setCollections] = useState<StoreCollection[]>([]);
@@ -653,7 +681,7 @@ export default function Store() {
         .order("item_name", { ascending: true });
 
       if (error) throw error;
-      setOrderItems(data || []);
+      setOrderItems({ [orderId]: data || [] });
     } catch (error: any) {
       console.error("Napaka pri nalaganju postavk:", error);
       toast({
@@ -663,6 +691,51 @@ export default function Store() {
       });
     }
   }
+
+  const fetchOrders = async () => {
+    try {
+      const { data: ordersData, error: ordersError } = await supabase
+        .from("store_orders")
+        .select(`
+          *,
+          children (first_name, last_name),
+          store_collection_periods (period_name)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (ordersError) throw ordersError;
+
+      setOrders(ordersData || []);
+
+      // Fetch items for all orders
+      if (ordersData && ordersData.length > 0) {
+        const orderIds = ordersData.map(o => o.id);
+        const { data: itemsData, error: itemsError } = await supabase
+          .from("store_order_items")
+          .select("*")
+          .in("order_id", orderIds);
+
+        if (itemsError) throw itemsError;
+
+        // Group items by order_id
+        const itemsByOrder: Record<string, OrderItem[]> = {};
+        itemsData?.forEach(item => {
+          if (!itemsByOrder[item.order_id]) {
+            itemsByOrder[item.order_id] = [];
+          }
+          itemsByOrder[item.order_id].push(item);
+        });
+
+        setOrderItems(itemsByOrder);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri nalaganju naročil: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
 
   // Admin/Coach: Update order status
   async function handleOrderStatusUpdate() {
@@ -714,6 +787,67 @@ export default function Store() {
       });
     }
   }
+
+  const updateOrderStatus = async () => {
+    if (!editingOrder || !newStatus) return;
+
+    try {
+      // Update order status
+      const { error: orderError } = await supabase
+        .from("store_orders")
+        .update({ status: newStatus })
+        .eq("id", editingOrder.id);
+
+      if (orderError) throw orderError;
+
+      // If status is "naročeno", also update all items in this order
+      if (newStatus === "naročeno") {
+        const { error: itemsError } = await supabase
+          .from("store_order_items")
+          .update({ status: "naročeno" })
+          .eq("order_id", editingOrder.id);
+
+        if (itemsError) throw itemsError;
+      }
+
+      toast({
+        title: "Status posodobljen",
+        description: `Status naročila ${editingOrder.order_number} je bil spremenjen v "${ORDER_STATUSES.find(s => s.value === newStatus)?.label}".`,
+      });
+
+      setIsEditStatusDialogOpen(false);
+      setEditingOrder(null);
+      setNewStatus("");
+      fetchOrders(); // Refresh orders
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri posodabljanju statusa: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleOrderExpand = (orderId: string) => {
+    const newExpanded = new Set(expandedOrders);
+    if (newExpanded.has(orderId)) {
+      newExpanded.delete(orderId);
+    } else {
+      newExpanded.add(orderId);
+    }
+    setExpandedOrders(newExpanded);
+  };
+
+  const openItemsDialog = (orderId: string) => {
+    setSelectedOrderItems(orderItems[orderId] || []);
+    setIsItemsDialogOpen(true);
+  };
+
+  const openEditStatusDialog = (order: Order) => {
+    setEditingOrder(order);
+    setNewStatus(order.status);
+    setIsEditStatusDialogOpen(true);
+  };
 
   function handleEditOrderStatus(order: StoreOrder) {
     setEditingOrder(order);
@@ -2198,94 +2332,115 @@ export default function Store() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12"></TableHead>
                       <TableHead>Številka</TableHead>
-                      <TableHead>Starš</TableHead>
-                      <TableHead>Datum</TableHead>
+                      <TableHead>Otrok</TableHead>
+                      <TableHead>Obdobje</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Znesek</TableHead>
-                      <TableHead>Račun</TableHead>
+                      <TableHead>Datum</TableHead>
                       <TableHead className="text-right">Akcije</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {allOrders
-                      .filter(order => {
-                        const matchesStatus = orderStatusFilter === "all" || order.status === orderStatusFilter;
-                        const matchesParent = orderParentFilter === "all" || order.parent_name === orderParentFilter;
-                        return matchesStatus && matchesParent;
-                      })
-                      .map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-mono text-sm font-medium">
-                            {order.order_number}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{order.parent_name}</p>
-                              <p className="text-sm text-muted-foreground">{order.parent_email}</p>
-                              {order.parent_phone && (
-                                <p className="text-sm text-muted-foreground">{order.parent_phone}</p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="text-sm">
-                                {new Date(order.created_at).toLocaleDateString("sl-SI", {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric",
-                                })}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(order.created_at).toLocaleTimeString("sl-SI", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(order.status)}</TableCell>
-                          <TableCell className="font-semibold">
-                            {order.total_amount.toFixed(2)} €
-                          </TableCell>
-                          <TableCell>
-                            {order.invoiced_at ? (
-                              <Badge variant="default" className="bg-green-600">
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                {new Date(order.invoiced_at).toLocaleDateString("sl-SI", {
-                                  day: "numeric",
-                                  month: "short",
-                                })}
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline">
-                                <X className="w-3 h-3 mr-1" />
-                                Ni računa
-                              </Badge>
+                    {orders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-muted-foreground">
+                          Ni naročil
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      orders.map((order) => {
+                        const items = orderItems[order.id] || [];
+                        const isExpanded = expandedOrders.has(order.id);
+                        
+                        return (
+                          <>
+                            <TableRow key={order.id} className="group">
+                              <TableCell>
+                                {items.length > 0 && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleOrderExpand(order.id)}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronUp className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">{order.order_number}</TableCell>
+                              <TableCell>
+                                {order.children ? `${order.children.first_name} ${order.children.last_name}` : "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                {order.store_collection_periods?.period_name || "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={
+                                  order.status === "račun" ? "default" :
+                                  order.status === "dobavljeno" ? "secondary" :
+                                  order.status === "naročeno" ? "outline" :
+                                  "destructive"
+                                }>
+                                  {ORDER_STATUSES.find(s => s.value === order.status)?.label || order.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{order.total_amount.toFixed(2)} €</TableCell>
+                              <TableCell>{new Date(order.created_at).toLocaleDateString("sl-SI")}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  {items.length > 0 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openItemsDialog(order.id)}
+                                    >
+                                      <Eye className="h-4 w-4 mr-1" />
+                                      Postavke
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openEditStatusDialog(order)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Uredi
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            {isExpanded && items.length > 0 && (
+                              <TableRow key={`${order.id}-items`}>
+                                <TableCell colSpan={8} className="bg-muted/50 p-4">
+                                  <div className="space-y-1 text-sm">
+                                    <div className="font-semibold mb-2">Postavke naročila:</div>
+                                    {items.map((item, idx) => (
+                                      <div key={item.id} className="flex items-center gap-2">
+                                        <span className="text-muted-foreground">#{idx + 1}</span>
+                                        <span className="font-mono">{item.item_number}</span>
+                                        <span>-</span>
+                                        <span>{item.item_name}</span>
+                                        <span className="text-muted-foreground">|</span>
+                                        <span>Velikost: {item.size}</span>
+                                        <span className="text-muted-foreground">|</span>
+                                        <span>Količina: {item.quantity}</span>
+                                        <span className="text-muted-foreground">|</span>
+                                        <span className="font-semibold">{(item.unit_price * item.quantity).toFixed(2)} €</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
                             )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewOrderItems(order)}
-                              >
-                                Postavke
-                              </Button>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => handleEditOrderStatus(order)}
-                              >
-                                <Pencil className="w-4 h-4 mr-2" />
-                                Uredi
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                          </>
+                        );
+                      })
+                    )}
                   </TableBody>
                 </Table>
               )}
@@ -3363,6 +3518,100 @@ export default function Store() {
       <Dialog open={!!zoomImage} onOpenChange={() => setZoomImage(null)}>
         <DialogContent className="max-w-4xl">
           <img src={zoomImage || ""} alt="Povečana slika" className="w-full h-auto object-contain rounded" />
+        </DialogContent>
+      </Dialog>
+
+      {/* Items Detail Dialog */}
+      <Dialog open={isItemsDialogOpen} onOpenChange={setIsItemsDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Postavke naročila</DialogTitle>
+            <DialogDescription>
+              Pregled vseh artiklov v naročilu
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[500px] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Šifra</TableHead>
+                  <TableHead>Naziv</TableHead>
+                  <TableHead>Velikost</TableHead>
+                  <TableHead>Količina</TableHead>
+                  <TableHead>Cena/kos</TableHead>
+                  <TableHead>Skupaj</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedOrderItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-mono">{item.item_number}</TableCell>
+                    <TableCell>{item.item_name}</TableCell>
+                    <TableCell>{item.size}</TableCell>
+                    <TableCell>{item.quantity}</TableCell>
+                    <TableCell>{item.unit_price.toFixed(2)} €</TableCell>
+                    <TableCell className="font-semibold">
+                      {(item.unit_price * item.quantity).toFixed(2)} €
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsItemsDialogOpen(false)}>Zapri</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Status Dialog */}
+      <Dialog open={isEditStatusDialogOpen} onOpenChange={setIsEditStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Uredi status naročila</DialogTitle>
+            <DialogDescription>
+              Spremeni status naročila {editingOrder?.order_number}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Trenutni status</Label>
+              <div>
+                <Badge variant="outline">
+                  {ORDER_STATUSES.find(s => s.value === editingOrder?.status)?.label || editingOrder?.status}
+                </Badge>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Nov status</Label>
+              <Select value={newStatus} onValueChange={setNewStatus}>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Izberi status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORDER_STATUSES.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {newStatus === "naročeno" && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-900">
+                <AlertCircle className="h-4 w-4 inline mr-2" />
+                Vse postavke v tem naročilu bodo označene kot "naročeno".
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditStatusDialogOpen(false)}>
+              Prekliči
+            </Button>
+            <Button onClick={updateOrderStatus} disabled={!newStatus || newStatus === editingOrder?.status}>
+              Shrani
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
