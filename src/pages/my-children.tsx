@@ -28,7 +28,7 @@ interface Child {
     parent_id: string;
     first_name: string;
     last_name: string;
-    birth_date: string;
+    date_of_birth: string; // Popravljeno iz birth_date
     gender: string;
 }
 
@@ -199,9 +199,9 @@ export default function MyChildren() {
     function getScheduleForDate(date: string): ScheduleTemplate | null {
         const dateObj = new Date(date);
         const jsDay = dateObj.getDay();
+        // Podprti formati baze (0-6 ali 1-7)
         const dbDay = jsDay === 0 ? 7 : jsDay;
-
-        return schedules.find((s) => s.day_of_week === dbDay) || null;
+        return schedules.find((s) => s.day_of_week === jsDay || s.day_of_week === dbDay) || null;
     }
 
     const getDaysInMonth = () => {
@@ -216,7 +216,6 @@ export default function MyChildren() {
     };
 
     const getAttendanceForDate = (date: string) => {
-        // Backend vrača datum znotraj activities.activity_date
         return attendance.find((a) => a.activities?.activity_date === date);
     };
 
@@ -244,15 +243,6 @@ export default function MyChildren() {
             case "absent": return "bg-red-50 border-red-200";
             case "excused": return "bg-yellow-50 border-yellow-200";
             default: return "bg-muted/30";
-        }
-    };
-
-    const getAttendanceLabel = (status: string) => {
-        switch (status) {
-            case "present": return "Prisoten";
-            case "absent": return "Odsoten";
-            case "excused": return "Opravičen";
-            default: return status;
         }
     };
 
@@ -294,7 +284,8 @@ export default function MyChildren() {
                                             {child.first_name} {child.last_name}
                                         </CardTitle>
                                         <CardDescription>
-                                            Rojstni datum: {new Date(child.birth_date).toLocaleDateString("sl-SI")}
+                                            {/* Popravljeno v date_of_birth */}
+                                            Rojstni datum: {new Date(child.date_of_birth).toLocaleDateString("sl-SI")}
                                         </CardDescription>
                                     </div>
                                     <Button
@@ -311,13 +302,6 @@ export default function MyChildren() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
-                                    <h3 className="text-sm font-semibold mb-2">Ekipe</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Informacije o ekipah so na voljo na drugi strani
-                                    </p>
-                                </div>
-
-                                <div>
                                     <h3 className="text-sm font-semibold mb-2">Urnik treningov</h3>
                                     {schedules && schedules.length > 0 ? (
                                         <div className="space-y-3">
@@ -328,30 +312,21 @@ export default function MyChildren() {
                                                 return (
                                                     <div key={day} className="space-y-1">
                                                         <div className="text-sm font-medium">{day}</div>
-                                                        {daySchedules.map((schedule) => {
-                                                            return (
-                                                                <div key={schedule.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-4">
-                                                                    <Clock className="h-3 w-3" />
-                                                                    <span>
-                                                                        {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
-                                                                    </span>
-                                                                    {schedule.venues?.name && (
-                                                                        <>
-                                                                            <span>•</span>
-                                                                            <MapPin className="h-3 w-3" />
-                                                                            <span>{schedule.venues.name}</span>
-                                                                        </>
-                                                                    )}
-                                                                    {schedule.teams?.name && (
-                                                                        <>
-                                                                            <span>•</span>
-                                                                            <Users className="h-3 w-3" />
-                                                                            <span>{schedule.teams.name}</span>
-                                                                        </>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
+                                                        {daySchedules.map((schedule) => (
+                                                            <div key={schedule.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-4">
+                                                                <Clock className="h-3 w-3" />
+                                                                <span>
+                                                                    {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
+                                                                </span>
+                                                                {schedule.venues?.name && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <MapPin className="h-3 w-3" />
+                                                                        <span>{schedule.venues.name}</span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 );
                                             })}
@@ -450,28 +425,30 @@ export default function MyChildren() {
                                                 <div
                                                     key={dateStr}
                                                     className={`
-                            min-h-[80px] p-1 border rounded-lg flex flex-col relative
+                            min-h-[90px] p-1 border rounded-lg flex flex-col relative
                             ${dayAttendance ? getAttendanceCellColor(dayAttendance.status) : (hasActivity ? "bg-blue-50/50 border-blue-200" : "bg-muted/30")}
                           `}
                                                 >
-                                                    {/* Datum je majhen v levem zgornjem kotu */}
+                                                    {/* Datum v kotu */}
                                                     <div className="absolute top-1 left-2 text-xs font-medium text-muted-foreground">
                                                         {date.getDate()}
                                                     </div>
 
                                                     {/* Vsebina na sredini */}
-                                                    <div className="flex-1 flex flex-col items-center justify-center gap-1 mt-2">
+                                                    <div className="flex-1 flex flex-col items-center justify-center gap-1 mt-3">
                                                         {dayAttendance ? (
                                                             <div className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold text-white shadow-sm ${getAttendanceBadgeColor(dayAttendance.status)}`}>
                                                                 {getAttendanceLetter(dayAttendance.status)}
                                                             </div>
-                                                        ) : (
-                                                            hasActivity && (
-                                                                <div className="text-[10px] text-center text-muted-foreground px-1">
-                                                                    {schedule?.activity_name || "Trening"}
+                                                        ) : hasActivity ? (
+                                                            <div className="text-[10px] text-center text-muted-foreground px-1 flex flex-col items-center gap-1">
+                                                                <span className="font-medium">{schedule?.activity_name || "Trening"}</span>
+                                                                <div className="flex items-center gap-1">
+                                                                    <Clock className="h-2 w-2 shrink-0" />
+                                                                    <span>{schedule.start_time.slice(0, 5)}</span>
                                                                 </div>
-                                                            )
-                                                        )}
+                                                            </div>
+                                                        ) : null}
                                                     </div>
                                                 </div>
                                             );
@@ -479,7 +456,7 @@ export default function MyChildren() {
                                     </div>
                                 </div>
 
-                                {/* Attendance Statistics */}
+                                {/* Statistika prisotnosti */}
                                 <div>
                                     <h3 className="text-lg font-semibold mb-4">Statistika prisotnosti</h3>
                                     <div className="grid grid-cols-3 gap-4">
@@ -518,6 +495,45 @@ export default function MyChildren() {
                                         </Card>
                                     </div>
                                 </div>
+
+                                {/* Urnik treningov znotraj dialoga */}
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-2">Urnik treningov</h3>
+                                    {schedules && schedules.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {sortedDays.map((day) => {
+                                                const daySchedules = groupedSchedules[day] || [];
+                                                if (daySchedules.length === 0) return null;
+
+                                                return (
+                                                    <div key={day} className="space-y-1">
+                                                        <div className="text-sm font-medium">{day}</div>
+                                                        {daySchedules.map((schedule) => (
+                                                            <div key={schedule.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-4">
+                                                                <Clock className="h-3 w-3" />
+                                                                <span>
+                                                                    {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
+                                                                </span>
+                                                                {schedule.venues?.name && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <MapPin className="h-3 w-3" />
+                                                                        <span>{schedule.venues.name}</span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                            Ni določenega urnika
+                                        </p>
+                                    )}
+                                </div>
+
                             </div>
                         )}
                     </div>
