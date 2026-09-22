@@ -187,14 +187,6 @@ export default function Store() {
   });
 
   // Shopping Cart State (for parents)
-  const [cart, setCart] = useState<Array<{
-    item_id: string;
-    item_number: string;
-    item_name: string;
-    size: string;
-    quantity: number;
-    item_price: number;
-  }>>([]);
   const [isCartDialogOpen, setIsCartDialogOpen] = useState(false);
   const [selectedItemForCart, setSelectedItemForCart] = useState<StoreItem | null>(null);
   const [selectedSize, setSelectedSize] = useState<string>("");
@@ -1092,9 +1084,12 @@ export default function Store() {
           item_id: selectedItemForCart.id,
           item_number: selectedItemForCart.item_number,
           item_name: selectedItemForCart.name,
+          name: selectedItemForCart.name,
           size: selectedSize || "N/A",
           quantity: quantity,
           item_price: selectedItemForCart.price,
+          price: selectedItemForCart.price,
+          image_url: selectedItemForCart.image_url || "",
         },
       ]);
     }
