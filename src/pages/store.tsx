@@ -1556,18 +1556,19 @@ export default function Store() {
         </div>
 
         <Tabs defaultValue="orders" className="space-y-4">
-          <TabsList>
-            {userRole === "parent" ? (
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="store">Trgovina</TabsTrigger>
+            {userRole === "parent" && (
+              <TabsTrigger value="my-orders">Moja naročila</TabsTrigger>
+            )}
+            {(userRole === "coach" || userRole === "admin") && (
+              <TabsTrigger value="orders">Naročila</TabsTrigger>
+            )}
+            {userRole === "admin" && (
               <>
-                <TabsTrigger value="store">Trgovina</TabsTrigger>
-                <TabsTrigger value="orders">Moja naročila</TabsTrigger>
-              </>
-            ) : (
-              <>
-                <TabsTrigger value="orders">Naročila</TabsTrigger>
                 <TabsTrigger value="collections">Zbirniki</TabsTrigger>
                 <TabsTrigger value="reports">Poročila</TabsTrigger>
-                <TabsTrigger value="articles">Artikli</TabsTrigger>
+                <TabsTrigger value="items">Artikli</TabsTrigger>
                 <TabsTrigger value="suppliers">Dobavitelji</TabsTrigger>
                 <TabsTrigger value="categories">Kategorije</TabsTrigger>
               </>
@@ -1996,7 +1997,7 @@ export default function Store() {
           </TabsContent>
 
           {/* Items Management Tab */}
-          {(userRole === "coach" || userRole === "admin") && (
+          {userRole === "admin" && (
             <TabsContent value="items" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -2118,7 +2119,7 @@ export default function Store() {
           )}
 
           {/* Categories Management Tab */}
-          {(userRole === "coach" || userRole === "admin") && (
+          {userRole === "admin" && (
             <TabsContent value="categories" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -2188,7 +2189,7 @@ export default function Store() {
           )}
 
           {/* Suppliers Management Tab */}
-          {(userRole === "coach" || userRole === "admin") && (
+          {userRole === "admin" && (
             <TabsContent value="suppliers" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -2262,7 +2263,7 @@ export default function Store() {
           )}
 
           {/* Collections Management Tab */}
-          {(userRole === "coach" || userRole === "admin") && (
+          {userRole === "admin" && (
             <TabsContent value="collections" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -2350,7 +2351,7 @@ export default function Store() {
           )}
 
           {/* Reports Tab */}
-          {(userRole === "coach" || userRole === "admin") && (
+          {userRole === "admin" && (
             <TabsContent value="reports" className="space-y-4">
               <Card>
                 <CardHeader>
