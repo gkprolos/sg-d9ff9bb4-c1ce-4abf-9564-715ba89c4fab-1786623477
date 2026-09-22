@@ -63,6 +63,16 @@ type StoreCollection = Database["public"]["Tables"]["store_collections"]["Row"];
 type StoreCollectionItem = Database["public"]["Tables"]["store_collection_items"]["Row"];
 type StoreCategory = Database["public"]["Tables"]["store_categories"]["Row"];
 
+// Extended type for collection items with supplier relation
+type StoreCollectionItemWithSupplier = StoreCollectionItem & {
+  store_items: {
+    supplier_id: string | null;
+    store_suppliers: {
+      name: string;
+    } | null;
+  } | null;
+};
+
 interface Child {
   id: string;
   first_name: string;
@@ -177,7 +187,6 @@ export default function Store() {
   const [editingCollection, setEditingCollection] = useState<StoreCollection | null>(null);
 
   // Collection Items State
-  const [collectionItems, setCollectionItems] = useState<StoreCollectionItem[]>([]);
   const [selectedCollectionItems, setSelectedCollectionItems] = useState<string[]>([]);
 
   // Items State
@@ -245,6 +254,7 @@ export default function Store() {
   const [viewingCollection, setViewingCollection] = useState<CollectionWithStats | null>(null);
   const [isCollectionViewDialogOpen, setIsCollectionViewDialogOpen] = useState(false);
   const [editingCollectionStatus, setEditingCollectionStatus] = useState<string>("");
+  const [collectionItems, setCollectionItems] = useState<StoreCollectionItemWithSupplier[]>([]);
 
   // Collections Management State (for creating collections from orders)
   const [selectedOrdersForCollection, setSelectedOrdersForCollection] = useState<Set<string>>(new Set());
@@ -517,13 +527,13 @@ export default function Store() {
 
       const { data: collectionItemsData, error: itemsError } = await supabase
         .from("store_collection_items")
-        .select("*")
+        .select("*, store_items!inner(supplier_id, store_suppliers(name))")
         .eq("collection_id", collectionId);
 
       if (itemsError) throw itemsError;
 
       setSelectedCollection(collectionData as CollectionWithStats);
-      setCollectionItems((collectionItemsData || []) as StoreCollectionItem[]);
+      setCollectionItems((collectionItemsData || []) as StoreCollectionItemWithSupplier[]);
     } catch (error: any) {
       console.error("Error loading collection details:", error);
       toast({
@@ -1295,7 +1305,10 @@ export default function Store() {
         .order("item_number");
 
       if (error) throw error;
-      setCollectionItems(data || []);
+      
+      // Type cast to ensure proper typing
+      const typedData = (data || []) as StoreCollectionItemWithSupplier[];
+      setCollectionItems(typedData);
       setIsCollectionViewDialogOpen(true);
     } catch (error: any) {
       toast({
@@ -1381,7 +1394,7 @@ export default function Store() {
       "Količina": item.total_quantity,
       "Cena/kos (€)": item.unit_price.toFixed(2),
       "Skupaj (€)": (item.total_quantity * item.unit_price).toFixed(2),
-      "Dobavitelj": "N/A",
+      "Dobavitelj": item.store_items?.store_suppliers?.name || "N/A",
     }));
 
     // Use excelUtils to export
@@ -3151,7 +3164,7 @@ export default function Store() {
                             <TableRow key={item.id}>
                               <TableCell className="font-mono">{item.item_number}</TableCell>
                               <TableCell>{item.item_name}</TableCell>
-                              <TableCell>N/A</TableCell>
+                              <TableCell>{item.store_items?.store_suppliers?.name || "N/A"}</TableCell>
                               <TableCell>{item.size}</TableCell>
                               <TableCell>{item.total_quantity}</TableCell>
                               <TableCell>{item.unit_price.toFixed(2)} €</TableCell>
