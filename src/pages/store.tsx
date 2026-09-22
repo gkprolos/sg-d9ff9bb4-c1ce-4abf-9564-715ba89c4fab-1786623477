@@ -59,11 +59,6 @@ type StoreOrder = Database["public"]["Tables"]["store_orders"]["Row"];
 type StoreOrderItem = Database["public"]["Tables"]["store_order_items"]["Row"];
 type StoreItem = Database["public"]["Tables"]["store_items"]["Row"];
 type StoreCollectionPeriod = Database["public"]["Tables"]["store_collection_periods"]["Row"];
-type Child = Database["public"]["Tables"]["children"]["Row"];
-
-type StoreCategory = Database["public"]["Tables"]["store_categories"]["Row"];
-type StoreCollection = Database["public"]["Tables"]["store_collections"]["Row"];
-type StoreCollectionItem = Database["public"]["Tables"]["store_collection_items"]["Row"];
 
 interface CartItem {
   item_id: string;
@@ -658,8 +653,8 @@ export default function Store() {
 
   const saveArticle = async () => {
     try {
-      const sizesArray: string[] = Array.isArray(articleFormData.available_sizes) 
-        ? (articleFormData.available_sizes as string[])
+      const sizesArray = Array.isArray(articleFormData.available_sizes) 
+        ? articleFormData.available_sizes.filter((s): s is string => typeof s === 'string')
         : [];
 
       if (editingArticle) {
@@ -1876,20 +1871,17 @@ export default function Store() {
                               {isExpanded && items.length > 0 && (
                                 <TableRow key={`${order.id}-items`}>
                                   <TableCell colSpan={7} className="bg-muted/50 p-4">
-                                    <div className="space-y-1 text-sm">
-                                      <div className="font-semibold mb-2">Razpoložljive velikosti</div>
-                                      {Array.isArray(item.available_sizes) 
-                                        ? (item.available_sizes as string[]).map((size) => (
-                                            <Button
-                                              key={size}
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => openAddToCartDialog(item)}
-                                            >
-                                              {size}
-                                            </Button>
-                                          ))
-                                        : null}
+                                    <div className="space-y-2">
+                                      {items.map((orderItem) => (
+                                        <div key={orderItem.id} className="flex justify-between text-sm">
+                                          <span>
+                                            {orderItem.item_number} - {orderItem.item_name} ({orderItem.size})
+                                          </span>
+                                          <span>
+                                            {orderItem.quantity}x {orderItem.unit_price.toFixed(2)} € = {(orderItem.quantity * orderItem.unit_price).toFixed(2)} €
+                                          </span>
+                                        </div>
+                                      ))}
                                     </div>
                                   </TableCell>
                                 </TableRow>
@@ -2558,7 +2550,7 @@ export default function Store() {
                     <TableCell className="font-mono">{item.item_number}</TableCell>
                     <TableCell>{item.item_name}</TableCell>
                     <TableCell>N/A</TableCell>
-                    <TableCell>{item.quantity}</TableCell>
+                    <TableCell>{item.size}</TableCell>
                     <TableCell>{item.unit_price.toFixed(2)} €</TableCell>
                     <TableCell className="font-semibold">
                       {(item.unit_price * item.quantity).toFixed(2)} €
@@ -3097,16 +3089,12 @@ export default function Store() {
                   </TableHeader>
                   <TableBody>
                     {collectionItems
-                      .sort((a, b) => {
-                        const supplierA = "";
-                        const supplierB = "";
-                        return supplierA.localeCompare(supplierB);
-                      })
-                      .map((item: any) => (
+                      .sort((a, b) => a.item_number.localeCompare(b.item_number))
+                      .map((item) => (
                         <TableRow key={item.id}>
                           <TableCell className="font-mono">{item.item_number}</TableCell>
                           <TableCell>{item.item_name}</TableCell>
-                          <TableCell>{(item as any).store_items?.store_suppliers?.name || "N/A"}</TableCell>
+                          <TableCell>N/A</TableCell>
                           <TableCell>{item.size}</TableCell>
                           <TableCell>{item.total_quantity}</TableCell>
                           <TableCell>{item.unit_price.toFixed(2)} €</TableCell>

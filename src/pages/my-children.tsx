@@ -307,6 +307,7 @@ export default function MyChildren() {
 
   const daysOfWeek = ["Nedelja", "Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota"];
 
+  // Group schedules by day
   const groupedSchedules = schedules.reduce((acc, schedule) => {
     const dayNum = typeof schedule.day_of_week === 'number' 
       ? schedule.day_of_week 
@@ -316,6 +317,13 @@ export default function MyChildren() {
     acc[day].push(schedule);
     return acc;
   }, {} as Record<string, ScheduleTemplate[]>);
+
+  // Sort days
+  const sortedDays = Object.keys(groupedSchedules).sort((a, b) => {
+    const aIndex = daysOfWeek.indexOf(a);
+    const bIndex = daysOfWeek.indexOf(b);
+    return aIndex - bIndex;
+  });
 
   return (
     <ProtectedRoute allowedRoles={["parent", "admin"]}>
