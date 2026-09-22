@@ -542,8 +542,8 @@ export default function Store() {
         (profilesData || []).map(profile => [
           profile.id,
           {
-            name: profile.full_name || '',
-            email: profile.email || '',
+            name: profile.full_name?.trim() || 'N/A',
+            email: profile.email?.trim() || '',
           }
         ])
       );
