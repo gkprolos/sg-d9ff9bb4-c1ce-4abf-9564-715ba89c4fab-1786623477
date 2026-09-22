@@ -1399,6 +1399,7 @@ export default function Store() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-24">Slika</TableHead>
                       <TableHead>Šifra</TableHead>
                       <TableHead>Naziv</TableHead>
                       <TableHead>Kategorija</TableHead>
@@ -1410,6 +1411,22 @@ export default function Store() {
                   <TableBody>
                     {items.map((item) => (
                       <TableRow key={item.id}>
+                        <TableCell>
+                          {item.image_url ? (
+                            <img 
+                              src={item.image_url} 
+                              alt={item.name}
+                              className="w-16 h-16 object-cover rounded-md border"
+                              onError={(e) => {
+                                e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpath d='M21 15l-5-5L5 21'/%3E%3C/svg%3E";
+                              }}
+                            />
+                          ) : (
+                            <div className="w-16 h-16 bg-muted rounded-md border flex items-center justify-center">
+                              <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="font-mono">{item.item_number}</TableCell>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.category}</TableCell>
