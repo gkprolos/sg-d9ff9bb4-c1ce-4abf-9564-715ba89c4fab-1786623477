@@ -527,7 +527,7 @@ export default function Store() {
       // Fetch profiles for all parents
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, email")
+        .select("id, name, email")
         .in("id", uniqueParentIds);
 
       if (profilesError) throw profilesError;
@@ -537,7 +537,7 @@ export default function Store() {
         (profilesData || []).map(profile => [
           profile.id,
           {
-            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+            name: profile.name || '',
             email: profile.email || '',
           }
         ])
