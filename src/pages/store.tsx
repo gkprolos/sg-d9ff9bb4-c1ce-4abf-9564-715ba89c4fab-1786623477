@@ -1557,7 +1557,9 @@ export default function Store() {
 
         <Tabs defaultValue="orders" className="space-y-4">
           <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="store">Trgovina</TabsTrigger>
+            {(userRole === "parent" || userRole === "admin") && (
+              <TabsTrigger value="store">Trgovina</TabsTrigger>
+            )}
             {userRole === "parent" && (
               <TabsTrigger value="my-orders">Moja naročila</TabsTrigger>
             )}
@@ -1575,8 +1577,8 @@ export default function Store() {
             )}
           </TabsList>
 
-          {/* Parent Store Tab - Shopping Catalog */}
-          {userRole === "parent" && (
+          {/* Store Tab (Shopping) */}
+          {(userRole === "parent" || userRole === "admin") && (
             <TabsContent value="store" className="space-y-4">
               <Card>
                 <CardHeader>
