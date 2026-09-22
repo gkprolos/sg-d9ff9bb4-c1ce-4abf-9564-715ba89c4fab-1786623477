@@ -242,7 +242,7 @@ export default function Store() {
   });
 
   // Collection View/Edit State
-  const [viewingCollection, setViewingCollection] = useState<any>(null);
+  const [viewingCollection, setViewingCollection] = useState<CollectionWithStats | null>(null);
   const [isCollectionViewDialogOpen, setIsCollectionViewDialogOpen] = useState(false);
   const [editingCollectionStatus, setEditingCollectionStatus] = useState<string>("");
 
