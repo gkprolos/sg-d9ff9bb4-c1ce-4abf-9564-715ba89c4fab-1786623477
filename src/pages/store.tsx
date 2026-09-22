@@ -1697,7 +1697,7 @@ export default function Store() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOrders.map((order) => {
+                    {myOrders.map((order) => {
                       const statusBadgeVariant = 
                         order.status === "delivered" ? "default" :
                         order.status === "ordered" ? "secondary" :
@@ -1740,7 +1740,7 @@ export default function Store() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => viewOrderDetails(order.id)}
+                                onClick={() => openItemsDialog(order.id)}
                               >
                                 <Eye className="h-4 w-4 mr-1" />
                                 Poglej
