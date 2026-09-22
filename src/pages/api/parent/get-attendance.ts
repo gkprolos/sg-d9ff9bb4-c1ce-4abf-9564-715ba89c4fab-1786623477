@@ -18,11 +18,14 @@ export default async function handler(
   try {
     const { child_id, start_date, end_date } = req.query;
 
-    console.log("Fetching attendance for:", { child_id, start_date, end_date });
+    console.log("=== GET ATTENDANCE API ===");
+    console.log("Received params:", { child_id, start_date, end_date });
 
     if (!child_id || !start_date || !end_date) {
       return res.status(400).json({ error: "child_id, start_date, and end_date so obvezni" });
     }
+
+    console.log("Querying activities table...");
 
     // Query activities directly with inner join on attendance
     const { data: activities, error } = await supabase
@@ -52,31 +55,53 @@ export default async function handler(
       .order("activity_date", { ascending: true });
 
     if (error) {
-      console.error("Get attendance error:", error);
-      return res.status(500).json({ error: "Napaka pri nalaganju prisotnosti", details: error.message });
+      console.error("Supabase query error:", error);
+      return res.status(500).json({ 
+        error: "Napaka pri nalaganju prisotnosti", 
+        details: error.message,
+        hint: error.hint,
+        code: error.code
+      });
     }
 
     console.log("Activities found:", activities?.length || 0);
 
+    if (!activities || activities.length === 0) {
+      console.log("No activities found for this player in date range");
+      return res.status(200).json({
+        success: true,
+        attendance: [],
+      });
+    }
+
+    console.log("Sample activity:", activities[0]);
+
     // Transform data to match expected format
-    const attendance = activities?.map(activity => ({
-      id: activity.attendance[0].id,
-      player_id: activity.attendance[0].player_id,
-      status: activity.attendance[0].status,
-      date: activity.activity_date,
-      activities: {
-        id: activity.id,
-        activity_date: activity.activity_date,
-        start_time: activity.start_time,
-        end_time: activity.end_time,
-        activity_type_id: activity.activity_type_id,
-        home_game: activity.is_home_game,
-        venue_id: activity.venue_id,
-        venues: activity.venues
-      }
-    })) || [];
+    const attendance = activities.map(activity => {
+      const attendanceRecord = Array.isArray(activity.attendance) 
+        ? activity.attendance[0] 
+        : activity.attendance;
+
+      return {
+        id: attendanceRecord.id,
+        player_id: attendanceRecord.player_id,
+        status: attendanceRecord.status,
+        date: activity.activity_date,
+        activities: {
+          id: activity.id,
+          activity_date: activity.activity_date,
+          start_time: activity.start_time,
+          end_time: activity.end_time,
+          activity_type_id: activity.activity_type_id,
+          home_game: activity.is_home_game,
+          venue_id: activity.venue_id,
+          venues: activity.venues
+        }
+      };
+    });
 
     console.log("Transformed attendance records:", attendance.length);
+    console.log("Sample transformed record:", attendance[0]);
 
     return res.status(200).json({
       success: true,
@@ -84,9 +109,12 @@ export default async function handler(
     });
 
   } catch (error: any) {
-    console.error("Get attendance error:", error);
+    console.error("=== GET ATTENDANCE ERROR ===");
+    console.error("Error:", error);
+    console.error("Stack:", error.stack);
     return res.status(500).json({ 
-      error: error.message || "Napaka pri nalaganju prisotnosti" 
+      error: error.message || "Napaka pri nalaganju prisotnosti",
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
