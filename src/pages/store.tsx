@@ -1448,44 +1448,49 @@ export default function Store() {
   };
 
   // Parent cancel order function
-  const cancelOrder = async (orderId: string) => {
-    // Check if order can be canceled
+  const deleteOrder = async (orderId: string) => {
+    // Check if order can be deleted
     const order = myOrders.find(o => o.id === orderId);
     if (!order) return;
 
     if (order.status !== "open") {
       toast({
-        title: "Ni mogoče preklicati",
-        description: "Naročilo lahko prekličete samo, dokler je v statusu 'Odprto'.",
+        title: "Ni mogoče izbrisati",
+        description: "Naročilo lahko izbrišete samo, dokler je v statusu 'Odprto'.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!confirm("Ali ste prepričani, da želite preklicati to naročilo?")) return;
+    if (!confirm("Ali ste prepričani, da želite izbrisati to naročilo?")) return;
 
     try {
-      const { error } = await supabase
+      // Delete order items first
+      const { error: itemsError } = await supabase
+        .from("store_order_items")
+        .delete()
+        .eq("order_id", orderId);
+
+      if (itemsError) throw itemsError;
+
+      // Delete order
+      const { error: orderError } = await supabase
         .from("store_orders")
-        .update({
-          status: "cancelled",
-          cancelled_at: new Date().toISOString(),
-          cancelled_by: user?.id,
-        })
+        .delete()
         .eq("id", orderId);
 
-      if (error) throw error;
+      if (orderError) throw orderError;
 
       toast({
-        title: "Naročilo preklicano",
-        description: "Naročilo je bilo uspešno preklicano.",
+        title: "Naročilo izbrisano",
+        description: "Naročilo je bilo uspešno izbrisano.",
       });
 
       fetchOrders();
     } catch (error: any) {
       toast({
         title: "Napaka",
-        description: `Napaka pri preklicu naročila: ${error.message}`,
+        description: `Napaka pri brisanju naročila: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -1912,22 +1917,36 @@ export default function Store() {
                           <TableCell className="font-semibold">{order.total_amount?.toFixed(2) || "0.00"} €</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openItemsDialog(order.id)}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                Poglej
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEditStatusDialog(order)}
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Uredi status
-                              </Button>
+                              {items.length > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openItemsDialog(order.id)}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  Poglej
+                                </Button>
+                              )}
+                              {userRole === "parent" && order.status === "open" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteOrder(order.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Izbriši
+                                </Button>
+                              )}
+                              {(userRole === "coach" || userRole === "admin") && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openEditStatusDialog(order)}
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Uredi status
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
