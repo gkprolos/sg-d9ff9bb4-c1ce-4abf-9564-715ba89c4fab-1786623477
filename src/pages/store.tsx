@@ -998,6 +998,50 @@ export default function Store() {
     }
   };
 
+  const deleteCollection = async (collectionId: string) => {
+    if (!confirm("Ali ste prepričani, da želite izbrisati ta zbirnik? Naročila bodo ostala, vendar ne bodo več povezana z zbirnikom.")) return;
+
+    try {
+      // First, disconnect orders from this collection
+      const { error: ordersError } = await supabase
+        .from("store_orders")
+        .update({ collection_id: null, status: "open" })
+        .eq("collection_id", collectionId);
+
+      if (ordersError) throw ordersError;
+
+      // Delete collection items
+      const { error: itemsError } = await supabase
+        .from("store_collection_items")
+        .delete()
+        .eq("collection_id", collectionId);
+
+      if (itemsError) throw itemsError;
+
+      // Delete collection
+      const { error: collectionError } = await supabase
+        .from("store_collections")
+        .delete()
+        .eq("id", collectionId);
+
+      if (collectionError) throw collectionError;
+
+      toast({
+        title: "Zbirnik izbrisan",
+        description: "Zbirnik je bil uspešno izbrisan. Naročila so bila vrnjena v stanje 'Odprto'.",
+      });
+
+      loadCollections();
+      fetchOrders();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri brisanju zbirnika: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Collection View/Edit Functions
   const openCollectionView = async (collection: any) => {
     setViewingCollection(collection);
@@ -2024,14 +2068,24 @@ export default function Store() {
                           {new Date(collection.created_at).toLocaleDateString("sl-SI")}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openCollectionView(collection)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Odpri
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openCollectionView(collection)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Odpri
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteCollection(collection.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Izbriši
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
