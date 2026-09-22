@@ -92,7 +92,7 @@ export default function MyChildren() {
     useEffect(() => {
         if (selectedChildId) {
             loadSchedules(selectedChildId);
-            loadAttendance(selectedChildId);
+            loadAttendance();
         } else {
             setSchedules([]);
             setAttendance([]);
@@ -124,29 +124,28 @@ export default function MyChildren() {
         }
     };
 
-    const loadAttendance = async (playerId: string) => {
-        try {
-            const startDate = new Date(selectedYear, selectedMonth, 1);
-            const endDate = new Date(selectedYear, selectedMonth + 1, 0);
+    const loadAttendance = async () => {
+        if (!selectedChild) return;
 
-            const response = await fetch("/api/parent/get-attendance", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    playerId: playerId,
-                    startDate: startDate.toISOString().split("T")[0],
-                    endDate: endDate.toISOString().split("T")[0],
-                }),
-            });
+        try {
+            const response = await fetch(
+                `/api/parent/get-attendance?child_id=${selectedChild}&month=${selectedMonth + 1}&year=${selectedYear}`
+            );
 
             if (!response.ok) {
-                throw new Error("Failed to load attendance");
+                console.error("Failed to load attendance:", response.statusText);
+                setAttendance([]);
+                return;
             }
 
             const data = await response.json();
+            console.log("Attendance data loaded:", data);
+            
+            // Store attendance data
             setAttendance(data.attendance || []);
         } catch (error) {
             console.error("Error loading attendance:", error);
+            setAttendance([]);
         }
     };
 
@@ -211,7 +210,7 @@ export default function MyChildren() {
     };
 
     const getAttendanceForDate = (date: string) => {
-        return attendance.find((a) => a.activities?.activity_date === date);
+        return attendance.find((a) => a.date === date);
     };
 
     // Helper function to get status color
@@ -423,29 +422,49 @@ export default function MyChildren() {
                                             <div
                                                 key={dateStr}
                                                 className={`
-                          min-h-[90px] p-1 border rounded-lg flex flex-col relative
-                          ${dayAttendance ? getStatusColor(dayAttendance.status) : (hasActivity ? "bg-blue-50/50 border-blue-200" : "bg-muted/30")}
+                          min-h-[90px] p-2 border rounded-lg flex flex-col relative transition-colors
+                          ${dayAttendance 
+                            ? dayAttendance.status === "P" 
+                              ? "bg-green-100 border-green-300" 
+                              : dayAttendance.status === "O"
+                              ? "bg-red-100 border-red-300"
+                              : "bg-orange-100 border-orange-300"
+                            : hasActivity 
+                            ? "bg-blue-50 border-blue-200" 
+                            : "bg-gray-50 border-gray-200"}
                         `}
                                             >
-                                                <div className="absolute top-1 left-2 text-xs font-medium">
+                                                {/* Dan v mesecu */}
+                                                <div className="text-xs font-semibold text-gray-600 mb-1">
                                                     {date.getDate()}
                                                 </div>
 
-                                                <div className="flex-1 flex flex-col items-center justify-center gap-1 mt-3">
+                                                <div className="flex-1 flex flex-col items-center justify-center gap-1">
                                                     {dayAttendance ? (
-                                                        <div className="flex flex-col items-center gap-1">
-                                                            <div className="text-sm font-bold">
+                                                        <>
+                                                            {/* Velika črka za status */}
+                                                            <div className={`
+                                text-2xl font-bold rounded-full w-10 h-10 flex items-center justify-center
+                                ${dayAttendance.status === "P" 
+                                  ? "bg-green-500 text-white" 
+                                  : dayAttendance.status === "O"
+                                  ? "bg-red-500 text-white"
+                                  : "bg-orange-500 text-white"}
+                              `}>
                                                                 {dayAttendance.status}
                                                             </div>
-                                                            <div className="text-[10px] text-center">
+                                                            {/* Ime aktivnosti */}
+                                                            <div className="text-[10px] text-center text-gray-600 font-medium">
                                                                 {schedule?.activity_name || "Trening"}
                                                             </div>
-                                                        </div>
+                                                        </>
                                                     ) : hasActivity ? (
-                                                        <div className="text-[10px] text-center text-muted-foreground px-1 flex flex-col items-center gap-1">
-                                                            <span className="font-medium">{schedule?.activity_name || "Trening"}</span>
-                                                            <div className="flex items-center gap-1">
-                                                                <Clock className="h-2 w-2 shrink-0" />
+                                                        <div className="text-center">
+                                                            <div className="text-xs font-medium text-blue-700 mb-1">
+                                                                {schedule?.activity_name || "Trening"}
+                                                            </div>
+                                                            <div className="flex items-center gap-1 justify-center text-[10px] text-blue-600">
+                                                                <Clock className="h-3 w-3" />
                                                                 <span>{schedule.start_time.slice(0, 5)}</span>
                                                             </div>
                                                         </div>
@@ -454,6 +473,52 @@ export default function MyChildren() {
                                             </div>
                                         );
                                     })}
+                                </div>
+
+                                {/* Statistika in legenda */}
+                                <div className="mt-6 space-y-4">
+                                    {/* Statistika */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div className="p-4 bg-gray-100 rounded-lg">
+                                            <div className="text-xs text-gray-600 mb-1">Skupaj treningov</div>
+                                            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                                        </div>
+                                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                            <div className="text-xs text-green-700 mb-1">Prisotnost</div>
+                                            <div className="text-2xl font-bold text-green-700">
+                                                {stats.present}
+                                                <span className="text-sm ml-2 font-normal">({stats.presentPercentage}%)</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                            <div className="text-xs text-red-700 mb-1">Odsotnost</div>
+                                            <div className="text-2xl font-bold text-red-700">{stats.absent}</div>
+                                        </div>
+                                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                                            <div className="text-xs text-orange-700 mb-1">Opravičeno</div>
+                                            <div className="text-2xl font-bold text-orange-700">{stats.excused}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Legenda */}
+                                    <div className="flex flex-wrap gap-4 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">P</div>
+                                            <span className="text-gray-700">Prisoten</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">O</div>
+                                            <span className="text-gray-700">Odsoten</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">Op</div>
+                                            <span className="text-gray-700">Opravičen</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 bg-blue-50 border border-blue-200 rounded"></div>
+                                            <span className="text-gray-700">Načrtovan trening</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
