@@ -549,6 +549,12 @@ export default function MyTeamsPage() {
                 </p>
               </CardContent>
             </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {teams.map((team) => (
+                <Card key={team.id} className="hover:shadow-md transition-shadow">
+              })}
+            </div>
           ) : null}
         </div>
       </AppLayout>
