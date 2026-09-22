@@ -1398,6 +1398,7 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           delivered_by: string | null
+          delivery_address: string | null
           id: string
           invoiced_at: string | null
           invoiced_by: string | null
@@ -1417,6 +1418,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           delivered_by?: string | null
+          delivery_address?: string | null
           id?: string
           invoiced_at?: string | null
           invoiced_by?: string | null
@@ -1436,6 +1438,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           delivered_by?: string | null
+          delivery_address?: string | null
           id?: string
           invoiced_at?: string | null
           invoiced_by?: string | null

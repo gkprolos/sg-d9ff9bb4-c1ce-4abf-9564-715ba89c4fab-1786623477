@@ -475,17 +475,22 @@ export default function Store() {
     try {
       const { data, error } = await supabase
         .from("store_collections")
-        .select("*")
+        .select(`
+          *,
+          store_orders(count)
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setCollections(data || []);
+      
+      const collectionsWithCounts = (data || []).map((collection: any) => ({
+        ...collection,
+        total_orders: collection.store_orders?.[0]?.count || 0,
+      }));
+      
+      setCollections(collectionsWithCounts);
     } catch (error: any) {
-      toast({
-        title: "Napaka",
-        description: `Napaka pri nalaganju zbirnikov: ${error.message}`,
-        variant: "destructive",
-      });
+      console.error("Error loading collections:", error);
     }
   };
 
@@ -2384,14 +2389,14 @@ export default function Store() {
               <div className="space-y-2">
                 <Label htmlFor="supplier">Dobavitelj</Label>
                 <Select
-                  value={articleFormData.supplier_id}
-                  onValueChange={(value) => setArticleFormData({ ...articleFormData, supplier_id: value })}
+                  value={articleFormData.supplier_id || "none"}
+                  onValueChange={(value) => setArticleFormData({ ...articleFormData, supplier_id: value === "none" ? "" : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Izberi dobavitelja" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Brez dobavitelja</SelectItem>
+                    <SelectItem value="none">Brez dobavitelja</SelectItem>
                     {suppliers.map((sup) => (
                       <SelectItem key={sup.id} value={sup.id}>
                         {sup.name}
