@@ -63,13 +63,11 @@ interface ScheduleTemplate {
 
 interface AttendanceRecord {
     id: string;
-    player_id: string;
+    date: string;
     status: string;
+    activity_id: string;
     activities?: {
-        id: string;
-        activity_date: string;
-        start_time?: string;
-        end_time?: string;
+        name: string;
     };
 }
 
@@ -102,9 +100,12 @@ export default function MyChildren() {
 
     const loadChildren = async () => {
         try {
+            // Spremenimo v POST in pošljemo email, ki ga API pričakuje
             const response = await fetch("/api/parent/get-children", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({ parentEmail: user?.email }),
             });
 
@@ -132,9 +133,12 @@ export default function MyChildren() {
             const startDate = new Date(selectedYear, selectedMonth, 1);
             const endDate = new Date(selectedYear, selectedMonth + 1, 0);
 
+            // Spremenimo v POST in pošljemo playerId, startDate in endDate
             const response = await fetch("/api/parent/get-attendance", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
                     playerId: selectedChild.id,
                     startDate: startDate.toISOString().split("T")[0],
@@ -155,9 +159,12 @@ export default function MyChildren() {
 
     const loadSchedules = async (childId: string) => {
         try {
+            // Spremenimo v POST in pošljemo playerId, ki ga API pričakuje
             const response = await fetch("/api/parent/get-child-schedules", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({ playerId: childId }),
             });
 
@@ -167,6 +174,7 @@ export default function MyChildren() {
             }
             const data = await response.json();
 
+            // Convert day_of_week to number if it's a string
             const schedules = (data.schedules || []).map((s: any) => ({
                 ...s,
                 day_of_week: typeof s.day_of_week === 'string' ? parseInt(s.day_of_week, 10) : s.day_of_week
@@ -180,6 +188,7 @@ export default function MyChildren() {
 
     const daysOfWeek = ["Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota", "Nedelja"];
 
+    // Group schedules by day
     const groupedSchedules = schedules.reduce((acc, schedule) => {
         const dayNum = schedule.day_of_week;
         const day = daysOfWeek[dayNum] || `Dan ${dayNum}`;
@@ -188,6 +197,7 @@ export default function MyChildren() {
         return acc;
     }, {} as Record<string, ScheduleTemplate[]>);
 
+    // Sort days by their index in daysOfWeek
     const sortedDays = Object.keys(groupedSchedules).sort((a, b) => {
         const aIndex = daysOfWeek.indexOf(a);
         const bIndex = daysOfWeek.indexOf(b);
@@ -205,6 +215,7 @@ export default function MyChildren() {
     }
 
     const getDaysInMonth = () => {
+        const firstDay = new Date(selectedYear, selectedMonth, 1);
         const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
         const days: Date[] = [];
 
@@ -216,43 +227,32 @@ export default function MyChildren() {
     };
 
     const getAttendanceForDate = (date: string) => {
-        // Backend vrača datum znotraj activities.activity_date
-        return attendance.find((a) => a.activities?.activity_date === date);
+        return attendance.find((a) => a.date === date);
     };
 
-    const getAttendanceLetter = (status: string) => {
+    const getAttendanceColor = (status: string) => {
         switch (status) {
-            case "present": return "P";
-            case "absent": return "O";
-            case "excused": return "Op";
-            default: return "";
-        }
-    };
-
-    const getAttendanceBadgeColor = (status: string) => {
-        switch (status) {
-            case "present": return "bg-green-500";
-            case "absent": return "bg-red-500";
-            case "excused": return "bg-yellow-500";
-            default: return "bg-gray-500";
-        }
-    };
-
-    const getAttendanceCellColor = (status: string) => {
-        switch (status) {
-            case "present": return "bg-green-50 border-green-200";
-            case "absent": return "bg-red-50 border-red-200";
-            case "excused": return "bg-yellow-50 border-yellow-200";
-            default: return "bg-muted/30";
+            case "present":
+                return "bg-green-100 text-green-800 border-green-300";
+            case "absent":
+                return "bg-red-100 text-red-800 border-red-300";
+            case "excused":
+                return "bg-yellow-100 text-yellow-800 border-yellow-300";
+            default:
+                return "bg-gray-100 text-gray-800 border-gray-300";
         }
     };
 
     const getAttendanceLabel = (status: string) => {
         switch (status) {
-            case "present": return "Prisoten";
-            case "absent": return "Odsoten";
-            case "excused": return "Opravičen";
-            default: return status;
+            case "present":
+                return "Prisoten";
+            case "absent":
+                return "Odsoten";
+            case "excused":
+                return "Opravičen";
+            default:
+                return status;
         }
     };
 
@@ -271,7 +271,11 @@ export default function MyChildren() {
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push("/dashboard")}
+                        >
                             <ArrowLeft className="h-4 w-4 mr-2" />
                             Nazaj
                         </Button>
@@ -310,6 +314,7 @@ export default function MyChildren() {
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                {/* Teams */}
                                 <div>
                                     <h3 className="text-sm font-semibold mb-2">Ekipe</h3>
                                     <p className="text-sm text-muted-foreground">
@@ -317,6 +322,7 @@ export default function MyChildren() {
                                     </p>
                                 </div>
 
+                                {/* Schedules */}
                                 <div>
                                     <h3 className="text-sm font-semibold mb-2">Urnik treningov</h3>
                                     {schedules && schedules.length > 0 ? (
@@ -442,7 +448,7 @@ export default function MyChildren() {
                                     <div className="grid grid-cols-7 gap-2">
                                         {getDaysInMonth().map((date) => {
                                             const dateStr = date.toISOString().split("T")[0];
-                                            const dayAttendance = getAttendanceForDate(dateStr);
+                                            const attendance = getAttendanceForDate(dateStr);
                                             const schedule = getScheduleForDate(dateStr);
                                             const hasActivity = schedule !== null;
 
@@ -450,29 +456,24 @@ export default function MyChildren() {
                                                 <div
                                                     key={dateStr}
                                                     className={`
-                            min-h-[80px] p-1 border rounded-lg flex flex-col relative
-                            ${dayAttendance ? getAttendanceCellColor(dayAttendance.status) : (hasActivity ? "bg-blue-50/50 border-blue-200" : "bg-muted/30")}
+                            min-h-[80px] p-2 border rounded-lg
+                            ${!hasActivity ? "bg-muted/30" : ""}
+                            ${attendance ? getAttendanceColor(attendance.status) : ""}
                           `}
                                                 >
-                                                    {/* Datum je majhen v levem zgornjem kotu */}
-                                                    <div className="absolute top-1 left-2 text-xs font-medium text-muted-foreground">
+                                                    <div className="text-sm font-medium mb-1">
                                                         {date.getDate()}
                                                     </div>
-
-                                                    {/* Vsebina na sredini */}
-                                                    <div className="flex-1 flex flex-col items-center justify-center gap-1 mt-2">
-                                                        {dayAttendance ? (
-                                                            <div className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold text-white shadow-sm ${getAttendanceBadgeColor(dayAttendance.status)}`}>
-                                                                {getAttendanceLetter(dayAttendance.status)}
-                                                            </div>
-                                                        ) : (
-                                                            hasActivity && (
-                                                                <div className="text-[10px] text-center text-muted-foreground px-1">
-                                                                    {schedule?.activity_name || "Trening"}
-                                                                </div>
-                                                            )
-                                                        )}
-                                                    </div>
+                                                    {hasActivity && (
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {schedule?.activity_name || "Trening"}
+                                                        </div>
+                                                    )}
+                                                    {attendance && (
+                                                        <Badge variant="outline" className="mt-1 text-xs">
+                                                            {getAttendanceLabel(attendance.status)}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -483,37 +484,28 @@ export default function MyChildren() {
                                 <div>
                                     <h3 className="text-lg font-semibold mb-4">Statistika prisotnosti</h3>
                                     <div className="grid grid-cols-3 gap-4">
-                                        <Card className="bg-green-50 border-green-200">
-                                            <CardContent className="pt-6 flex flex-col items-center">
-                                                <div className="flex items-center justify-center h-12 w-12 rounded-full text-base font-bold text-white bg-green-500 mb-2">
-                                                    P
+                                        <Card>
+                                            <CardContent className="pt-6">
+                                                <div className="text-2xl font-bold text-green-600">
+                                                    {attendance.filter((a) => a.status === "present").length}
                                                 </div>
-                                                <div className="text-sm font-medium text-green-800">Prisoten</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    ({attendance.filter((a) => a.status === "present").length}x)
-                                                </div>
+                                                <div className="text-sm text-muted-foreground">Prisoten</div>
                                             </CardContent>
                                         </Card>
-                                        <Card className="bg-red-50 border-red-200">
-                                            <CardContent className="pt-6 flex flex-col items-center">
-                                                <div className="flex items-center justify-center h-12 w-12 rounded-full text-base font-bold text-white bg-red-500 mb-2">
-                                                    O
+                                        <Card>
+                                            <CardContent className="pt-6">
+                                                <div className="text-2xl font-bold text-red-600">
+                                                    {attendance.filter((a) => a.status === "absent").length}
                                                 </div>
-                                                <div className="text-sm font-medium text-red-800">Odsoten</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    ({attendance.filter((a) => a.status === "absent").length}x)
-                                                </div>
+                                                <div className="text-sm text-muted-foreground">Odsoten</div>
                                             </CardContent>
                                         </Card>
-                                        <Card className="bg-yellow-50 border-yellow-200">
-                                            <CardContent className="pt-6 flex flex-col items-center">
-                                                <div className="flex items-center justify-center h-12 w-12 rounded-full text-base font-bold text-white bg-yellow-500 mb-2">
-                                                    Op
+                                        <Card>
+                                            <CardContent className="pt-6">
+                                                <div className="text-2xl font-bold text-yellow-600">
+                                                    {attendance.filter((a) => a.status === "excused").length}
                                                 </div>
-                                                <div className="text-sm font-medium text-yellow-800">Opravičen</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    ({attendance.filter((a) => a.status === "excused").length}x)
-                                                </div>
+                                                <div className="text-sm text-muted-foreground">Opravičen</div>
                                             </CardContent>
                                         </Card>
                                     </div>
@@ -525,4 +517,4 @@ export default function MyChildren() {
             </Dialog>
         </AppLayout>
     );
-}
+} 
