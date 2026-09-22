@@ -828,18 +828,24 @@ export default function Store() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Oprema</h1>
-            <p className="text-muted-foreground">Naročite klubsko opremo</p>
-          </div>
-          {userRole === "parent" && cart.length > 0 && (
-            <Button onClick={() => setIsCartOpen(true)} size="lg">
-              <ShoppingCart className="mr-2 h-5 w-5" />
-              Košarica ({cart.length})
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/dashboard")}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Nazaj
             </Button>
-          )}
+            <div>
+              <h1 className="text-3xl font-bold">Oprema</h1>
+              <p className="text-muted-foreground">
+                Naročanje klubske opreme
+              </p>
+            </div>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
