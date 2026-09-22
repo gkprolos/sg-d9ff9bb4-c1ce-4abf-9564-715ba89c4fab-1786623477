@@ -52,7 +52,7 @@ interface TeamPlayer {
 }
 
 export default function MyTeamsPage() {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -102,7 +102,7 @@ export default function MyTeamsPage() {
         .select(`
           *,
           coaches!teams_head_coach_id_fkey(id, full_name, email),
-          seasons(name)
+          seasons(name, is_active)
         `)
         .order("name");
 
