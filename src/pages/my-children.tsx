@@ -52,6 +52,7 @@ interface AttendanceRecord {
     id: string;
     player_id: string;
     status: string;
+    date: string;
     activities?: {
         id: string;
         activity_date: string;
@@ -125,11 +126,11 @@ export default function MyChildren() {
     };
 
     const loadAttendance = async () => {
-        if (!selectedChild) return;
+        if (!selectedChildId) return;
 
         try {
             const response = await fetch(
-                `/api/parent/get-attendance?child_id=${selectedChild}&month=${selectedMonth + 1}&year=${selectedYear}`
+                `/api/parent/get-attendance?child_id=${selectedChildId}&month=${selectedMonth + 1}&year=${selectedYear}`
             );
 
             if (!response.ok) {
