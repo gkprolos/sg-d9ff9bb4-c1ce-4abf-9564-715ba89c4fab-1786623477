@@ -1687,18 +1687,17 @@ export default function Store() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Številka</TableHead>
+                      <TableHead>Številka naročila</TableHead>
                       <TableHead>Naročnik</TableHead>
                       <TableHead>Naslov</TableHead>
                       <TableHead>Zadnja sprememba</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Znesek</TableHead>
+                      <TableHead>Skupni znesek</TableHead>
                       <TableHead className="text-right">Akcije</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {myOrders.map((order) => {
-                      const items = orderItems[order.id] || [];
+                    {filteredOrders.map((order) => {
                       const statusBadgeVariant = 
                         order.status === "delivered" ? "default" :
                         order.status === "ordered" ? "secondary" :
@@ -1735,39 +1734,25 @@ export default function Store() {
                                order.status === "cancelled" ? "Preklicano" : order.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="font-semibold">{order.total_amount.toFixed(2)} €</TableCell>
+                          <TableCell className="font-semibold">{order.total_amount?.toFixed(2) || "0.00"} €</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              {items.length > 0 && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => openItemsDialog(order.id)}
-                                >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  Postavke ({items.length})
-                                </Button>
-                              )}
-                              {(userRole === "coach" || userRole === "admin") && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => openEditStatusDialog(order)}
-                                >
-                                  <Edit className="h-4 w-4 mr-1" />
-                                  Uredi
-                                </Button>
-                              )}
-                              {userRole === "parent" && order.status === "open" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => cancelOrder(order.id)}
-                                >
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  Prekliči
-                                </Button>
-                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => viewOrderDetails(order.id)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Poglej
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditStatusDialog(order)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Uredi status
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
