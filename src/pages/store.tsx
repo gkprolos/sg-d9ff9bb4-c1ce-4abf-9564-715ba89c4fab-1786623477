@@ -669,7 +669,7 @@ export default function Store() {
 
   const saveArticle = async () => {
     try {
-      const sizesArray = Array.isArray(articleFormData.available_sizes) 
+      const sizesArray: string[] = Array.isArray(articleFormData.available_sizes) 
         ? articleFormData.available_sizes.filter((s): s is string => typeof s === 'string')
         : [];
 
@@ -683,7 +683,7 @@ export default function Store() {
             description: articleFormData.description,
             price: articleFormData.price,
             category: articleFormData.category,
-            available_sizes: sizesArray,
+            available_sizes: sizesArray as any,
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
             supplier_id: articleFormData.supplier_id || null,
@@ -706,7 +706,7 @@ export default function Store() {
             description: articleFormData.description,
             price: articleFormData.price,
             category: articleFormData.category,
-            available_sizes: sizesArray,
+            available_sizes: sizesArray as any,
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
             supplier_id: articleFormData.supplier_id || null,
@@ -2349,7 +2349,16 @@ export default function Store() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => editCollection(collection)}
+                                    onClick={() => {
+                                      setEditingCollection(collection as StoreCollection);
+                                      setCollectionFormData({
+                                        collection_number: collection.collection_number,
+                                        collection_date: collection.collection_date || new Date().toISOString().split("T")[0],
+                                        status: collection.status,
+                                        notes: collection.notes || "",
+                                      });
+                                      setIsCollectionDialogOpen(true);
+                                    }}
                                   >
                                     <Edit className="h-4 w-4 mr-1" />
                                     Uredi

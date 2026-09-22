@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, LogOut, User } from "lucide-react";
+import { Calendar, LogOut, User, ArrowLeft, Eye, Clock, MapPin, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -305,13 +305,13 @@ export default function MyChildren() {
 
   const selectedChildData = children.find((c) => c.id === selectedChild);
 
-  const daysOfWeek = ["Nedelja", "Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota"];
+  const daysOfWeek = ["Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota", "Nedelja"];
 
   // Group schedules by day
   const groupedSchedules = schedules.reduce((acc, schedule) => {
-    const dayNum = typeof schedule.day_of_week === 'number' 
-      ? schedule.day_of_week 
-      : parseInt(String(schedule.day_of_week), 10);
+    const dayNum = typeof schedule.day_of_week === 'string' 
+      ? parseInt(schedule.day_of_week, 10)
+      : schedule.day_of_week;
     const day = daysOfWeek[dayNum] || String(schedule.day_of_week);
     if (!acc[day]) acc[day] = [];
     acc[day].push(schedule);
