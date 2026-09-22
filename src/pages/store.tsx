@@ -1152,51 +1152,56 @@ export default function Store() {
     setIsCartDialogOpen(true);
   };
 
-  const addToCart = () => {
-    if (!selectedItemForCart) return;
-    
-    const sizes = Array.isArray(selectedItemForCart.available_sizes) ? selectedItemForCart.available_sizes : [];
-    if (sizes.length > 0 && !selectedSize) {
-      toast({
-        title: "Izberite velikost",
-        description: "Prosimo, izberite velikost pred dodajanjem v košarico.",
-        variant: "destructive",
-      });
-      return;
-    }
+    const addToCart = (item?: StoreItem, size?: string) => {
+        // Uporabi podan 'item' ali pa tistega iz state-a (selectedItemForCart)
+        const targetItem = item || selectedItemForCart;
+        if (!targetItem) return;
 
-    const existingItemIndex = cart.findIndex(
-      item => item.item_id === selectedItemForCart.id && item.size === (selectedSize || "N/A")
-    );
+        // Uporabi podan 'size' ali pa tistega iz state-a (selectedSize)
+        const targetSize = size || selectedSize;
+        const sizes = Array.isArray(targetItem.available_sizes) ? targetItem.available_sizes : [];
 
-    if (existingItemIndex >= 0) {
-      const updatedCart = [...cart];
-      updatedCart[existingItemIndex].quantity += quantity;
-      setCart(updatedCart);
-    } else {
-      setCart([
-        ...cart,
-        {
-          item_id: selectedItemForCart.id,
-          item_number: selectedItemForCart.item_number,
-          item_name: selectedItemForCart.name,
-          name: selectedItemForCart.name,
-          size: selectedSize || "N/A",
-          quantity: quantity,
-          item_price: selectedItemForCart.price,
-          price: selectedItemForCart.price,
-          image_url: selectedItemForCart.image_url || "",
-        },
-      ]);
-    }
+        if (sizes.length > 0 && !targetSize) {
+            toast({
+                title: "Izberite velikost",
+                description: "Prosimo, izberite velikost pred dodajanjem v košarico.",
+                variant: "destructive",
+            });
+            return;
+        }
 
-    toast({
-      title: "Dodano v košarico",
-      description: `${selectedItemForCart.name} (${quantity}x) je bilo dodano v košarico.`,
-    });
+        const existingItemIndex = cart.findIndex(
+            (cartItem) => cartItem.item_id === targetItem.id && cartItem.size === (targetSize || "N/A")
+        );
 
-    setIsCartDialogOpen(false);
-  };
+        if (existingItemIndex >= 0) {
+            const updatedCart = [...cart];
+            updatedCart[existingItemIndex].quantity += quantity;
+            setCart(updatedCart);
+        } else {
+            setCart([
+                ...cart,
+                {
+                    item_id: targetItem.id,
+                    item_number: targetItem.item_number,
+                    item_name: targetItem.name,
+                    name: targetItem.name,
+                    size: targetSize || "N/A",
+                    quantity: quantity,
+                    item_price: targetItem.price,
+                    price: targetItem.price,
+                    image_url: targetItem.image_url || "",
+                },
+            ]);
+        }
+
+        toast({
+            title: "Dodano v košarico",
+            description: `${targetItem.name} (${quantity}x) je bilo dodano v košarico.`,
+        });
+
+        setIsCartDialogOpen(false);
+    };
 
   const removeFromCart = (itemId: string, size: string) => {
     setCart(cart.filter(item => !(item.item_id === itemId && item.size === size)));
