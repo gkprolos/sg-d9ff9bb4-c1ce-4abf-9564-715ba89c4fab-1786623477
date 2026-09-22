@@ -506,7 +506,7 @@ export default function Store() {
         .from("store_orders")
         .select(`
           *,
-          profiles:parent_id (
+          profiles!parent_id (
             first_name,
             last_name,
             email
