@@ -199,6 +199,7 @@ export default function Store() {
     image_url: "",
     external_link: "",
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Categories Management State
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
@@ -645,6 +646,109 @@ export default function Store() {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Napaka",
+        description: "Naložite lahko samo slike (PNG, JPG, WebP, GIF)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Napaka",
+        description: "Slika je prevelika. Maksimalna velikost je 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `store-items/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("public-assets")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("public-assets")
+        .getPublicUrl(filePath);
+
+      setArticleFormData({
+        ...articleFormData,
+        image_url: urlData.publicUrl,
+      });
+
+      toast({
+        title: "Slika naložena",
+        description: "Slika je bila uspešno naložena.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri nalaganju slike: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const deleteArticleImage = async () => {
+    if (!articleFormData.image_url) return;
+
+    try {
+      // Extract file path from URL
+      const url = new URL(articleFormData.image_url);
+      const pathParts = url.pathname.split("/");
+      const filePath = pathParts.slice(pathParts.indexOf("store-items")).join("/");
+
+      // Delete from storage
+      const { error } = await supabase.storage
+        .from("public-assets")
+        .remove([filePath]);
+
+      if (error) throw error;
+
+      setArticleFormData({
+        ...articleFormData,
+        image_url: "",
+      });
+
+      toast({
+        title: "Slika izbrisana",
+        description: "Slika je bila uspešno izbrisana.",
+      });
+    } catch (error: any) {
+      // If delete fails, just clear the URL (file might not exist)
+      setArticleFormData({
+        ...articleFormData,
+        image_url: "",
+      });
+      
+      toast({
+        title: "Slika odstranjena",
+        description: "Povezava do slike je bila odstranjena.",
+      });
+    }
+  };
+
   const deleteArticle = async (articleId: string) => {
     if (!confirm("Ali ste prepričani, da želite izbrisati ta artikel?")) return;
 
@@ -783,11 +887,12 @@ export default function Store() {
     }
 
     try {
-      // Create collection
+      // Create collection with collection_date
       const { data: collection, error: collectionError } = await supabase
         .from("store_collections")
         .insert({
           collection_number: collectionFormData.collection_number,
+          collection_date: new Date().toISOString().split("T")[0], // Today's date in YYYY-MM-DD format
           notes: collectionFormData.notes,
           status: "sprejeto",
         })
@@ -857,6 +962,17 @@ export default function Store() {
         description: `Napaka pri ustvarjanju zbirnika: ${error.message}`,
         variant: "destructive",
       });
+    }
+  };
+
+  const toggleSelectAllOrders = () => {
+    const openOrders = myOrders.filter(o => o.status === "open");
+    if (selectedOrdersForCollection.size === openOrders.length) {
+      // Deselect all
+      setSelectedOrdersForCollection(new Set());
+    } else {
+      // Select all open orders
+      setSelectedOrdersForCollection(new Set(openOrders.map(o => o.id)));
     }
   };
 
@@ -1851,7 +1967,7 @@ export default function Store() {
 
       {/* Article Dialog */}
       <Dialog open={isArticleDialogOpen} onOpenChange={setIsArticleDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {editingArticle ? "Uredi artikel" : "Nov artikel"}
@@ -1862,114 +1978,165 @@ export default function Store() {
                 : "Ustvarite nov artikel v trgovini"}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="overflow-y-auto flex-1 px-1">
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="item_number">Šifra artikla</Label>
+                  <Input
+                    id="item_number"
+                    value={articleFormData.item_number}
+                    onChange={(e) => setArticleFormData({ ...articleFormData, item_number: e.target.value })}
+                    placeholder="npr. TS-001"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="price">Cena (€)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={articleFormData.price}
+                    onChange={(e) => setArticleFormData({ ...articleFormData, price: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label htmlFor="item_number">Šifra artikla</Label>
+                <Label htmlFor="name">Naziv</Label>
                 <Input
-                  id="item_number"
-                  value={articleFormData.item_number}
-                  onChange={(e) => setArticleFormData({ ...articleFormData, item_number: e.target.value })}
-                  placeholder="npr. TS-001"
+                  id="name"
+                  value={articleFormData.name}
+                  onChange={(e) => setArticleFormData({ ...articleFormData, name: e.target.value })}
+                  placeholder="npr. Klubska majica"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="price">Cena (€)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  value={articleFormData.price}
-                  onChange={(e) => setArticleFormData({ ...articleFormData, price: parseFloat(e.target.value) || 0 })}
+                <Label htmlFor="description">Opis</Label>
+                <Textarea
+                  id="description"
+                  value={articleFormData.description}
+                  onChange={(e) => setArticleFormData({ ...articleFormData, description: e.target.value })}
+                  placeholder="Podrobnejši opis artikla..."
+                  rows={3}
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Naziv</Label>
-              <Input
-                id="name"
-                value={articleFormData.name}
-                onChange={(e) => setArticleFormData({ ...articleFormData, name: e.target.value })}
-                placeholder="npr. Klubska majica"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Opis</Label>
-              <Textarea
-                id="description"
-                value={articleFormData.description}
-                onChange={(e) => setArticleFormData({ ...articleFormData, description: e.target.value })}
-                placeholder="Podrobnejši opis artikla..."
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="category">Kategorija</Label>
-              <Select
-                value={articleFormData.category}
-                onValueChange={(value) => setArticleFormData({ ...articleFormData, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Izberi kategorijo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.name}>
-                      {cat.name}
-                    </SelectItem>
+              <div className="space-y-2">
+                <Label htmlFor="category">Kategorija</Label>
+                <Select
+                  value={articleFormData.category}
+                  onValueChange={(value) => setArticleFormData({ ...articleFormData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Izberi kategorijo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Razpoložljive velikosti</Label>
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABLE_SIZES.map((size) => (
+                    <div key={size} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`size-${size}`}
+                        checked={articleFormData.available_sizes.includes(size)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setArticleFormData({
+                              ...articleFormData,
+                              available_sizes: [...articleFormData.available_sizes, size],
+                            });
+                          } else {
+                            setArticleFormData({
+                              ...articleFormData,
+                              available_sizes: articleFormData.available_sizes.filter((s) => s !== size),
+                            });
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`size-${size}`} className="text-sm font-normal">
+                        {size}
+                      </Label>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Razpoložljive velikosti</Label>
-              <div className="flex flex-wrap gap-2">
-                {AVAILABLE_SIZES.map((size) => (
-                  <div key={size} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`size-${size}`}
-                      checked={articleFormData.available_sizes.includes(size)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setArticleFormData({
-                            ...articleFormData,
-                            available_sizes: [...articleFormData.available_sizes, size],
-                          });
-                        } else {
-                          setArticleFormData({
-                            ...articleFormData,
-                            available_sizes: articleFormData.available_sizes.filter((s) => s !== size),
-                          });
-                        }
-                      }}
-                    />
-                    <Label htmlFor={`size-${size}`} className="text-sm font-normal">
-                      {size}
-                    </Label>
-                  </div>
-                ))}
+                </div>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="image_url">URL slike</Label>
-              <Input
-                id="image_url"
-                value={articleFormData.image_url}
-                onChange={(e) => setArticleFormData({ ...articleFormData, image_url: e.target.value })}
-                placeholder="https://..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="external_link">Zunanja povezava</Label>
-              <Input
-                id="external_link"
-                value={articleFormData.external_link}
-                onChange={(e) => setArticleFormData({ ...articleFormData, external_link: e.target.value })}
-                placeholder="https://..."
-              />
+              <div className="space-y-2">
+                <Label>Slika artikla</Label>
+                {articleFormData.image_url ? (
+                  <div className="space-y-2">
+                    <img 
+                      src={articleFormData.image_url} 
+                      alt="Preview"
+                      className="w-full h-48 object-cover rounded-md border"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={deleteArticleImage}
+                        className="flex-1"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Izbriši sliko
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById("image-upload")?.click()}
+                        disabled={uploadingImage}
+                        className="flex-1"
+                      >
+                        <ImageIcon className="h-4 w-4 mr-2" />
+                        Zamenjaj sliko
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed rounded-md p-6 text-center">
+                    <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Naložite sliko artikla (PNG, JPG, WebP, GIF)
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById("image-upload")?.click()}
+                      disabled={uploadingImage}
+                    >
+                      {uploadingImage ? "Nalaganje..." : "Izberi sliko"}
+                    </Button>
+                  </div>
+                )}
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="external_link">Zunanja povezava</Label>
+                <Input
+                  id="external_link"
+                  value={articleFormData.external_link}
+                  onChange={(e) => setArticleFormData({ ...articleFormData, external_link: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setIsArticleDialogOpen(false)}>
               Prekliči
             </Button>
@@ -2027,67 +2194,86 @@ export default function Store() {
 
       {/* Collection Dialog */}
       <Dialog open={isCollectionDialogOpen} onOpenChange={setIsCollectionDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Nov zbirnik</DialogTitle>
             <DialogDescription>
               Izberite odprta naročila za zbirnik
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="collection_number">Številka zbirnika</Label>
-                <Input
-                  id="collection_number"
-                  value={collectionFormData.collection_number}
-                  onChange={(e) => setCollectionFormData({ ...collectionFormData, collection_number: e.target.value })}
-                  placeholder="npr. ZBR-001"
-                />
+          <div className="overflow-y-auto flex-1 px-1">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="collection_number">Številka zbirnika</Label>
+                  <Input
+                    id="collection_number"
+                    value={collectionFormData.collection_number}
+                    onChange={(e) => setCollectionFormData({ ...collectionFormData, collection_number: e.target.value })}
+                    placeholder="npr. ZBR-001"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="collection_notes">Opombe</Label>
+                  <Input
+                    id="collection_notes"
+                    value={collectionFormData.notes}
+                    onChange={(e) => setCollectionFormData({ ...collectionFormData, notes: e.target.value })}
+                    placeholder="Dodatne opombe..."
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="collection_notes">Opombe</Label>
-                <Input
-                  id="collection_notes"
-                  value={collectionFormData.notes}
-                  onChange={(e) => setCollectionFormData({ ...collectionFormData, notes: e.target.value })}
-                  placeholder="Dodatne opombe..."
-                />
-              </div>
-            </div>
-            <div className="border rounded-md p-4 max-h-[400px] overflow-y-auto">
-              <div className="text-sm font-medium mb-2">
-                Odprta naročila ({myOrders.filter(o => o.status === "open").length})
-              </div>
-              {myOrders
-                .filter(o => o.status === "open")
-                .map((order) => {
-                  const items = orderItems[order.id] || [];
-                  return (
-                    <div
-                      key={order.id}
-                      className="flex items-start gap-3 p-3 border rounded-md mb-2 hover:bg-muted/50 cursor-pointer"
-                      onClick={() => toggleOrderSelection(order.id)}
-                    >
-                      <Checkbox
-                        checked={selectedOrdersForCollection.has(order.id)}
-                        onCheckedChange={() => toggleOrderSelection(order.id)}
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium">{order.order_number}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {items.length} postavk • {order.total_amount.toFixed(2)} €
+              <div className="border rounded-md p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-medium">
+                    Odprta naročila ({myOrders.filter(o => o.status === "open").length})
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="select-all"
+                      checked={
+                        myOrders.filter(o => o.status === "open").length > 0 &&
+                        selectedOrdersForCollection.size === myOrders.filter(o => o.status === "open").length
+                      }
+                      onCheckedChange={toggleSelectAllOrders}
+                    />
+                    <Label htmlFor="select-all" className="text-sm font-normal cursor-pointer">
+                      Izberi vse
+                    </Label>
+                  </div>
+                </div>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {myOrders
+                    .filter(o => o.status === "open")
+                    .map((order) => {
+                      const items = orderItems[order.id] || [];
+                      return (
+                        <div
+                          key={order.id}
+                          className="flex items-start gap-3 p-3 border rounded-md hover:bg-muted/50 cursor-pointer"
+                          onClick={() => toggleOrderSelection(order.id)}
+                        >
+                          <Checkbox
+                            checked={selectedOrdersForCollection.has(order.id)}
+                            onCheckedChange={() => toggleOrderSelection(order.id)}
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium">{order.order_number}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {items.length} postavk • {order.total_amount.toFixed(2)} €
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Izbrano: {selectedOrdersForCollection.size} naročil
+                      );
+                    })}
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Izbrano: {selectedOrdersForCollection.size} naročil
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setIsCollectionDialogOpen(false)}>
               Prekliči
             </Button>
