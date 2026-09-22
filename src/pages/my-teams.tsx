@@ -537,6 +537,19 @@ export default function MyTeamsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {teams.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground text-center">
+                  {userRole === "coach" 
+                    ? "Trenutno nimate dodeljenih ekip."
+                    : "Ni ekip. Dodajte prvo ekipo za začetek."}
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </AppLayout>
     </ProtectedRoute>);

@@ -254,7 +254,7 @@ export default function Store() {
   const [viewingCollection, setViewingCollection] = useState<CollectionWithStats | null>(null);
   const [isCollectionViewDialogOpen, setIsCollectionViewDialogOpen] = useState(false);
   const [editingCollectionStatus, setEditingCollectionStatus] = useState<string>("");
-  const [collectionItems, setCollectionItems] = useState<StoreCollectionItemWithSupplier[]>([]);
+  const [collectionItems, setCollectionItems] = useState<StoreCollectionItem[]>([]);
 
   // Collections Management State (for creating collections from orders)
   const [selectedOrdersForCollection, setSelectedOrdersForCollection] = useState<Set<string>>(new Set());
@@ -533,7 +533,7 @@ export default function Store() {
       if (itemsError) throw itemsError;
 
       setSelectedCollection(collectionData as CollectionWithStats);
-      setCollectionItems((collectionItemsData || []) as StoreCollectionItemWithSupplier[]);
+      setCollectionItems((collectionItemsData || []) as StoreCollectionItem[]);
     } catch (error: any) {
       console.error("Error loading collection details:", error);
       toast({
@@ -3155,9 +3155,9 @@ export default function Store() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(collectionItems as StoreCollectionItem[]).length > 0 ? (
+                    {collectionItems.length > 0 ? (
                       <>
-                        {(collectionItems as StoreCollectionItem[])
+                        {collectionItems
                           .slice()
                           .sort((a, b) => a.item_number.localeCompare(b.item_number))
                           .map((item) => (
@@ -3176,11 +3176,11 @@ export default function Store() {
                         <TableRow className="font-semibold bg-muted/50">
                           <TableCell colSpan={4}>SKUPAJ</TableCell>
                           <TableCell>
-                            {(collectionItems as StoreCollectionItem[]).reduce((sum, item) => sum + item.total_quantity, 0)}
+                            {collectionItems.reduce((sum, item) => sum + item.total_quantity, 0)}
                           </TableCell>
                           <TableCell></TableCell>
                           <TableCell>
-                            {(collectionItems as StoreCollectionItem[])
+                            {collectionItems
                               .reduce((sum, item) => sum + item.total_quantity * item.unit_price, 0)
                               .toFixed(2)}{" "}
                             €
