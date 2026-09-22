@@ -17,7 +17,7 @@ import {
   ShoppingCart, Plus, Minus, Trash2, Package, AlertCircle, 
   ChevronDown, ChevronUp, Edit, Eye, Clock, CheckCircle, 
   XCircle, ArrowLeft, Search, ImageIcon, ExternalLink, 
-  X, Pencil, Tag 
+  X, Pencil, Tag, FileText, TrendingUp 
 } from "lucide-react";
 import {
   Select,
@@ -174,7 +174,6 @@ export default function Store() {
   const [filteredItems, setFilteredItems] = useState<StoreItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedSize, setSelectedSize] = useState<string>("all");
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<StoreItem | null>(null);
   const [itemFormData, setItemFormData] = useState({
@@ -186,6 +185,21 @@ export default function Store() {
     available_sizes: [] as string[],
     image_url: "",
   });
+
+  // Shopping Cart State (for parents)
+  const [cartState, setCartState] = useState<Array<{
+    itemId: string;
+    itemNumber: string;
+    itemName: string;
+    size: string;
+    quantity: number;
+    unitPrice: number;
+  }>>([]);
+  const [isCartDialogOpen, setIsCartDialogOpen] = useState(false);
+  const [selectedItemForCart, setSelectedItemForCart] = useState<StoreItem | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [quantity, setQuantity] = useState<number>(1);
+  const [deliveryAddress, setDeliveryAddress] = useState<string>("");
 
   // Articles Management State
   const [isArticleDialogOpen, setIsArticleDialogOpen] = useState(false);
@@ -1042,6 +1056,152 @@ export default function Store() {
     }
   };
 
+  // Shopping Cart Functions
+  const openAddToCartDialog = (item: StoreItem) => {
+    setSelectedItemForCart(item);
+    setSelectedSize("");
+    setQuantity(1);
+    setIsCartDialogOpen(true);
+  };
+
+  const addToCart = () => {
+    if (!selectedItemForCart) return;
+    
+    const sizes = Array.isArray(selectedItemForCart.available_sizes) ? selectedItemForCart.available_sizes : [];
+    if (sizes.length > 0 && !selectedSize) {
+      toast({
+        title: "Izberite velikost",
+        description: "Prosimo, izberite velikost pred dodajanjem v košarico.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const existingItemIndex = cart.findIndex(
+      item => item.itemId === selectedItemForCart.id && item.size === (selectedSize || "N/A")
+    );
+
+    if (existingItemIndex >= 0) {
+      const updatedCart = [...cart];
+      updatedCart[existingItemIndex].quantity += quantity;
+      setCart(updatedCart);
+    } else {
+      setCart([
+        ...cart,
+        {
+          itemId: selectedItemForCart.id,
+          itemNumber: selectedItemForCart.item_number,
+          itemName: selectedItemForCart.name,
+          size: selectedSize || "N/A",
+          quantity: quantity,
+          unitPrice: selectedItemForCart.price,
+        },
+      ]);
+    }
+
+    toast({
+      title: "Dodano v košarico",
+      description: `${selectedItemForCart.name} (${quantity}x) je bilo dodano v košarico.`,
+    });
+
+    setIsCartDialogOpen(false);
+  };
+
+  const removeFromCart = (itemId: string, size: string) => {
+    setCart(cart.filter(item => !(item.itemId === itemId && item.size === size)));
+  };
+
+  const updateCartQuantity = (itemId: string, size: string, newQuantity: number) => {
+    if (newQuantity < 1) {
+      removeFromCart(itemId, size);
+      return;
+    }
+    setCart(cart.map(item =>
+      item.itemId === itemId && item.size === size
+        ? { ...item, quantity: newQuantity }
+        : item
+    ));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+  };
+
+  const submitOrder = async () => {
+    if (cart.length === 0) {
+      toast({
+        title: "Košarica je prazna",
+        description: "Dodajte izdelke v košarico pred oddajo naročila.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!deliveryAddress.trim()) {
+      toast({
+        title: "Manjka naslov",
+        description: "Prosimo, vnesite naslov dostave.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Generate order number
+      const orderNumber = `ORD-${Date.now()}`;
+      const totalAmount = cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+
+      // Create order
+      const { data: order, error: orderError } = await supabase
+        .from("store_orders")
+        .insert({
+          order_number: orderNumber,
+          parent_id: user?.id,
+          parent_name: user?.email?.split("@")[0] || "Unknown",
+          parent_email: user?.email,
+          status: "open",
+          total_amount: totalAmount,
+          delivery_address: deliveryAddress,
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order items
+      const orderItems = cart.map(item => ({
+        order_id: order.id,
+        item_id: item.itemId,
+        item_number: item.itemNumber,
+        item_name: item.itemName,
+        size: item.size,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("store_order_items")
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      toast({
+        title: "Naročilo oddano",
+        description: `Vaše naročilo ${orderNumber} je bilo uspešno oddano.`,
+      });
+
+      clearCart();
+      setDeliveryAddress("");
+      fetchOrders();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri oddaji naročila: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Collection View/Edit Functions
   const openCollectionView = async (collection: any) => {
     setViewingCollection(collection);
@@ -1295,12 +1455,29 @@ export default function Store() {
 
   // Parent cancel order function
   const cancelOrder = async (orderId: string) => {
+    // Check if order can be canceled
+    const order = myOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    if (order.status !== "open") {
+      toast({
+        title: "Ni mogoče preklicati",
+        description: "Naročilo lahko prekličete samo, dokler je v statusu 'Odprto'.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!confirm("Ali ste prepričani, da želite preklicati to naročilo?")) return;
 
     try {
       const { error } = await supabase
         .from("store_orders")
-        .update({ status: "preklicano" })
+        .update({
+          status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: user?.id,
+        })
         .eq("id", orderId);
 
       if (error) throw error;
@@ -1315,120 +1492,6 @@ export default function Store() {
       toast({
         title: "Napaka",
         description: `Napaka pri preklicu naročila: ${error.message}`,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const addToCart = (item: StoreItem, size: string) => {
-    const existingItem = cart.find(
-      (cartItem) => cartItem.item_id === item.id && cartItem.size === size
-    );
-
-    if (existingItem) {
-      setCart(
-        cart.map((cartItem) =>
-          cartItem.item_id === item.id && cartItem.size === size
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        )
-      );
-    } else {
-      setCart([
-        ...cart,
-        {
-          item_id: item.id,
-          item_number: item.item_number,
-          item_name: item.name,
-          name: item.name,
-          item_price: item.price,
-          size,
-          quantity: 1,
-          price: item.price,
-          image_url: item.image_url || "",
-        },
-      ]);
-    }
-
-    toast({
-      title: "Dodano v košarico",
-      description: `${item.name} (${size}) dodan v košarico`,
-    });
-  };
-
-  const removeFromCart = (itemId: string, size: string) => {
-    setCart(cart.filter((item) => !(item.item_id === itemId && item.size === size)));
-  };
-
-  const updateCartQuantity = (itemId: string, size: string, change: number) => {
-    setCart(
-      cart.map((item) =>
-        item.item_id === itemId && item.size === size
-          ? { ...item, quantity: Math.max(1, item.quantity + change) }
-          : item
-      )
-    );
-  };
-
-  const submitOrder = async () => {
-    if (!selectedChild || !selectedPeriod || cart.length === 0) {
-      toast({
-        title: "Napaka",
-        description: "Prosimo izberite otroka, obdobje in dodajte artikle v košarico.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const totalAmount = cart.reduce((sum, item) => sum + item.item_price * item.quantity, 0);
-      const orderNumber = `ORD-${Date.now()}`;
-
-      const { data: orderData, error: orderError } = await supabase
-        .from("store_orders")
-        .insert({
-          order_number: orderNumber,
-          child_id: selectedChild,
-          collection_period_id: selectedPeriod,
-          total_amount: totalAmount,
-          status: "open",
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      const orderItems = cart.map((item) => ({
-        order_id: orderData.id,
-        item_id: item.item_id,
-        item_number: item.item_number,
-        item_name: item.item_name,
-        size: item.size,
-        quantity: item.quantity,
-        unit_price: item.item_price,
-        subtotal: item.item_price * item.quantity,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("store_order_items")
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      toast({
-        title: "Naročilo oddano",
-        description: `Vaše naročilo ${orderNumber} je bilo uspešno oddano.`,
-      });
-
-      setCart([]);
-      setSelectedChild("");
-      setSelectedPeriod("");
-      setIsCartOpen(false);
-      fetchOrders();
-    } catch (error: any) {
-      toast({
-        title: "Napaka pri oddaji naročila",
-        description: error.message,
         variant: "destructive",
       });
     }
@@ -1480,10 +1543,27 @@ export default function Store() {
             <TabsContent value="store" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Klubska oprema</CardTitle>
-                  <CardDescription>
-                    Naročite klubsko opremo za svoje otroke
-                  </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Klubska oprema</CardTitle>
+                      <CardDescription>
+                        Naročite klubsko opremo za svoje otroke
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsCartDialogOpen(true)}
+                      className="relative"
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Košarica
+                      {cart.length > 0 && (
+                        <Badge variant="destructive" className="ml-2">
+                          {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                        </Badge>
+                      )}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -1535,15 +1615,24 @@ export default function Store() {
                                 </div>
                               )}
                             </div>
-                            {item.external_link && (
+                            <div className="flex gap-2 mt-4">
                               <Button
-                                variant="outline"
-                                className="w-full mt-4"
-                                onClick={() => window.open(item.external_link, "_blank")}
+                                className="flex-1"
+                                onClick={() => openAddToCartDialog(item)}
                               >
-                                Več informacij
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                Dodaj v košarico
                               </Button>
-                            )}
+                              {item.external_link && (
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => window.open(item.external_link, "_blank")}
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
@@ -2918,6 +3007,175 @@ export default function Store() {
           <DialogFooter className="mt-4">
             <Button onClick={() => setIsCollectionViewDialogOpen(false)}>
               Zapri
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add to Cart Dialog */}
+      <Dialog open={isCartDialogOpen && selectedItemForCart !== null} onOpenChange={(open) => {
+        if (!open) setSelectedItemForCart(null);
+        setIsCartDialogOpen(open);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dodaj v košarico</DialogTitle>
+            <DialogDescription>
+              {selectedItemForCart?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Cena:</span>
+              <span className="text-lg font-bold">{selectedItemForCart?.price.toFixed(2)} €</span>
+            </div>
+            {selectedItemForCart && Array.isArray(selectedItemForCart.available_sizes) && selectedItemForCart.available_sizes.length > 0 && (
+              <div className="space-y-2">
+                <Label>Velikost *</Label>
+                <Select value={selectedSize} onValueChange={setSelectedSize}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Izberite velikost" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedItemForCart.available_sizes.map((size: string) => (
+                      <SelectItem key={size} value={size}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Količina</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                >
+                  -
+                </Button>
+                <Input
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-20 text-center"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantity(quantity + 1)}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between text-lg font-semibold">
+                <span>Skupaj:</span>
+                <span>{((selectedItemForCart?.price || 0) * quantity).toFixed(2)} €</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCartDialogOpen(false)}>
+              Prekliči
+            </Button>
+            <Button onClick={addToCart}>
+              Dodaj v košarico
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Shopping Cart Dialog */}
+      <Dialog open={isCartDialogOpen && selectedItemForCart === null} onOpenChange={setIsCartDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Košarica</DialogTitle>
+            <DialogDescription>
+              Preglejte in oddajte naročilo
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 px-1">
+            {cart.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Košarica je prazna
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  {cart.map((item, index) => (
+                    <div key={`${item.itemId}-${item.size}`} className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium">{item.itemName}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {item.itemNumber} • Velikost: {item.size}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => updateCartQuantity(item.itemId, item.size, item.quantity - 1)}
+                        >
+                          -
+                        </Button>
+                        <span className="w-12 text-center">{item.quantity}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => updateCartQuantity(item.itemId, item.size, item.quantity + 1)}
+                        >
+                          +
+                        </Button>
+                      </div>
+                      <div className="text-right min-w-[100px]">
+                        <div className="text-sm text-muted-foreground">{item.unitPrice.toFixed(2)} € / kos</div>
+                        <div className="font-semibold">{(item.quantity * item.unitPrice).toFixed(2)} €</div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeFromCart(item.itemId, item.size)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label htmlFor="delivery_address">Naslov dostave *</Label>
+                    <Textarea
+                      id="delivery_address"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      placeholder="Vnesite popoln naslov dostave..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xl font-bold pt-2">
+                    <span>Skupaj:</span>
+                    <span>
+                      {cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0).toFixed(2)} €
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setIsCartDialogOpen(false)}>
+              Nadaljuj z nakupovanjem
+            </Button>
+            <Button 
+              onClick={submitOrder}
+              disabled={cart.length === 0 || !deliveryAddress.trim()}
+            >
+              Oddaj naročilo
             </Button>
           </DialogFooter>
         </DialogContent>
