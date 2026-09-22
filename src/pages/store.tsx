@@ -177,7 +177,6 @@ export default function Store() {
   const [editingCollection, setEditingCollection] = useState<StoreCollection | null>(null);
 
   // Collection Items State
-  const [collectionItems, setCollectionItems] = useState<StoreCollectionItem[]>([]);
   const [selectedCollectionItems, setSelectedCollectionItems] = useState<string[]>([]);
 
   // Items State
@@ -245,6 +244,7 @@ export default function Store() {
   const [viewingCollection, setViewingCollection] = useState<CollectionWithStats | null>(null);
   const [isCollectionViewDialogOpen, setIsCollectionViewDialogOpen] = useState(false);
   const [editingCollectionStatus, setEditingCollectionStatus] = useState<string>("");
+  const [collectionItems, setCollectionItems] = useState<StoreCollectionItem[]>([]);
 
   // Collections Management State (for creating collections from orders)
   const [selectedOrdersForCollection, setSelectedOrdersForCollection] = useState<Set<string>>(new Set());
