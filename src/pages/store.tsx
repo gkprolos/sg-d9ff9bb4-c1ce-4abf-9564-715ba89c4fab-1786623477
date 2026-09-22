@@ -59,6 +59,15 @@ type StoreOrder = Database["public"]["Tables"]["store_orders"]["Row"];
 type StoreOrderItem = Database["public"]["Tables"]["store_order_items"]["Row"];
 type StoreItem = Database["public"]["Tables"]["store_items"]["Row"];
 type StoreCollectionPeriod = Database["public"]["Tables"]["store_collection_periods"]["Row"];
+type StoreCollection = Database["public"]["Tables"]["store_collections"]["Row"];
+type StoreCollectionItem = Database["public"]["Tables"]["store_collection_items"]["Row"];
+type StoreCategory = Database["public"]["Tables"]["store_categories"]["Row"];
+
+interface Child {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
 
 interface CartItem {
   item_id: string;
@@ -80,7 +89,14 @@ interface Order extends StoreOrder {
   parent_phone?: string;
 }
 
-interface CollectionWithStats extends StoreCollection {
+interface CollectionWithStats {
+  id: string;
+  collection_number: string;
+  collection_date: string | null;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
   total_orders?: number;
   total_items?: number;
   total_amount?: number;
