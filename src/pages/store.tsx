@@ -285,12 +285,13 @@ export default function Store() {
   const loadTopItems = async () => {
     try {
       const { data, error } = await supabase
-        .from("store_collection_items")
+        .from("store_order_items")
         .select(`
           item_id,
+          item_number,
+          item_name,
           quantity,
-          store_items (item_number, name),
-          store_collections (collection_number)
+          unit_price
         `);
 
       if (error) throw error;
@@ -301,15 +302,14 @@ export default function Store() {
         const itemId = item.item_id;
         if (!aggregated[itemId]) {
           aggregated[itemId] = {
-            item_number: item.store_items?.item_number || "N/A",
-            item_name: item.store_items?.name || "Unknown",
+            item_number: item.item_number || "N/A",
+            item_name: item.item_name || "Unknown",
             total_sold: 0,
-            collections_count: new Set(),
             total_revenue: 0,
           };
         }
         aggregated[itemId].total_sold += item.quantity || 0;
-        aggregated[itemId].collections_count.add(item.store_collections?.collection_number);
+        aggregated[itemId].total_revenue += (item.quantity || 0) * (item.unit_price || 0);
       });
 
       const topItemsArray = Object.values(aggregated).map((item: any) => ({
@@ -317,7 +317,6 @@ export default function Store() {
         item_name: item.item_name,
         total_quantity: item.total_sold,
         total_sold: item.total_sold,
-        collections_count: item.collections_count.size,
         total_revenue: item.total_revenue,
       })) as TopItem[];
 
@@ -420,6 +419,7 @@ export default function Store() {
       if (error) throw error;
       setChildren(data || []);
     } catch (error: any) {
+      console.error("Error loading children:", error);
       toast({
         title: "Napaka",
         description: `Napaka pri nalaganju otrok: ${error.message}`,
@@ -433,12 +433,12 @@ export default function Store() {
       const { data, error } = await supabase
         .from("store_collection_periods")
         .select("*")
-        .eq("is_active", true)
-        .order("period_name");
+        .order("period_date", { ascending: false });
 
       if (error) throw error;
       setPeriods(data || []);
     } catch (error: any) {
+      console.error("Error loading periods:", error);
       toast({
         title: "Napaka",
         description: `Napaka pri nalaganju obdobij: ${error.message}`,
@@ -471,14 +471,35 @@ export default function Store() {
         .from("store_orders")
         .select(`
           *,
-          children (first_name, last_name),
-          store_collection_periods (period_name)
+          store_collection_periods (
+            period_date,
+            notes
+          )
         `)
         .order("created_at", { ascending: false });
 
       if (ordersError) throw ordersError;
 
-      setMyOrders(ordersData || []);
+      // Manually fetch child data if child_id exists
+      const ordersWithChildren = await Promise.all(
+        (ordersData || []).map(async (order) => {
+          if (order.child_id) {
+            const { data: childData } = await supabase
+              .from("children")
+              .select("first_name, last_name")
+              .eq("id", order.child_id)
+              .single();
+            
+            return {
+              ...order,
+              children: childData || undefined,
+            };
+          }
+          return order;
+        })
+      );
+
+      setMyOrders(ordersWithChildren);
 
       // Fetch items for all orders
       if (ordersData && ordersData.length > 0) {
@@ -502,6 +523,7 @@ export default function Store() {
         setOrderItems(itemsByOrder);
       }
     } catch (error: any) {
+      console.error("Error fetching orders:", error);
       toast({
         title: "Napaka",
         description: `Napaka pri nalaganju naročil: ${error.message}`,
@@ -897,7 +919,6 @@ export default function Store() {
                   <SelectValue placeholder="Vse kategorije" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Vse kategorije</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
@@ -1383,7 +1404,8 @@ export default function Store() {
                         <SelectContent>
                           {periods.map((period) => (
                             <SelectItem key={period.id} value={period.id}>
-                              {period.period_name}
+                              {new Date(period.period_date).toLocaleDateString("sl-SI")}
+                              {period.notes && ` - ${period.notes}`}
                             </SelectItem>
                           ))}
                         </SelectContent>
