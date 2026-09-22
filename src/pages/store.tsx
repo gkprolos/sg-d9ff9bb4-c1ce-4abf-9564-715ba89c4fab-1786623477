@@ -502,38 +502,53 @@ export default function Store() {
 
   const fetchOrders = async () => {
     try {
-      const { data: ordersData, error: ordersError } = await supabase
+      let query = supabase
         .from("store_orders")
-        .select("*")
+        .select(`
+          *,
+          profiles:parent_id (
+            first_name,
+            last_name,
+            email
+          )
+        `)
         .order("created_at", { ascending: false });
 
-      if (ordersError) throw ordersError;
+      if (userRole === "parent") {
+        query = query.eq("parent_id", user?.id);
+      }
 
-      setMyOrders(ordersData || []);
+      const { data, error } = await query;
 
-      // Fetch items for all orders
-      if (ordersData && ordersData.length > 0) {
-        const orderIds = ordersData.map(o => o.id);
-        const { data: itemsData, error: itemsError } = await supabase
+      if (error) throw error;
+
+      // Map the data to include parent_name and parent_email
+      const ordersWithParentInfo = (data || []).map((order: any) => ({
+        ...order,
+        parent_name: order.profiles 
+          ? `${order.profiles.first_name || ''} ${order.profiles.last_name || ''}`.trim()
+          : 'N/A',
+        parent_email: order.profiles?.email || '',
+      }));
+
+      setMyOrders(ordersWithParentInfo);
+
+      // Load items for each order
+      const itemsPromises = ordersWithParentInfo.map((order: Order) =>
+        supabase
           .from("store_order_items")
           .select("*")
-          .in("order_id", orderIds);
+          .eq("order_id", order.id)
+      );
 
-        if (itemsError) throw itemsError;
+      const itemsResults = await Promise.all(itemsPromises);
+      const itemsMap: Record<string, StoreOrderItem[]> = {};
+      ordersWithParentInfo.forEach((order: Order, index: number) => {
+        itemsMap[order.id] = itemsResults[index].data || [];
+      });
 
-        // Group items by order_id
-        const itemsByOrder: Record<string, StoreOrderItem[]> = {};
-        itemsData?.forEach(item => {
-          if (!itemsByOrder[item.order_id]) {
-            itemsByOrder[item.order_id] = [];
-          }
-          itemsByOrder[item.order_id].push(item as StoreOrderItem);
-        });
-
-        setOrderItems(itemsByOrder);
-      }
+      setOrderItems(itemsMap);
     } catch (error: any) {
-      console.error("Error fetching orders:", error);
       toast({
         title: "Napaka",
         description: `Napaka pri nalaganju naročil: ${error.message}`,
