@@ -3142,9 +3142,9 @@ export default function Store() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.isArray(collectionItems) && collectionItems.length > 0 ? (
+                    {collectionItems.length > 0 ? (
                       <>
-                        {(collectionItems as StoreCollectionItem[])
+                        {collectionItems
                           .slice()
                           .sort((a, b) => a.item_number.localeCompare(b.item_number))
                           .map((item) => (
@@ -3163,11 +3163,11 @@ export default function Store() {
                         <TableRow className="font-semibold bg-muted/50">
                           <TableCell colSpan={4}>SKUPAJ</TableCell>
                           <TableCell>
-                            {(collectionItems as StoreCollectionItem[]).reduce((sum, item) => sum + item.total_quantity, 0)}
+                            {collectionItems.reduce((sum, item) => sum + item.total_quantity, 0)}
                           </TableCell>
                           <TableCell></TableCell>
                           <TableCell>
-                            {(collectionItems as StoreCollectionItem[])
+                            {collectionItems
                               .reduce((sum, item) => sum + item.total_quantity * item.unit_price, 0)
                               .toFixed(2)}{" "}
                             €
