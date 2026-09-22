@@ -61,7 +61,6 @@ interface ScheduleTemplate {
     };
 }
 
-// Posodobljen vmesnik, ki ustreza temu, kar vrača tvoj backend API
 interface AttendanceRecord {
     id: string;
     player_id: string;
@@ -216,47 +215,43 @@ export default function MyChildren() {
         return days;
     };
 
-    // Backend vrača datum znotraj activities.activity_date
     const getAttendanceForDate = (date: string) => {
         return attendance.find((a) => a.activities?.activity_date === date);
     };
 
-    const getAttendanceColor = (status: string) => {
+    const getAttendanceLetter = (status: string) => {
         switch (status) {
-            case "present":
-                return "bg-green-100 border-green-300";
-            case "absent":
-                return "bg-red-100 border-red-300";
-            case "excused":
-                return "bg-yellow-100 border-yellow-300";
-            default:
-                return "bg-gray-100 border-gray-300";
+            case "present": return "P";
+            case "absent": return "O";
+            case "excused": return "Op";
+            default: return "";
         }
     };
 
-    const getAttendanceIcon = (status: string) => {
+    const getAttendanceBadgeColor = (status: string) => {
         switch (status) {
-            case "present":
-                return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-            case "absent":
-                return <XCircle className="h-4 w-4 text-red-600" />;
-            case "excused":
-                return <AlertCircle className="h-4 w-4 text-yellow-600" />;
-            default:
-                return null;
+            case "present": return "bg-green-500";
+            case "absent": return "bg-red-500";
+            case "excused": return "bg-yellow-500";
+            default: return "bg-gray-500";
+        }
+    };
+
+    const getAttendanceCellColor = (status: string) => {
+        switch (status) {
+            case "present": return "bg-green-50 border-green-200";
+            case "absent": return "bg-red-50 border-red-200";
+            case "excused": return "bg-yellow-50 border-yellow-200";
+            default: return "bg-muted/30";
         }
     };
 
     const getAttendanceLabel = (status: string) => {
         switch (status) {
-            case "present":
-                return "Prisoten";
-            case "absent":
-                return "Odsoten";
-            case "excused":
-                return "Opravičen";
-            default:
-                return status;
+            case "present": return "Prisoten";
+            case "absent": return "Odsoten";
+            case "excused": return "Opravičen";
+            default: return status;
         }
     };
 
@@ -454,15 +449,19 @@ export default function MyChildren() {
                                                 <div
                                                     key={dateStr}
                                                     className={`
-                            min-h-[100px] p-2 border rounded-lg flex flex-col gap-1
-                            ${dayAttendance ? getAttendanceColor(dayAttendance.status) : (hasActivity ? "bg-blue-50/50 border-blue-200" : "bg-muted/30")}
+                            min-h-[90px] p-2 border rounded-lg flex flex-col gap-1
+                            ${dayAttendance ? getAttendanceCellColor(dayAttendance.status) : (hasActivity ? "bg-blue-50/50 border-blue-200" : "bg-muted/30")}
                           `}
                                                 >
-                                                    <div className="flex justify-between items-start">
-                                                        <span className="text-sm font-bold">{date.getDate()}</span>
-                                                        {dayAttendance && getAttendanceIcon(dayAttendance.status)}
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-xs font-bold">{date.getDate()}</span>
+                                                        {dayAttendance && (
+                                                            <div className={`flex items-center justify-center min-w-[24px] h-6 px-1 rounded-full text-xs font-bold text-white ${getAttendanceBadgeColor(dayAttendance.status)}`}>
+                                                                {getAttendanceLetter(dayAttendance.status)}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <div className="flex-1 text-xs space-y-1 overflow-hidden">
+                                                    <div className="flex-1 text-[10px] space-y-1 overflow-hidden">
                                                         {hasActivity && (
                                                             <div className="font-medium text-foreground/80">
                                                                 {schedule?.activity_name || "Trening"}
@@ -470,13 +469,8 @@ export default function MyChildren() {
                                                         )}
                                                         {hasActivity && schedule?.venues?.name && (
                                                             <div className="flex items-center gap-1 text-muted-foreground">
-                                                                <MapPin className="h-3 w-3 shrink-0" />
+                                                                <MapPin className="h-2 w-2 shrink-0" />
                                                                 <span className="truncate">{schedule.venues.name}</span>
-                                                            </div>
-                                                        )}
-                                                        {dayAttendance && (
-                                                            <div className="font-semibold text-xs">
-                                                                {getAttendanceLabel(dayAttendance.status)}
                                                             </div>
                                                         )}
                                                     </div>
@@ -492,29 +486,35 @@ export default function MyChildren() {
                                     <div className="grid grid-cols-3 gap-4">
                                         <Card className="bg-green-50 border-green-200">
                                             <CardContent className="pt-6 flex flex-col items-center">
-                                                <CheckCircle2 className="h-8 w-8 text-green-600 mb-2" />
-                                                <div className="text-2xl font-bold text-green-600">
-                                                    {attendance.filter((a) => a.status === "present").length}
+                                                <div className="flex items-center justify-center h-12 w-12 rounded-full text-base font-bold text-white bg-green-500 mb-2">
+                                                    P
                                                 </div>
-                                                <div className="text-sm text-muted-foreground">Prisoten</div>
+                                                <div className="text-sm font-medium text-green-800">Prisoten</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    ({attendance.filter((a) => a.status === "present").length}x)
+                                                </div>
                                             </CardContent>
                                         </Card>
                                         <Card className="bg-red-50 border-red-200">
                                             <CardContent className="pt-6 flex flex-col items-center">
-                                                <XCircle className="h-8 w-8 text-red-600 mb-2" />
-                                                <div className="text-2xl font-bold text-red-600">
-                                                    {attendance.filter((a) => a.status === "absent").length}
+                                                <div className="flex items-center justify-center h-12 w-12 rounded-full text-base font-bold text-white bg-red-500 mb-2">
+                                                    O
                                                 </div>
-                                                <div className="text-sm text-muted-foreground">Odsoten</div>
+                                                <div className="text-sm font-medium text-red-800">Odsoten</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    ({attendance.filter((a) => a.status === "absent").length}x)
+                                                </div>
                                             </CardContent>
                                         </Card>
                                         <Card className="bg-yellow-50 border-yellow-200">
                                             <CardContent className="pt-6 flex flex-col items-center">
-                                                <AlertCircle className="h-8 w-8 text-yellow-600 mb-2" />
-                                                <div className="text-2xl font-bold text-yellow-600">
-                                                    {attendance.filter((a) => a.status === "excused").length}
+                                                <div className="flex items-center justify-center h-12 w-12 rounded-full text-base font-bold text-white bg-yellow-500 mb-2">
+                                                    Op
                                                 </div>
-                                                <div className="text-sm text-muted-foreground">Opravičen</div>
+                                                <div className="text-sm font-medium text-yellow-800">Opravičen</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    ({attendance.filter((a) => a.status === "excused").length}x)
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     </div>
