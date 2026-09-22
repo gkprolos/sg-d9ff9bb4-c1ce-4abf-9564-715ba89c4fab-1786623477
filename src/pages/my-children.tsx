@@ -5,37 +5,24 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Clock, MapPin, Users, Eye, Calendar } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Users } from "lucide-react";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface Child {
     id: string;
     parent_id: string;
     first_name: string;
     last_name: string;
-    date_of_birth: string; // Popravljeno iz birth_date
+    date_of_birth: string;
     gender: string;
-}
-
-interface Team {
-    id: string;
-    name: string;
-    age_group: string;
 }
 
 interface ScheduleTemplate {
@@ -80,10 +67,11 @@ export default function MyChildren() {
 
     const [loading, setLoading] = useState(true);
     const [children, setChildren] = useState < Child[] > ([]);
-    const [selectedChild, setSelectedChild] = useState < Child | null > (null);
-    const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+    const [selectedChildId, setSelectedChildId] = useState < string > ("");
     const [attendance, setAttendance] = useState < AttendanceRecord[] > ([]);
     const [schedules, setSchedules] = useState < ScheduleTemplate[] > ([]);
+
+    // Default to current month and year
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
@@ -93,12 +81,23 @@ export default function MyChildren() {
         }
     }, [user?.email]);
 
+    // Auto-select first child
     useEffect(() => {
-        if (selectedChild) {
-            loadAttendance();
-            loadSchedules(selectedChild.id);
+        if (children.length > 0 && !selectedChildId) {
+            setSelectedChildId(children[0].id);
         }
-    }, [selectedChild, selectedMonth, selectedYear]);
+    }, [children, selectedChildId]);
+
+    // Load data when filters change
+    useEffect(() => {
+        if (selectedChildId) {
+            loadSchedules(selectedChildId);
+            loadAttendance(selectedChildId);
+        } else {
+            setSchedules([]);
+            setAttendance([]);
+        }
+    }, [selectedChildId, selectedMonth, selectedYear]);
 
     const loadChildren = async () => {
         try {
@@ -125,9 +124,7 @@ export default function MyChildren() {
         }
     };
 
-    const loadAttendance = async () => {
-        if (!selectedChild) return;
-
+    const loadAttendance = async (playerId: string) => {
         try {
             const startDate = new Date(selectedYear, selectedMonth, 1);
             const endDate = new Date(selectedYear, selectedMonth + 1, 0);
@@ -136,7 +133,7 @@ export default function MyChildren() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    playerId: selectedChild.id,
+                    playerId: playerId,
                     startDate: startDate.toISOString().split("T")[0],
                     endDate: endDate.toISOString().split("T")[0],
                 }),
@@ -153,12 +150,12 @@ export default function MyChildren() {
         }
     };
 
-    const loadSchedules = async (childId: string) => {
+    const loadSchedules = async (playerId: string) => {
         try {
             const response = await fetch("/api/parent/get-child-schedules", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ playerId: childId }),
+                body: JSON.stringify({ playerId: playerId }),
             });
 
             if (!response.ok) {
@@ -179,6 +176,7 @@ export default function MyChildren() {
     };
 
     const daysOfWeek = ["Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota", "Nedelja"];
+    const months = ["Januar", "Februar", "Marec", "April", "Maj", "Junij", "Julij", "Avgust", "September", "Oktober", "November", "December"];
 
     const groupedSchedules = schedules.reduce((acc, schedule) => {
         const dayNum = schedule.day_of_week;
@@ -199,7 +197,6 @@ export default function MyChildren() {
     function getScheduleForDate(date: string): ScheduleTemplate | null {
         const dateObj = new Date(date);
         const jsDay = dateObj.getDay();
-        // Podprti formati baze (0-6 ali 1-7)
         const dbDay = jsDay === 0 ? 7 : jsDay;
         return schedules.find((s) => s.day_of_week === jsDay || s.day_of_week === dbDay) || null;
     }
@@ -207,11 +204,9 @@ export default function MyChildren() {
     const getDaysInMonth = () => {
         const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
         const days: Date[] = [];
-
         for (let i = 1; i <= lastDay.getDate(); i++) {
             days.push(new Date(selectedYear, selectedMonth, i));
         }
-
         return days;
     };
 
@@ -246,6 +241,12 @@ export default function MyChildren() {
         }
     };
 
+    // Statistics calculation
+    const presentCount = attendance.filter((a) => a.status === "present").length;
+    const absentCount = attendance.filter((a) => a.status === "absent").length;
+    const excusedCount = attendance.filter((a) => a.status === "excused").length;
+    const totalTrainings = getDaysInMonth().filter(date => getScheduleForDate(date.toISOString().split("T")[0]) !== null).length;
+
     if (loading) {
         return (
             <AppLayout>
@@ -268,277 +269,205 @@ export default function MyChildren() {
                         <div>
                             <h1 className="text-3xl font-bold">Moji otroci</h1>
                             <p className="text-muted-foreground">
-                                Pregled treningov in prisotnosti vaših otrok
+                                Pregled treningov in prisotnosti
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid gap-6">
-                    {children.map((child) => (
-                        <Card key={child.id}>
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <CardTitle>
-                                            {child.first_name} {child.last_name}
-                                        </CardTitle>
-                                        <CardDescription>
-                                            {/* Popravljeno v date_of_birth */}
-                                            Rojstni datum: {new Date(child.date_of_birth).toLocaleDateString("sl-SI")}
-                                        </CardDescription>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            setSelectedChild(child);
-                                            setIsDetailsDialogOpen(true);
-                                        }}
-                                    >
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        Podrobnosti
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div>
-                                    <h3 className="text-sm font-semibold mb-2">Urnik treningov</h3>
-                                    {schedules && schedules.length > 0 ? (
-                                        <div className="space-y-3">
-                                            {sortedDays.map((day) => {
-                                                const daySchedules = groupedSchedules[day] || [];
-                                                if (daySchedules.length === 0) return null;
-
-                                                return (
-                                                    <div key={day} className="space-y-1">
-                                                        <div className="text-sm font-medium">{day}</div>
-                                                        {daySchedules.map((schedule) => (
-                                                            <div key={schedule.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-4">
-                                                                <Clock className="h-3 w-3" />
-                                                                <span>
-                                                                    {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
-                                                                </span>
-                                                                {schedule.venues?.name && (
-                                                                    <>
-                                                                        <span>•</span>
-                                                                        <MapPin className="h-3 w-3" />
-                                                                        <span>{schedule.venues.name}</span>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground">
-                                            Ni določenega urnika
-                                        </p>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-
-                    {children.length === 0 && (
+                {children.length === 0 ? (
+                    <Card>
+                        <CardContent className="py-12">
+                            <p className="text-center text-muted-foreground">
+                                Nimate dodanih otrok. Kontaktirajte administratorja za dodajanje otrok.
+                            </p>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <>
+                        {/* Filters Section */}
                         <Card>
-                            <CardContent className="py-12">
-                                <p className="text-center text-muted-foreground">
-                                    Nimate dodanih otrok. Kontaktirajte administratorja za dodajanje otrok.
-                                </p>
+                            <CardContent className="pt-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <Label className="mb-2 block">Otrok</Label>
+                                        <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Izberite otroka" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {children.map((child) => (
+                                                    <SelectItem key={child.id} value={child.id}>
+                                                        {child.first_name} {child.last_name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="mb-2 block">Mesec</Label>
+                                        <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Izberite mesec" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {months.map((month, index) => (
+                                                    <SelectItem key={index} value={String(index)}>
+                                                        {month}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="mb-2 block">Leto</Label>
+                                        <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Izberite leto" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={String(selectedYear - 1)}>{selectedYear - 1}</SelectItem>
+                                                <SelectItem value={String(selectedYear)}>{selectedYear}</SelectItem>
+                                                <SelectItem value={String(selectedYear + 1)}>{selectedYear + 1}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
-                    )}
-                </div>
-            </div>
 
-            {/* Details Dialog */}
-            <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle>
-                            {selectedChild?.first_name} {selectedChild?.last_name}
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="overflow-y-auto flex-1 px-1">
-                        {selectedChild && (
-                            <div className="space-y-6">
-                                {/* Calendar View */}
-                                <div>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-semibold">Prisotnost</h3>
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-                                                    if (selectedMonth === 0) {
-                                                        setSelectedMonth(11);
-                                                        setSelectedYear(selectedYear - 1);
-                                                    } else {
-                                                        setSelectedMonth(selectedMonth - 1);
-                                                    }
-                                                }}
-                                            >
-                                                Prejšnji mesec
-                                            </Button>
-                                            <span className="text-sm font-medium">
-                                                {new Date(selectedYear, selectedMonth).toLocaleDateString("sl-SI", {
-                                                    month: "long",
-                                                    year: "numeric",
-                                                })}
-                                            </span>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-                                                    if (selectedMonth === 11) {
-                                                        setSelectedMonth(0);
-                                                        setSelectedYear(selectedYear + 1);
-                                                    } else {
-                                                        setSelectedMonth(selectedMonth + 1);
-                                                    }
-                                                }}
-                                            >
-                                                Naslednji mesec
-                                            </Button>
+                        {/* Statistics Section */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <Card className="bg-blue-50 border-blue-200">
+                                <CardContent className="pt-6 flex flex-col items-center">
+                                    <div className="text-2xl font-bold text-blue-600">{totalTrainings}</div>
+                                    <div className="text-sm text-muted-foreground">Skupaj treningov</div>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-green-50 border-green-200">
+                                <CardContent className="pt-6 flex flex-col items-center">
+                                    <div className="text-2xl font-bold text-green-600">{presentCount}</div>
+                                    <div className="text-sm text-muted-foreground">Prisotnost</div>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-red-50 border-red-200">
+                                <CardContent className="pt-6 flex flex-col items-center">
+                                    <div className="text-2xl font-bold text-red-600">{absentCount}</div>
+                                    <div className="text-sm text-muted-foreground">Odsotnost</div>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-yellow-50 border-yellow-200">
+                                <CardContent className="pt-6 flex flex-col items-center">
+                                    <div className="text-2xl font-bold text-yellow-600">{excusedCount}</div>
+                                    <div className="text-sm text-muted-foreground">Opravičeno</div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Calendar Section */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Koledar prisotnosti - {months[selectedMonth]} {selectedYear}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-7 gap-2 mb-2">
+                                    {["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"].map((day) => (
+                                        <div key={day} className="text-center text-sm font-medium text-muted-foreground">
+                                            {day}
                                         </div>
-                                    </div>
+                                    ))}
+                                </div>
 
-                                    <div className="grid grid-cols-7 gap-2 mb-2">
-                                        {["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"].map((day) => (
-                                            <div key={day} className="text-center text-sm font-medium text-muted-foreground">
-                                                {day}
-                                            </div>
-                                        ))}
-                                    </div>
+                                <div className="grid grid-cols-7 gap-2">
+                                    {getDaysInMonth().map((date) => {
+                                        const dateStr = date.toISOString().split("T")[0];
+                                        const dayAttendance = getAttendanceForDate(dateStr);
+                                        const schedule = getScheduleForDate(dateStr);
+                                        const hasActivity = schedule !== null;
 
-                                    <div className="grid grid-cols-7 gap-2">
-                                        {getDaysInMonth().map((date) => {
-                                            const dateStr = date.toISOString().split("T")[0];
-                                            const dayAttendance = getAttendanceForDate(dateStr);
-                                            const schedule = getScheduleForDate(dateStr);
-                                            const hasActivity = schedule !== null;
+                                        return (
+                                            <div
+                                                key={dateStr}
+                                                className={`
+                          min-h-[90px] p-1 border rounded-lg flex flex-col relative
+                          ${dayAttendance ? getAttendanceCellColor(dayAttendance.status) : (hasActivity ? "bg-blue-50/50 border-blue-200" : "bg-muted/30")}
+                        `}
+                                            >
+                                                <div className="absolute top-1 left-2 text-xs font-medium text-muted-foreground">
+                                                    {date.getDate()}
+                                                </div>
 
-                                            return (
-                                                <div
-                                                    key={dateStr}
-                                                    className={`
-                            min-h-[90px] p-1 border rounded-lg flex flex-col relative
-                            ${dayAttendance ? getAttendanceCellColor(dayAttendance.status) : (hasActivity ? "bg-blue-50/50 border-blue-200" : "bg-muted/30")}
-                          `}
-                                                >
-                                                    {/* Datum v kotu */}
-                                                    <div className="absolute top-1 left-2 text-xs font-medium text-muted-foreground">
-                                                        {date.getDate()}
-                                                    </div>
-
-                                                    {/* Vsebina na sredini */}
-                                                    <div className="flex-1 flex flex-col items-center justify-center gap-1 mt-3">
-                                                        {dayAttendance ? (
+                                                <div className="flex-1 flex flex-col items-center justify-center gap-1 mt-3">
+                                                    {dayAttendance ? (
+                                                        <div className="flex flex-col items-center gap-1">
                                                             <div className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold text-white shadow-sm ${getAttendanceBadgeColor(dayAttendance.status)}`}>
                                                                 {getAttendanceLetter(dayAttendance.status)}
                                                             </div>
-                                                        ) : hasActivity ? (
-                                                            <div className="text-[10px] text-center text-muted-foreground px-1 flex flex-col items-center gap-1">
-                                                                <span className="font-medium">{schedule?.activity_name || "Trening"}</span>
-                                                                <div className="flex items-center gap-1">
-                                                                    <Clock className="h-2 w-2 shrink-0" />
-                                                                    <span>{schedule.start_time.slice(0, 5)}</span>
-                                                                </div>
+                                                            <div className="text-[10px] text-center text-muted-foreground">
+                                                                {schedule?.activity_name || "Trening"}
                                                             </div>
-                                                        ) : null}
-                                                    </div>
+                                                        </div>
+                                                    ) : hasActivity ? (
+                                                        <div className="text-[10px] text-center text-muted-foreground px-1 flex flex-col items-center gap-1">
+                                                            <span className="font-medium">{schedule?.activity_name || "Trening"}</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <Clock className="h-2 w-2 shrink-0" />
+                                                                <span>{schedule.start_time.slice(0, 5)}</span>
+                                                            </div>
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Weekly Schedule Section */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Urnik treningov</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {schedules && schedules.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {sortedDays.map((day) => {
+                                            const daySchedules = groupedSchedules[day] || [];
+                                            if (daySchedules.length === 0) return null;
+
+                                            return (
+                                                <div key={day} className="space-y-1">
+                                                    <div className="text-sm font-medium">{day}</div>
+                                                    {daySchedules.map((schedule) => (
+                                                        <div key={schedule.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-4">
+                                                            <Clock className="h-3 w-3" />
+                                                            <span>
+                                                                {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
+                                                            </span>
+                                                            {schedule.venues?.name && (
+                                                                <>
+                                                                    <span>•</span>
+                                                                    <MapPin className="h-3 w-3" />
+                                                                    <span>{schedule.venues.name}</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             );
                                         })}
                                     </div>
-                                </div>
-
-                                {/* Statistika prisotnosti */}
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-4">Statistika prisotnosti</h3>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <Card className="bg-green-50 border-green-200">
-                                            <CardContent className="pt-6 flex flex-col items-center">
-                                                <div className="flex items-center justify-center h-12 w-12 rounded-full text-base font-bold text-white bg-green-500 mb-2">
-                                                    P
-                                                </div>
-                                                <div className="text-sm font-medium text-green-800">Prisoten</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    ({attendance.filter((a) => a.status === "present").length}x)
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                        <Card className="bg-red-50 border-red-200">
-                                            <CardContent className="pt-6 flex flex-col items-center">
-                                                <div className="flex items-center justify-center h-12 w-12 rounded-full text-base font-bold text-white bg-red-500 mb-2">
-                                                    O
-                                                </div>
-                                                <div className="text-sm font-medium text-red-800">Odsoten</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    ({attendance.filter((a) => a.status === "absent").length}x)
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                        <Card className="bg-yellow-50 border-yellow-200">
-                                            <CardContent className="pt-6 flex flex-col items-center">
-                                                <div className="flex items-center justify-center h-12 w-12 rounded-full text-base font-bold text-white bg-yellow-500 mb-2">
-                                                    Op
-                                                </div>
-                                                <div className="text-sm font-medium text-yellow-800">Opravičen</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    ({attendance.filter((a) => a.status === "excused").length}x)
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                </div>
-
-                                {/* Urnik treningov znotraj dialoga */}
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-2">Urnik treningov</h3>
-                                    {schedules && schedules.length > 0 ? (
-                                        <div className="space-y-3">
-                                            {sortedDays.map((day) => {
-                                                const daySchedules = groupedSchedules[day] || [];
-                                                if (daySchedules.length === 0) return null;
-
-                                                return (
-                                                    <div key={day} className="space-y-1">
-                                                        <div className="text-sm font-medium">{day}</div>
-                                                        {daySchedules.map((schedule) => (
-                                                            <div key={schedule.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-4">
-                                                                <Clock className="h-3 w-3" />
-                                                                <span>
-                                                                    {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
-                                                                </span>
-                                                                {schedule.venues?.name && (
-                                                                    <>
-                                                                        <span>•</span>
-                                                                        <MapPin className="h-3 w-3" />
-                                                                        <span>{schedule.venues.name}</span>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground">
-                                            Ni določenega urnika
-                                        </p>
-                                    )}
-                                </div>
-
-                            </div>
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        Ni določenega urnika
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </>
+                )}
+            </div>
         </AppLayout>
     );
 }
