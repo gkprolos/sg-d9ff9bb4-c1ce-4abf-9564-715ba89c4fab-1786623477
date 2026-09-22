@@ -94,9 +94,95 @@ export default function MyTeamsPage() {
 
   /* useEffect(() => {
     loadTeams();
-   }, []);
+   }, []);*/
+  useEffect(() => {
+     let cancelled = false;
+    const coachId = user?.id;
 
-  const loadTeams = async () => {
+      setTeams([]);
+
+      // Stran je namenjena trenerjem. Počakamo na podatke prijave.
+      if (!coachId || userRole !== "coach") {
+          setLoading(false);
+          return;
+      }
+
+      async function loadTeams() {
+          setLoading(true);
+
+          try {
+              const { data: coachTeams, error: coachTeamsError } =
+                  await supabase
+                      .from("team_coaches")
+                      .select("team_id")
+                      .eq("coach_id", coachId)
+                      .eq("is_active", true);
+
+              if (coachTeamsError) throw coachTeamsError;
+              if (cancelled) return;
+
+              const teamIds = [
+                  ...new Set(
+                      (coachTeams ?? [])
+                          .map((assignment) => assignment.team_id)
+                          .filter((id): id is string => typeof id === "string")
+                  ),
+              ];
+
+              // Trener brez dodelitev ne vidi nobene ekipe.
+              if (teamIds.length === 0) {
+                  setTeams([]);
+                  return;
+              }
+
+              const { data, error } = await supabase
+                  .from("teams")
+                  .select(`
+          *,
+          coaches!teams_head_coach_id_fkey(id, full_name, email),
+          seasons(name, is_active)
+        `)
+                  .in("id", teamIds)
+                  .eq("is_archived", false)
+                  .order("name");
+
+              if (error) throw error;
+
+              if (!cancelled) {
+                  setTeams(data ?? []);
+              }
+          } catch (error: unknown) {
+              if (cancelled) return;
+
+              setTeams([]);
+
+              const message =
+                  error &&
+                      typeof error === "object" &&
+                      "message" in error
+                      ? String(error.message)
+                      : "Ni mogoče naložiti ekip.";
+
+              toast({
+                  title: "Napaka",
+                  description: message,
+                  variant: "destructive",
+              });
+          } finally {
+              if (!cancelled) {
+                  setLoading(false);
+              }
+          }
+      }
+
+      void loadTeams();
+
+      return () => {
+          cancelled = true;
+      };
+  }, [user?.id, userRole, toast]);
+  
+  /*const loadTeams = async () => {
     try {
       // For coaches, first get their teams from team_coaches
       let teamIds: string[] = [];
@@ -139,95 +225,8 @@ export default function MyTeamsPage() {
         description: `Napaka pri nalaganju ekip: ${error.message}`,
         variant: "destructive",
       });
-    }*/
-
-    useEffect(() => {
-        let cancelled = false;
-        const coachId = user?.id;
-
-        setTeams([]);
-
-        // Stran je namenjena trenerjem. Počakamo na podatke prijave.
-        if (!coachId || userRole !== "coach") {
-            setLoading(false);
-            return;
-        }
-
-        async function loadTeams() {
-            setLoading(true);
-
-            try {
-                const { data: coachTeams, error: coachTeamsError } =
-                    await supabase
-                        .from("team_coaches")
-                        .select("team_id")
-                        .eq("coach_id", coachId)
-                        .eq("is_active", true);
-
-                if (coachTeamsError) throw coachTeamsError;
-                if (cancelled) return;
-
-                const teamIds = [
-                    ...new Set(
-                        (coachTeams ?? [])
-                            .map((assignment) => assignment.team_id)
-                            .filter((id): id is string => typeof id === "string")
-                    ),
-                ];
-
-                // Trener brez dodelitev ne vidi nobene ekipe.
-                if (teamIds.length === 0) {
-                    setTeams([]);
-                    return;
-                }
-
-                const { data, error } = await supabase
-                    .from("teams")
-                    .select(`
-          *,
-          coaches!teams_head_coach_id_fkey(id, full_name, email),
-          seasons(name, is_active)
-        `)
-                    .in("id", teamIds)
-                    .eq("is_archived", false)
-                    .order("name");
-
-                if (error) throw error;
-
-                if (!cancelled) {
-                    setTeams(data ?? []);
-                }
-            } catch (error: unknown) {
-                if (cancelled) return;
-
-                setTeams([]);
-
-                const message =
-                    error &&
-                        typeof error === "object" &&
-                        "message" in error
-                        ? String(error.message)
-                        : "Ni mogoče naložiti ekip.";
-
-                toast({
-                    title: "Napaka",
-                    description: message,
-                    variant: "destructive",
-                });
-            } finally {
-                if (!cancelled) {
-                    setLoading(false);
-                }
-            }
-        }
-
-        void loadTeams();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [user?.id, userRole, toast]);
-  };
+    }
+  };*/
 
   async function loadTeamPlayers(teamId: string) {
     try {
