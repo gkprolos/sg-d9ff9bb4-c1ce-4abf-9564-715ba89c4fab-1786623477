@@ -1,86 +1,82 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize Supabase client with service role key (bypasses RLS)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== "POST") {
+  if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  try {
-    const { playerId, startDate, endDate } = req.body;
+  const { child_id, start_date, end_date } = req.query;
 
-    if (!playerId || !startDate || !endDate) {
-      return res.status(400).json({ error: "playerId, startDate, and endDate so obvezni" });
+  if (!child_id || !start_date || !end_date) {
+    return res.status(400).json({ error: "Missing required parameters: child_id, start_date, end_date" });
+  }
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get child's team assignments
+    const { data: teamPlayers, error: teamError } = await supabase
+      .from("team_players")
+      .select("team_id")
+      .eq("player_id", child_id);
+
+    if (teamError) throw teamError;
+
+    if (!teamPlayers || teamPlayers.length === 0) {
+      return res.status(200).json({ attendance: [] });
     }
 
-    // Query activities directly with inner join on attendance_records
-    // This is the correct Supabase syntax for filtering by related table
-    const { data: activities, error } = await supabase
-      .from("activities")
+    const teamIds = teamPlayers.map((tp) => tp.team_id);
+
+    // Get attendance records for the date range
+    const { data: attendanceData, error: attendanceError } = await supabase
+      .from("attendance")
       .select(`
         id,
-        activity_date,
-        start_time,
-        end_time,
-        activity_type_id,
-        is_home_game,
-        venue_id,
-        venues (
+        player_id,
+        activity_id,
+        status,
+        activities!inner(
           id,
-          name,
-          city
-        ),
-        attendance_records!inner (
-          id,
-          player_id,
-          status
+          activity_date,
+          start_time,
+          end_time,
+          team_id
         )
       `)
-      .eq("attendance_records.player_id", playerId)
-      .gte("activity_date", startDate)
-      .lte("activity_date", endDate)
-      .order("activity_date", { ascending: true });
+      .eq("player_id", child_id)
+      .in("activities.team_id", teamIds)
+      .gte("activities.activity_date", start_date)
+      .lte("activities.activity_date", end_date)
+      .order("activities.activity_date", { ascending: true });
 
-    if (error) {
-      console.error("Get attendance error:", error);
-      return res.status(500).json({ error: "Napaka pri nalaganju prisotnosti" });
-    }
+    if (attendanceError) throw attendanceError;
 
-    // Transform data to match expected format
-    const attendance = activities?.map(activity => ({
-      id: activity.attendance_records[0].id,
-      player_id: activity.attendance_records[0].player_id,
-      status: activity.attendance_records[0].status,
-      activities: {
-        id: activity.id,
-        activity_date: activity.activity_date,
-        start_time: activity.start_time,
-        end_time: activity.end_time,
-        activity_type_id: activity.activity_type_id,
-        home_game: activity.is_home_game,
-        venue_id: activity.venue_id,
-        venues: activity.venues
-      }
-    })) || [];
+    // Transform data to include date field
+    const attendance = (attendanceData || []).map((record: any) => ({
+      id: record.id,
+      player_id: record.player_id,
+      activity_id: record.activity_id,
+      status: record.status,
+      date: record.activities?.activity_date || "",
+      activities: record.activities
+    }));
 
-    return res.status(200).json({
-      success: true,
-      attendance,
-    });
+    console.log("Attendance records found:", attendance.length);
 
+    return res.status(200).json({ attendance });
   } catch (error: any) {
-    console.error("Get attendance error:", error);
+    console.error("Error fetching attendance:", error);
     return res.status(500).json({ 
-      error: error.message || "Napaka pri nalaganju prisotnosti" 
+      error: "Failed to fetch attendance",
+      details: error.message 
     });
   }
 }

@@ -129,8 +129,23 @@ export default function MyChildren() {
         if (!selectedChildId) return;
 
         try {
+            // Calculate first and last day of selected month
+            const firstDay = new Date(selectedYear, selectedMonth, 1);
+            const lastDay = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+            
+            const startDate = firstDay.toISOString().split('T')[0];
+            const endDate = lastDay.toISOString().split('T')[0];
+
+            console.log("Loading attendance for:", { 
+                child_id: selectedChildId, 
+                startDate, 
+                endDate,
+                month: selectedMonth + 1,
+                year: selectedYear 
+            });
+
             const response = await fetch(
-                `/api/parent/get-attendance?child_id=${selectedChildId}&month=${selectedMonth + 1}&year=${selectedYear}`
+                `/api/parent/get-attendance?child_id=${selectedChildId}&start_date=${startDate}&end_date=${endDate}`
             );
 
             if (!response.ok) {
