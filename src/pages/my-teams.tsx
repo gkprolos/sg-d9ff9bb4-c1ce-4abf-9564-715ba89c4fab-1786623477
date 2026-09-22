@@ -98,6 +98,23 @@ export default function MyTeamsPage() {
 
   const loadTeams = async () => {
     try {
+      // For coaches, first get their teams from team_coaches
+      let teamIds: string[] = [];
+      if (userRole === "coach" && user?.id) {
+        const { data: coachTeams } = await supabase
+          .from("team_coaches")
+          .select("team_id")
+          .eq("coach_id", user.id)
+          .eq("is_active", true);
+
+        teamIds = (coachTeams || []).map((ct) => ct.team_id);
+
+        if (teamIds.length === 0) {
+          setTeams([]);
+          return;
+        }
+      }
+
       let query = supabase
         .from("teams")
         .select(`
@@ -107,9 +124,9 @@ export default function MyTeamsPage() {
         `)
         .order("name");
 
-      // Filter teams for coaches - only show teams they coach
-      if (userRole === "coach" && user?.id) {
-        query = query.eq("head_coach_id", user.id);
+      // Filter teams for coaches - only show teams they coach via team_coaches
+      if (userRole === "coach" && teamIds.length > 0) {
+        query = query.in("id", teamIds);
       }
 
       const { data, error } = await query;
