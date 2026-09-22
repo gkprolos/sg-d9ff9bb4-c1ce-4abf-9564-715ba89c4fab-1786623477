@@ -3144,8 +3144,7 @@ export default function Store() {
                   <TableBody>
                     {collectionItems.length > 0 ? (
                       <>
-                        {collectionItems
-                          .slice()
+                        {[...collectionItems]
                           .sort((a, b) => a.item_number.localeCompare(b.item_number))
                           .map((item) => (
                             <TableRow key={item.id}>
