@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Clock, MapPin, Users, Eye, Calendar, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Users, Eye, Calendar } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -216,6 +216,7 @@ export default function MyChildren() {
     };
 
     const getAttendanceForDate = (date: string) => {
+        // Backend vrača datum znotraj activities.activity_date
         return attendance.find((a) => a.activities?.activity_date === date);
     };
 
@@ -449,29 +450,27 @@ export default function MyChildren() {
                                                 <div
                                                     key={dateStr}
                                                     className={`
-                            min-h-[90px] p-2 border rounded-lg flex flex-col gap-1
+                            min-h-[80px] p-1 border rounded-lg flex flex-col relative
                             ${dayAttendance ? getAttendanceCellColor(dayAttendance.status) : (hasActivity ? "bg-blue-50/50 border-blue-200" : "bg-muted/30")}
                           `}
                                                 >
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <span className="text-xs font-bold">{date.getDate()}</span>
-                                                        {dayAttendance && (
-                                                            <div className={`flex items-center justify-center min-w-[24px] h-6 px-1 rounded-full text-xs font-bold text-white ${getAttendanceBadgeColor(dayAttendance.status)}`}>
+                                                    {/* Datum je majhen v levem zgornjem kotu */}
+                                                    <div className="absolute top-1 left-2 text-xs font-medium text-muted-foreground">
+                                                        {date.getDate()}
+                                                    </div>
+
+                                                    {/* Vsebina na sredini */}
+                                                    <div className="flex-1 flex flex-col items-center justify-center gap-1 mt-2">
+                                                        {dayAttendance ? (
+                                                            <div className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold text-white shadow-sm ${getAttendanceBadgeColor(dayAttendance.status)}`}>
                                                                 {getAttendanceLetter(dayAttendance.status)}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1 text-[10px] space-y-1 overflow-hidden">
-                                                        {hasActivity && (
-                                                            <div className="font-medium text-foreground/80">
-                                                                {schedule?.activity_name || "Trening"}
-                                                            </div>
-                                                        )}
-                                                        {hasActivity && schedule?.venues?.name && (
-                                                            <div className="flex items-center gap-1 text-muted-foreground">
-                                                                <MapPin className="h-2 w-2 shrink-0" />
-                                                                <span className="truncate">{schedule.venues.name}</span>
-                                                            </div>
+                                                        ) : (
+                                                            hasActivity && (
+                                                                <div className="text-[10px] text-center text-muted-foreground px-1">
+                                                                    {schedule?.activity_name || "Trening"}
+                                                                </div>
+                                                            )
                                                         )}
                                                     </div>
                                                 </div>
