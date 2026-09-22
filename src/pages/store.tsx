@@ -1458,13 +1458,105 @@ export default function Store() {
 
         <Tabs defaultValue="orders" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="orders">Naročila</TabsTrigger>
-            <TabsTrigger value="collections">Zbirniki</TabsTrigger>
-            <TabsTrigger value="reports">Poročila</TabsTrigger>
-            <TabsTrigger value="articles">Artikli</TabsTrigger>
-            <TabsTrigger value="suppliers">Dobavitelji</TabsTrigger>
-            <TabsTrigger value="categories">Kategorije</TabsTrigger>
+            {userRole === "parent" ? (
+              <>
+                <TabsTrigger value="store">Trgovina</TabsTrigger>
+                <TabsTrigger value="orders">Moja naročila</TabsTrigger>
+              </>
+            ) : (
+              <>
+                <TabsTrigger value="orders">Naročila</TabsTrigger>
+                <TabsTrigger value="collections">Zbirniki</TabsTrigger>
+                <TabsTrigger value="reports">Poročila</TabsTrigger>
+                <TabsTrigger value="articles">Artikli</TabsTrigger>
+                <TabsTrigger value="suppliers">Dobavitelji</TabsTrigger>
+                <TabsTrigger value="categories">Kategorije</TabsTrigger>
+              </>
+            )}
           </TabsList>
+
+          {/* Parent Store Tab - Shopping Catalog */}
+          {userRole === "parent" && (
+            <TabsContent value="store" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Klubska oprema</CardTitle>
+                  <CardDescription>
+                    Naročite klubsko opremo za svoje otroke
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {items
+                      .filter(item => !item.deleted_at)
+                      .map((item) => (
+                        <Card key={item.id} className="overflow-hidden">
+                          {item.image_url && (
+                            <div className="aspect-square overflow-hidden bg-muted">
+                              <img
+                                src={item.image_url}
+                                alt={item.name}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <CardTitle className="text-lg">{item.name}</CardTitle>
+                                <CardDescription className="mt-1">
+                                  {item.item_number}
+                                </CardDescription>
+                              </div>
+                              <Badge variant="outline">{item.category}</Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            {item.description && (
+                              <p className="text-sm text-muted-foreground mb-3">
+                                {item.description}
+                              </p>
+                            )}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Cena:</span>
+                                <span className="text-xl font-bold">{item.price.toFixed(2)} €</span>
+                              </div>
+                              {Array.isArray(item.available_sizes) && item.available_sizes.length > 0 && (
+                                <div>
+                                  <span className="text-sm text-muted-foreground">Velikosti:</span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {item.available_sizes.map((size: string) => (
+                                      <Badge key={size} variant="secondary" className="text-xs">
+                                        {size}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            {item.external_link && (
+                              <Button
+                                variant="outline"
+                                className="w-full mt-4"
+                                onClick={() => window.open(item.external_link, "_blank")}
+                              >
+                                Več informacij
+                              </Button>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                  {items.filter(item => !item.deleted_at).length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      Trenutno ni na voljo nobene opreme
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* CATALOG TAB */}
           <TabsContent value="catalog" className="space-y-4">
@@ -1765,346 +1857,340 @@ export default function Store() {
           </TabsContent>
 
           {/* Articles Tab */}
-          <TabsContent value="articles" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Artikli</CardTitle>
-                    <CardDescription>
-                      Upravljanje artiklov v trgovini
-                    </CardDescription>
+          {(userRole === "coach" || userRole === "admin") && (
+            <TabsContent value="articles" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Artikli</CardTitle>
+                      <CardDescription>
+                        Upravljanje artiklov v trgovini
+                      </CardDescription>
+                    </div>
+                    <Button onClick={() => openArticleDialog()}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nov artikel
+                    </Button>
                   </div>
-                  <Button onClick={() => openArticleDialog()}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nov artikel
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-24">Slika</TableHead>
-                      <TableHead>Šifra</TableHead>
-                      <TableHead>Naziv</TableHead>
-                      <TableHead>Kategorija</TableHead>
-                      <TableHead>Cena</TableHead>
-                      <TableHead>Velikosti</TableHead>
-                      <TableHead className="text-right">Akcije</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          {item.image_url ? (
-                            <img 
-                              src={item.image_url} 
-                              alt={item.name}
-                              className="w-16 h-16 object-cover rounded-md border"
-                              onError={(e) => {
-                                e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpath d='M21 15l-5-5L5 21'/%3E%3C/svg%3E";
-                              }}
-                            />
-                          ) : (
-                            <div className="w-16 h-16 bg-muted rounded-md border flex items-center justify-center">
-                              <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono">{item.item_number}</TableCell>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell>{item.category}</TableCell>
-                        <TableCell>{item.price.toFixed(2)} €</TableCell>
-                        <TableCell className="text-sm">
-                          {Array.isArray(item.available_sizes) 
-                            ? item.available_sizes.join(", ") 
-                            : "N/A"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openArticleDialog(item)}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Uredi
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteArticle(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Izbriši
-                            </Button>
-                          </div>
-                        </TableCell>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-24">Slika</TableHead>
+                        <TableHead>Šifra</TableHead>
+                        <TableHead>Naziv</TableHead>
+                        <TableHead>Kategorija</TableHead>
+                        <TableHead>Cena</TableHead>
+                        <TableHead>Velikosti</TableHead>
+                        <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            {item.image_url ? (
+                              <img 
+                                src={item.image_url} 
+                                alt={item.name}
+                                className="w-16 h-16 object-cover rounded-md border"
+                                onError={(e) => {
+                                  e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpath d='M21 15l-5-5L5 21'/%3E%3C/svg%3E";
+                                }}
+                              />
+                            ) : (
+                              <div className="w-16 h-16 bg-muted rounded-md border flex items-center justify-center">
+                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono">{item.item_number}</TableCell>
+                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell>{item.category}</TableCell>
+                          <TableCell>{item.price.toFixed(2)} €</TableCell>
+                          <TableCell className="text-sm">
+                            {Array.isArray(item.available_sizes) 
+                              ? item.available_sizes.join(", ") 
+                              : "N/A"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openArticleDialog(item)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Uredi
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteArticle(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Izbriši
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Categories Tab */}
-          <TabsContent value="categories" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Kategorije</CardTitle>
-                    <CardDescription>
-                      Upravljanje kategorij artiklov
-                    </CardDescription>
+          {(userRole === "coach" || userRole === "admin") && (
+            <TabsContent value="categories" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Kategorije</CardTitle>
+                      <CardDescription>
+                        Upravljanje kategorij artiklov
+                      </CardDescription>
+                    </div>
+                    <Button onClick={() => openCategoryDialog()}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nova kategorija
+                    </Button>
                   </div>
-                  <Button onClick={() => openCategoryDialog()}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nova kategorija
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Naziv</TableHead>
-                      <TableHead>Opis</TableHead>
-                      <TableHead className="text-right">Akcije</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {categories.map((category) => (
-                      <TableRow key={category.id}>
-                        <TableCell className="font-medium">{category.name}</TableCell>
-                        <TableCell>{category.description || "-"}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openCategoryDialog(category)}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Uredi
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteCategory(category.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Izbriši
-                            </Button>
-                          </div>
-                        </TableCell>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Naziv</TableHead>
+                        <TableHead>Opis</TableHead>
+                        <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    </TableHeader>
+                    <TableBody>
+                      {categories.map((category) => (
+                        <TableRow key={category.id}>
+                          <TableCell className="font-medium">{category.name}</TableCell>
+                          <TableCell>{category.description || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openCategoryDialog(category)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Uredi
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteCategory(category.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Izbriši
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Suppliers Tab */}
-          <TabsContent value="suppliers" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Dobavitelji</CardTitle>
-                    <CardDescription>
-                      Upravljanje dobaviteljev opreme
-                    </CardDescription>
+          {(userRole === "coach" || userRole === "admin") && (
+            <TabsContent value="suppliers" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Dobavitelji</CardTitle>
+                      <CardDescription>
+                        Upravljanje dobaviteljev opreme
+                      </CardDescription>
+                    </div>
+                    <Button onClick={() => openSupplierDialog()}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nov dobavitelj
+                    </Button>
                   </div>
-                  <Button onClick={() => openSupplierDialog()}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nov dobavitelj
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Naziv</TableHead>
-                      <TableHead>Kontaktna oseba</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Telefon</TableHead>
-                      <TableHead className="text-right">Akcije</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {suppliers.map((supplier) => (
-                      <TableRow key={supplier.id}>
-                        <TableCell className="font-medium">{supplier.name}</TableCell>
-                        <TableCell>{supplier.contact_person || "-"}</TableCell>
-                        <TableCell>{supplier.email || "-"}</TableCell>
-                        <TableCell>{supplier.phone || "-"}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openSupplierDialog(supplier)}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Uredi
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteSupplier(supplier.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Izbriši
-                            </Button>
-                          </div>
-                        </TableCell>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Naziv</TableHead>
+                        <TableHead>Kontaktna oseba</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Telefon</TableHead>
+                        <TableHead className="text-right">Akcije</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    </TableHeader>
+                    <TableBody>
+                      {suppliers.map((supplier) => (
+                        <TableRow key={supplier.id}>
+                          <TableCell className="font-medium">{supplier.name}</TableCell>
+                          <TableCell>{supplier.contact_person || "-"}</TableCell>
+                          <TableCell>{supplier.email || "-"}</TableCell>
+                          <TableCell>{supplier.phone || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openSupplierDialog(supplier)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Uredi
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteSupplier(supplier.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Izbriši
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Collections Tab */}
-          <TabsContent value="collections" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Zbirniki</CardTitle>
-                    <CardDescription>
-                      Ustvarite zbirnik iz odprtih naročil
-                    </CardDescription>
-                  </div>
-                  <Button 
-                    onClick={() => setIsCollectionDialogOpen(true)}
-                    disabled={myOrders.filter(o => o.status === "open").length === 0}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nov zbirnik
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground mb-4">
-                  Odprtih naročil: {myOrders.filter(o => o.status === "open").length}
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Številka</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Število naročil</TableHead>
-                      <TableHead>Opombe</TableHead>
-                      <TableHead>Datum</TableHead>
-                      <TableHead className="text-right">Akcije</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {collections.map((collection) => (
-                      <TableRow key={collection.id}>
-                        <TableCell className="font-medium">{collection.collection_number}</TableCell>
-                        <TableCell>
-                          <Badge>{collection.status}</Badge>
-                        </TableCell>
-                        <TableCell>{collection.total_orders || 0}</TableCell>
-                        <TableCell>{collection.notes || "-"}</TableCell>
-                        <TableCell>
-                          {new Date(collection.created_at).toLocaleDateString("sl-SI")}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openCollectionView(collection)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Odpri
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteCollection(collection.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Izbriši
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* OTHER TABS - Placeholder for now */}
-          {(userRole === "admin" || userRole === "coach") && (
-            <>
-              <TabsContent value="items">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Artikli</CardTitle>
-                    <CardDescription>Upravljanje artiklov</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">Artikli funkcionalnost - v pripravi</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="reports">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Poročila</CardTitle>
-                    <CardDescription>Statistika in poročila</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-sm font-medium">Skupaj naročil</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-3xl font-bold">{stats.totalOrders}</div>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-sm font-medium">Skupni prihodek</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-3xl font-bold">
-                              {stats.totalRevenue.toFixed(2)} €
-                            </div>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-sm font-medium">Povprečno naročilo</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="text-3xl font-bold">
-                              {stats.avgOrderValue.toFixed(2)} €
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
+          {(userRole === "coach" || userRole === "admin") && (
+            <TabsContent value="collections" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Zbirniki</CardTitle>
+                      <CardDescription>
+                        Ustvarite zbirnik iz odprtih naročil
+                      </CardDescription>
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </>
+                    <Button 
+                      onClick={() => setIsCollectionDialogOpen(true)}
+                      disabled={myOrders.filter(o => o.status === "open").length === 0}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nov zbirnik
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-muted-foreground mb-4">
+                    Odprtih naročil: {myOrders.filter(o => o.status === "open").length}
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Številka</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Število naročil</TableHead>
+                        <TableHead>Opombe</TableHead>
+                        <TableHead>Datum</TableHead>
+                        <TableHead className="text-right">Akcije</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {collections.map((collection) => (
+                        <TableRow key={collection.id}>
+                          <TableCell className="font-medium">{collection.collection_number}</TableCell>
+                          <TableCell>
+                            <Badge>{collection.status}</Badge>
+                          </TableCell>
+                          <TableCell>{collection.total_orders || 0}</TableCell>
+                          <TableCell>{collection.notes || "-"}</TableCell>
+                          <TableCell>
+                            {new Date(collection.created_at).toLocaleDateString("sl-SI")}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openCollectionView(collection)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Odpri
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteCollection(collection.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Izbriši
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* Reports Tab */}
+          {(userRole === "coach" || userRole === "admin") && (
+            <TabsContent value="reports" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Poročila</CardTitle>
+                  <CardDescription>Statistika in poročila</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm font-medium">Skupaj naročil</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-3xl font-bold">{stats.totalOrders}</div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm font-medium">Skupni prihodek</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-3xl font-bold">
+                            {stats.totalRevenue.toFixed(2)} €
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm font-medium">Povprečno naročilo</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-3xl font-bold">
+                            {stats.avgOrderValue.toFixed(2)} €
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           )}
         </Tabs>
       </div>
