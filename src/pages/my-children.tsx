@@ -56,7 +56,7 @@ interface AttendanceRecord {
 interface ScheduleTemplate {
   id: string;
   activity_name: string;
-  day_of_week: number;
+  day_of_week: string | number;
   start_time: string;
   end_time: string;
   location: string;

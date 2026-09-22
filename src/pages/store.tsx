@@ -213,7 +213,7 @@ export default function Store() {
     description: "",
     price: 0,
     category: "",
-    available_sizes: [] as string[],
+    available_sizes: [] as any[],
     image_url: "",
     external_link: "",
     supplier_id: "",
@@ -3116,7 +3116,6 @@ export default function Store() {
                     {Array.isArray(collectionItems) && collectionItems.length > 0 ? (
                       <>
                         {collectionItems
-                          .slice()
                           .sort((a, b) => a.item_number.localeCompare(b.item_number))
                           .map((item) => (
                             <TableRow key={item.id}>
