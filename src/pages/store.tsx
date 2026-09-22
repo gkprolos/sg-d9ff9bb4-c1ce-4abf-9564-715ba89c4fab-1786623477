@@ -522,7 +522,7 @@ export default function Store() {
 
       if (itemsError) throw itemsError;
 
-      setSelectedCollection(collectionData as CollectionWithStats);
+      setViewingCollection(collectionData as CollectionWithStats);
       setCollectionItems((collectionItemsData || []) as StoreCollectionItem[]);
     } catch (error: any) {
       console.error("Error loading collection details:", error);
