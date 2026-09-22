@@ -24,7 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { getActiveTeams } from "@/services/teamsService";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, UserPlus, Trash2 } from "lucide-react";
+import { Users, UserPlus, Trash2, Eye, Calendar } from "lucide-react";
 import type React from "react";
 
 interface Team {
@@ -553,9 +553,46 @@ export default function MyTeamsPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {teams.map((team) => (
                 <Card key={team.id} className="hover:shadow-md transition-shadow">
-              })}
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-xl mb-2">{team.name}</CardTitle>
+                        <CardDescription>
+                          {team.age_group && <span>Starostna skupina: {team.age_group}</span>}
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedTeam(team);
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          Sezona: {(team.seasons as any)?.name || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          Trener: {(team.coaches as any)?.full_name || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          ) : null}
+          )}
         </div>
       </AppLayout>
     </ProtectedRoute>);
