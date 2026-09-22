@@ -540,45 +540,20 @@ export default function MyTeamsPage() {
             </DialogContent>
           </Dialog>
 
-                  {teams.length === 0 ? (
-                      <Card>
-                          <CardContent className="flex flex-col items-center justify-center py-12">
-                              <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                              <p className="text-muted-foreground text-center">
-                                  {userRole === "coach"
-                                      ? "Trenutno nimate dodeljenih ekip."
-                                      : "Ni ekip. Dodajte prvo ekipo za začetek."}
-                              </p>
-                          </CardContent>
-                      </Card>
-                  ) : (
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                          {teams.map((team) => (
-                              <Card key={team.id} className="hover:shadow-md transition-shadow">
-                                  <CardHeader>
-                                      <div className="flex items-start justify-between">
-                                          <div className="flex-1">
-                                              <CardTitle className="text-xl mb-2">{team.name}</CardTitle>
-                                              <CardDescription>
-                                                  {team.age_group && <span>Starostna skupina: {team.age_group}</span>}
-                                              </CardDescription>
-                                          </div>
-                                          <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => {
-                                                  setSelectedTeam(team);
-                                                  setIsDialogOpen(true);
-                                              }}
-                                          >
-                                              <Eye className="h-4 w-4" />
-                                          </Button>
-                                      </div>
-                                  </CardHeader>
-                              </Card>
-                          ))}
-                      </div>
-                  )}
+          {teams.length === 0 ?
+          <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground text-center">
+                  {userRole === "coach" ?
+                "Trenutno nimate dodeljenih ekip." :
+                "Ni ekip. Dodajte prvo ekipo za začetek."}
+                </p>
+              </CardContent>
+            </Card> :
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {teams.map((team) => {}
 
 
 
