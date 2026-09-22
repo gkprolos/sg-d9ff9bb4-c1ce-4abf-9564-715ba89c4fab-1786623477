@@ -12,16 +12,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle } from
-
-"@/components/ui/alert-dialog";
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle
+} from
+    "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getActiveTeams } from "@/services/teamsService";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,196 +29,191 @@ import { Users, UserPlus, Trash2, Eye, Calendar } from "lucide-react";
 import type React from "react";
 
 interface Team {
-  id: string;
-  name: string;
-  short_name: string | null;
-  age_category: string | null;
-  gender: string | null;
-  is_archived: boolean;
-  seasons?: {
+    id: string;
     name: string;
-    is_active: boolean;
-  };
+    short_name: string | null;
+    age_category: string | null;
+    gender: string | null;
+    is_archived: boolean;
+    seasons?: {
+        name: string;
+        is_active: boolean;
+    };
 }
 
 interface TeamPlayer {
-  id: string;
-  player_id: string;
-  players: {
     id: string;
-    first_name: string;
-    last_name: string;
-    date_of_birth: string | null;
-  };
+    player_id: string;
+    players: {
+        id: string;
+        first_name: string;
+        last_name: string;
+        date_of_birth: string | null;
+    };
 }
 
 export default function MyTeamsPage() {
-  const { user, userRole } = useAuth();
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [managePlayersDialogOpen, setManagePlayersDialogOpen] = useState(false);
-  const [addPlayerDialogOpen, setAddPlayerDialogOpen] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
-  const [teamPlayers, setTeamPlayers] = useState<TeamPlayer[]>([]);
-  const [availablePlayers, setAvailablePlayers] = useState<any[]>([]);
-  const [selectedPlayerToAdd, setSelectedPlayerToAdd] = useState("");
-  const [playerToRemove, setPlayerToRemove] = useState<{teamPlayerId: string;playerName: string;} | null>(null);
-  const [allPlayers, setAllPlayers] = useState<any[]>([]);
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [genderFilter, setGenderFilter] = useState<string>("all");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const { user, userRole } = useAuth();
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(false);
+    const [teams, setTeams] = useState < Team[] > ([]);
+    const [managePlayersDialogOpen, setManagePlayersDialogOpen] = useState(false);
+    const [addPlayerDialogOpen, setAddPlayerDialogOpen] = useState(false);
+    const [selectedTeam, setSelectedTeam] = useState < Team | null > (null);
+    const [teamPlayers, setTeamPlayers] = useState < TeamPlayer[] > ([]);
+    const [availablePlayers, setAvailablePlayers] = useState < any[] > ([]);
+    const [selectedPlayerToAdd, setSelectedPlayerToAdd] = useState("");
+    const [playerToRemove, setPlayerToRemove] = useState < { teamPlayerId: string; playerName: string; } | null > (null);
+    const [allPlayers, setAllPlayers] = useState < any[] > ([]);
+    const [selectedPlayers, setSelectedPlayers] = useState < string[] > ([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [genderFilter, setGenderFilter] = useState < string > ("all");
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Filter players by search term and gender
-  const filteredPlayers = allPlayers.filter((player) => {
-    // Search filter
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch =
-    player.first_name.toLowerCase().includes(searchLower) ||
-    player.last_name.toLowerCase().includes(searchLower);
+    // Filter players by search term and gender
+    const filteredPlayers = allPlayers.filter((player) => {
+        // Search filter
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch =
+            player.first_name.toLowerCase().includes(searchLower) ||
+            player.last_name.toLowerCase().includes(searchLower);
 
-    if (!matchesSearch) return false;
+        if (!matchesSearch) return false;
 
-    // Gender filter from dropdown
-    if (genderFilter !== "all") {
-      if (!player.gender || player.gender.toUpperCase() !== genderFilter.toUpperCase()) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-
-  // Check if exactly one player matches search
-  const exactMatch = filteredPlayers.length === 1 ? filteredPlayers[0] : null;
-
-  /* useEffect(() => {
-    loadTeams();
-   }, []);*/
-  useEffect(() => {
-    let cancelled = false;
-    const coachId = user?.id;
-
-    setTeams([]);
-
-    // Stran je namenjena trenerjem. Počakamo na podatke prijave.
-    if (!coachId || userRole !== "coach") {
-      setLoading(false);
-      return;
-    }
-
-    async function loadTeams() {
-      setLoading(true);
-
-      try {
-        const { data: coachTeams, error: coachTeamsError } =
-        await supabase.
-        from("team_coaches").
-        select("team_id").
-        eq("coach_id", coachId).
-        eq("is_active", true);
-
-        if (coachTeamsError) throw coachTeamsError;
-        if (cancelled) return;
-
-        const teamIds = [
-        ...new Set(
-          (coachTeams ?? []).
-          map((assignment) => assignment.team_id).
-          filter((id): id is string => typeof id === "string")
-        )];
-
-
-        // Trener brez dodelitev ne vidi nobene ekipe.
-        if (teamIds.length === 0) {
-          setTeams([]);
-          return;
+        // Gender filter from dropdown
+        if (genderFilter !== "all") {
+            if (!player.gender || player.gender.toUpperCase() !== genderFilter.toUpperCase()) {
+                return false;
+            }
         }
 
-        const { data, error } = await supabase.
-        from("teams").
-        select(`
-          *,
-          
-          seasons(name, is_active),
-          team_players(count)
-        `).
-        in("id", teamIds).
-        eq("is_archived", false).
-        order("name");
+        return true;
+    });
 
-        if (error) throw error;
+    // Check if exactly one player matches search
+    const exactMatch = filteredPlayers.length === 1 ? filteredPlayers[0] : null;
 
-        if (!cancelled) {
-          setTeams(data ?? []);
-        }
-      } catch (error: unknown) {
-        if (cancelled) return;
+    useEffect(() => {
+        let cancelled = false;
+        const coachId = user?.id;
 
         setTeams([]);
 
-        const message =
-        error &&
-        typeof error === "object" &&
-        "message" in error ?
-        String(error.message) :
-        "Ni mogoče naložiti ekip.";
-
-        toast({
-          title: "Napaka",
-          description: message,
-          variant: "destructive"
-        });
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
+        // Stran je namenjena trenerjem. Počakamo na podatke prijave.
+        if (!coachId || userRole !== "coach") {
+            setLoading(false);
+            return;
         }
-      }
-    }
 
-    void loadTeams();
+        async function loadTeams() {
+            setLoading(true);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, userRole, toast]);
+            try {
+                const { data: coachTeams, error: coachTeamsError } =
+                    await supabase
+                        .from("team_coaches")
+                        .select("team_id")
+                        .eq("coach_id", coachId)
+                        .eq("is_active", true);
 
-  const loadTeams = async () => {
-    try {
-      let query = supabase.
-      from("teams").
-      select(`
+                if (coachTeamsError) throw coachTeamsError;
+                if (cancelled) return;
+
+                const teamIds = [
+                    ...new Set(
+                        (coachTeams ?? [])
+                            .map((assignment) => assignment.team_id)
+                            .filter((id): id is string => typeof id === "string")
+                    ),
+                ];
+
+                // Trener brez dodelitev ne vidi nobene ekipe.
+                if (teamIds.length === 0) {
+                    setTeams([]);
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from("teams")
+                    .select(`
           *,
-          
           seasons(name, is_active),
           team_players(count)
-        `).
-      order("name");
+        `)
+                    .in("id", teamIds)
+                    .eq("is_archived", false)
+                    .order("name");
 
-      // Filter teams for coaches - only show teams they coach
-      if (userRole === "coach" && user?.id) {
-        query = query.eq("head_coach_id", user.id);
-      }
+                if (error) throw error;
 
-      const { data, error } = await query;
+                if (!cancelled) {
+                    setTeams(data ?? []);
+                }
+            } catch (error: unknown) {
+                if (cancelled) return;
 
-      if (error) throw error;
-      setTeams((data || []) as Team[]);
-    } catch (error: any) {
-      toast({
-        title: "Napaka",
-        description: `Napaka pri nalaganju ekip: ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  };
+                setTeams([]);
 
-  async function loadTeamPlayers(teamId: string) {
-    try {
-      const { data, error } = await supabase.
-      from("team_players").
-      select(`
+                const message =
+                    error &&
+                        typeof error === "object" &&
+                        "message" in error
+                        ? String(error.message)
+                        : "Ni mogoče naložiti ekip.";
+
+                toast({
+                    title: "Napaka",
+                    description: message,
+                    variant: "destructive",
+                });
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        }
+
+        void loadTeams();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [user?.id, userRole, toast]);
+
+    const loadTeams = async () => {
+        try {
+            let query = supabase
+                .from("teams")
+                .select(`
+          *,
+          seasons(name, is_active),
+          team_players(count)
+        `)
+                .order("name");
+
+            // Filter teams for coaches - only show teams they coach
+            if (userRole === "coach" && user?.id) {
+                query = query.eq("head_coach_id", user.id);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+            setTeams((data || []) as Team[]);
+        } catch (error: any) {
+            toast({
+                title: "Napaka",
+                description: `Napaka pri nalaganju ekip: ${error.message}`,
+                variant: "destructive",
+            });
+        }
+    };
+
+    async function loadTeamPlayers(teamId: string) {
+        try {
+            const { data, error } = await supabase.
+                from("team_players").
+                select(`
           id,
           player_id,
           players(
@@ -228,31 +223,31 @@ export default function MyTeamsPage() {
             date_of_birth
           )
         `).
-      eq("team_id", teamId).
-      order("players(last_name)", { ascending: true });
+                eq("team_id", teamId).
+                order("players(last_name)", { ascending: true });
 
-      if (error) {
-        console.error("Napaka pri nalaganju igralcev selekcije:", error);
-        toast({
-          variant: "destructive",
-          title: "Napaka",
-          description: error.message || "Ni mogoče naložiti igralcev selekcije"
-        });
-        throw error;
-      }
+            if (error) {
+                console.error("Napaka pri nalaganju igralcev selekcije:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Napaka",
+                    description: error.message || "Ni mogoče naložiti igralcev selekcije"
+                });
+                throw error;
+            }
 
-      setTeamPlayers(data || []);
-      setSelectedPlayers((data || []).map((tp: any) => tp.player_id));
-    } catch (error: any) {
-      console.error("Napaka pri nalaganju igralcev selekcije:", error);
+            setTeamPlayers(data || []);
+            setSelectedPlayers((data || []).map((tp: any) => tp.player_id));
+        } catch (error: any) {
+            console.error("Napaka pri nalaganju igralcev selekcije:", error);
+        }
     }
-  }
 
-  async function loadAllPlayers() {
-    try {
-      const { data, error } = await supabase.
-      from("players").
-      select(`
+    async function loadAllPlayers() {
+        try {
+            const { data, error } = await supabase.
+                from("players").
+                select(`
           id, 
           first_name, 
           last_name, 
@@ -262,303 +257,325 @@ export default function MyTeamsPage() {
             teams(id, name, short_name)
           )
         `).
-      eq("is_active", true).
-      order("last_name", { ascending: true });
+                eq("is_active", true).
+                order("last_name", { ascending: true });
 
-      if (error) throw error;
-      setAllPlayers(data || []);
-    } catch (error: any) {
-      console.error("Napaka pri nalaganju igralcev:", error);
+            if (error) throw error;
+            setAllPlayers(data || []);
+        } catch (error: any) {
+            console.error("Napaka pri nalaganju igralcev:", error);
+        }
     }
-  }
 
-  async function handleManagePlayersClick(team: Team) {
-    setSelectedTeam(team);
-    setSearchTerm(""); // Reset search when opening dialog
-    setGenderFilter("all"); // Reset gender filter when opening dialog
-    await loadAllPlayers();
-    await loadTeamPlayers(team.id);
-    setManagePlayersDialogOpen(true);
-  }
-
-  async function togglePlayer(playerId: string) {
-    if (!selectedTeam) return;
-
-    const isCurrentlySelected = selectedPlayers.includes(playerId);
-
-    try {
-      if (isCurrentlySelected) {
-        // Remove player - delete from DB immediately
-        const { error } = await supabase.
-        from("team_players").
-        delete().
-        eq("team_id", selectedTeam.id).
-        eq("player_id", playerId);
-
-        if (error) throw error;
-
-        // Update local state
-        setSelectedPlayers((prev) => prev.filter((id) => id !== playerId));
-        setTeamPlayers((prev) => prev.filter((tp) => tp.player_id !== playerId));
-
-        toast({
-          title: "Odstranjen",
-          description: "Igralec odstranjen iz selekcije"
-        });
-      } else {
-        // Add player - insert to DB immediately
-        const { error } = await supabase.
-        from("team_players").
-        insert([{
-          team_id: selectedTeam.id,
-          player_id: playerId
-        }]);
-
-        if (error) throw error;
-
-        // Update local state
-        setSelectedPlayers((prev) => [...prev, playerId]);
-
-        // Reload team players to get full data
-        await loadTeamPlayers(selectedTeam.id);
-
-        toast({
-          title: "Dodan",
-          description: "Igralec dodan v selekcijo"
-        });
-      }
-    } catch (error: any) {
-      console.error("Napaka pri upravljanju igralca:", error);
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju"
-      });
+    async function handleManagePlayersClick(team: Team) {
+        setSelectedTeam(team);
+        setSearchTerm(""); // Reset search when opening dialog
+        setGenderFilter("all"); // Reset gender filter when opening dialog
+        await loadAllPlayers();
+        await loadTeamPlayers(team.id);
+        setManagePlayersDialogOpen(true);
     }
-  }
 
-  function handleSearchKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && exactMatch) {
-      e.preventDefault();
-      togglePlayer(exactMatch.id);
-      setSearchTerm(""); // Clear search after adding
+    async function togglePlayer(playerId: string) {
+        if (!selectedTeam) return;
+
+        const isCurrentlySelected = selectedPlayers.includes(playerId);
+
+        try {
+            if (isCurrentlySelected) {
+                // Remove player - delete from DB immediately
+                const { error } = await supabase.
+                    from("team_players").
+                    delete().
+                    eq("team_id", selectedTeam.id).
+                    eq("player_id", playerId);
+
+                if (error) throw error;
+
+                // Update local state
+                setSelectedPlayers((prev) => prev.filter((id) => id !== playerId));
+                setTeamPlayers((prev) => prev.filter((tp) => tp.player_id !== playerId));
+
+                toast({
+                    title: "Odstranjen",
+                    description: "Igralec odstranjen iz selekcije"
+                });
+            } else {
+                // Add player - insert to DB immediately
+                const { error } = await supabase.
+                    from("team_players").
+                    insert([{
+                        team_id: selectedTeam.id,
+                        player_id: playerId
+                    }]);
+
+                if (error) throw error;
+
+                // Update local state
+                setSelectedPlayers((prev) => [...prev, playerId]);
+
+                // Reload team players to get full data
+                await loadTeamPlayers(selectedTeam.id);
+
+                toast({
+                    title: "Dodan",
+                    description: "Igralec dodan v selekcijo"
+                });
+            }
+        } catch (error: any) {
+            console.error("Napaka pri upravljanju igralca:", error);
+            toast({
+                variant: "destructive",
+                title: "Napaka",
+                description: error.message || "Napaka pri shranjevanju"
+            });
+        }
     }
-  }
 
-  function handleAddPlayerClick() {
-    setSelectedPlayerToAdd("");
-    setAddPlayerDialogOpen(true);
-  }
+    function handleSearchKeyDown(e: React.KeyboardEvent) {
+        if (e.key === "Enter" && exactMatch) {
+            e.preventDefault();
+            togglePlayer(exactMatch.id);
+            setSearchTerm(""); // Clear search after adding
+        }
+    }
 
-  return (
-    <ProtectedRoute allowedRoles={["coach"]}>
-      <AppLayout>
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Moje selekcije</h2>
-            <p className="text-muted-foreground">Pregled vseh aktivnih selekcij in upravljanje igralcev</p>
-          </div>
+    function handleAddPlayerClick() {
+        setSelectedPlayerToAdd("");
+        setAddPlayerDialogOpen(true);
+    }
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Seznam selekcij ({teams.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading && teams.length === 0 ?
-              <p>Nalaganje...</p> :
-              teams.length === 0 ?
-              <p className="text-muted-foreground">Ni aktivnih selekcij.</p> :
+    return (
+        <ProtectedRoute allowedRoles={["coach"]}>
+            <AppLayout>
+                <div className="space-y-6">
+                    <div>
+                        <h2 className="text-3xl font-bold tracking-tight">Moje selekcije</h2>
+                        <p className="text-muted-foreground">Pregled vseh aktivnih selekcij in upravljanje igralcev</p>
+                    </div>
 
-              <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Naziv</TableHead>
-                        <TableHead>Kratka oznaka</TableHead>
-                        <TableHead>Starostna kategorija</TableHead>
-                        <TableHead>Spol</TableHead>
-                        <TableHead>Št. igralcev</TableHead>
-                        <TableHead>Sezona</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Akcije</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {teams.map((team) => {
-                    const isActive = !team.is_archived;
-                    return (
-                      <TableRow key={team.id}>
-                            <TableCell className="font-medium">{team.name}</TableCell>
-                            <TableCell>{team.short_name || "-"}</TableCell>
-                            <TableCell>{team.age_category || "-"}</TableCell>
-                            <TableCell>{team.gender || "-"}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">
-                                {(team as any).team_players?.[0]?.count || 0}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {team.seasons?.name || "-"}
-                              {team.seasons?.is_active === false &&
-                          <Badge variant="outline" className="ml-2">Arhivirana sezona</Badge>
-                          }
-                            </TableCell>
-                            <TableCell>
-                              {isActive ?
-                          <Badge className="" style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>Aktivna</Badge> :
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Seznam selekcij ({teams.length})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {loading && teams.length === 0 ?
+                                <p>Nalaganje...</p> :
+                                teams.length === 0 ?
+                                    <p className="text-muted-foreground">Ni aktivnih selekcij.</p> :
 
-                          <Badge variant="outline">Arhivirana</Badge>
-                          }
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleManagePlayersClick(team)}
-                            title="Upravljaj igralce" style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Naziv</TableHead>
+                                                <TableHead>Kratka oznaka</TableHead>
+                                                <TableHead>Starostna kategorija</TableHead>
+                                                <TableHead>Spol</TableHead>
+                                                <TableHead>Št. igralcev</TableHead>
+                                                <TableHead>Sezona</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead className="text-right">Akcije</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {teams.map((team) => {
+                                                const isActive = !team.is_archived;
+                                                return (
+                                                    <TableRow key={team.id}>
+                                                        <TableCell className="font-medium">{team.name}</TableCell>
+                                                        <TableCell>{team.short_name || "-"}</TableCell>
+                                                        <TableCell>{team.age_category || "-"}</TableCell>
+                                                        <TableCell>{team.gender || "-"}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant="outline">
+                                                                {(team as any).team_players?.[0]?.count || 0}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {team.seasons?.name || "-"}
+                                                            {team.seasons?.is_active === false &&
+                                                                <Badge variant="outline" className="ml-2">Arhivirana sezona</Badge>
+                                                            }
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {isActive ?
+                                                                <Badge className="" style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>Aktivna</Badge> :
 
-                                <Users className="h-4 w-4 mr-2" />
-                                Igralci
-                              </Button>
-                            </TableCell>
-                          </TableRow>);
+                                                                <Badge variant="outline">Arhivirana</Badge>
+                                                            }
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleManagePlayersClick(team)}
+                                                                title="Upravljaj igralce" style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>
 
-                  })}
-                    </TableBody>
-                  </Table>
-              }
-            </CardContent>
-          </Card>
+                                                                <Users className="h-4 w-4 mr-2" />
+                                                                Igralci
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>);
 
-          {/* Manage Players Dialog */}
-          <Dialog open={managePlayersDialogOpen} onOpenChange={setManagePlayersDialogOpen}>
-            <DialogContent className="max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  Upravljanje igralcev - {selectedTeam?.name}
-                </DialogTitle>
-              </DialogHeader>
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                            }
+                        </CardContent>
+                    </Card>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="gender_filter">Filter po spolu</Label>
-                  <Select value={genderFilter} onValueChange={setGenderFilter}>
-                    <SelectTrigger id="gender_filter">
-                      <SelectValue placeholder="Vsi igralci" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Vsi igralci</SelectItem>
-                      <SelectItem value="M">Samo moški (M)</SelectItem>
-                      <SelectItem value="F">Samo ženske (F)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    {/* Manage Players Dialog */}
+                    <Dialog open={managePlayersDialogOpen} onOpenChange={setManagePlayersDialogOpen}>
+                        <DialogContent className="max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>
+                                    Upravljanje igralcev - {selectedTeam?.name}
+                                </DialogTitle>
+                            </DialogHeader>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="gender_filter">Filter po spolu</Label>
+                                    <Select value={genderFilter} onValueChange={setGenderFilter}>
+                                        <SelectTrigger id="gender_filter">
+                                            <SelectValue placeholder="Vsi igralci" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Vsi igralci</SelectItem>
+                                            <SelectItem value="M">Samo moški (M)</SelectItem>
+                                            <SelectItem value="F">Samo ženske (F)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="player_search">Iskanje igralca</Label>
+                                    <Input
+                                        id="player_search"
+                                        placeholder="Ime ali priimek..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onKeyDown={handleSearchKeyDown} />
+
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Igralci ({filteredPlayers.length})</Label>
+                                    <div className="border rounded-lg">
+                                        <ScrollArea className="h-[300px] sm:h-[400px]">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow className="text-xs">
+                                                        <TableHead className="w-[50px]"></TableHead>
+                                                        <TableHead>Ime</TableHead>
+                                                        <TableHead>Priimek</TableHead>
+                                                        <TableHead>Datum rojstva</TableHead>
+                                                        <TableHead>Druge selekcije</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {filteredPlayers.map((player) => {
+                                                        const isSelected = selectedPlayers.includes(player.id);
+                                                        const otherTeams = player.teams?.
+                                                            filter((tp: any) => tp.teams.id !== selectedTeam?.id).
+                                                            map((tp: any) => tp.teams) || [];
+
+                                                        return (
+                                                            <TableRow key={player.id} className="text-sm">
+                                                                <TableCell className="py-2">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={isSelected}
+                                                                        onChange={() => togglePlayer(player.id)}
+                                                                        className="h-4 w-4" />
+
+                                                                </TableCell>
+                                                                <TableCell className="font-medium py-2">
+                                                                    {player.first_name}
+                                                                </TableCell>
+                                                                <TableCell className="py-2">{player.last_name}</TableCell>
+                                                                <TableCell className="py-2">
+                                                                    {player.date_of_birth ?
+                                                                        new Date(player.date_of_birth).toLocaleDateString("sl-SI") :
+                                                                        "N/A"}
+                                                                </TableCell>
+                                                                <TableCell className="py-2">
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {otherTeams.length > 0 ?
+                                                                            otherTeams.map((team: any, idx: number) =>
+                                                                                <Badge key={idx} variant="outline" className="text-xs">
+                                                                                    {team.short_name || team.name}
+                                                                                </Badge>
+                                                                            ) :
+
+                                                                            <span className="text-xs text-muted-foreground">-</span>
+                                                                        }
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>);
+
+                                                    })}
+                                                </TableBody>
+                                            </Table>
+                                        </ScrollArea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setManagePlayersDialogOpen(false)}
+                                    disabled={loading}>
+
+                                    Zapri
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    {teams.length === 0 ? (
+                        <Card>
+                            <CardContent className="flex flex-col items-center justify-center py-12">
+                                <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                                <p className="text-muted-foreground text-center">
+                                    {userRole === "coach"
+                                        ? "Trenutno nimate dodeljenih ekip."
+                                        : "Ni ekip. Dodajte prvo ekipo za začetek."}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {teams.map((team) => (
+                                <Card key={team.id} className="hover:shadow-md transition-shadow">
+                                    <CardHeader>
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <CardTitle className="text-xl mb-2">{team.name}</CardTitle>
+                                                <CardDescription>
+                                                    {team.age_category && <span>Starostna skupina: {team.age_category}</span>}
+                                                </CardDescription>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setSelectedTeam(team);
+                                                    setIsDialogOpen(true);
+                                                }}
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </CardHeader>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="player_search">Iskanje igralca</Label>
-                  <Input
-                    id="player_search"
-                    placeholder="Ime ali priimek..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={handleSearchKeyDown} />
-
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Igralci ({filteredPlayers.length})</Label>
-                  <div className="border rounded-lg">
-                    <ScrollArea className="h-[300px] sm:h-[400px]">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="text-xs">
-                            <TableHead className="w-[50px]"></TableHead>
-                            <TableHead>Ime</TableHead>
-                            <TableHead>Priimek</TableHead>
-                            <TableHead>Datum rojstva</TableHead>
-                            <TableHead>Druge selekcije</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredPlayers.map((player) => {
-                            const isSelected = selectedPlayers.includes(player.id);
-                            const otherTeams = player.teams?.
-                            filter((tp: any) => tp.teams.id !== selectedTeam?.id).
-                            map((tp: any) => tp.teams) || [];
-
-                            return (
-                              <TableRow key={player.id} className="text-sm">
-                                <TableCell className="py-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    onChange={() => togglePlayer(player.id)}
-                                    className="h-4 w-4" />
-
-                                </TableCell>
-                                <TableCell className="font-medium py-2">
-                                  {player.first_name}
-                                </TableCell>
-                                <TableCell className="py-2">{player.last_name}</TableCell>
-                                <TableCell className="py-2">
-                                  {player.date_of_birth ?
-                                  new Date(player.date_of_birth).toLocaleDateString("sl-SI") :
-                                  "N/A"}
-                                </TableCell>
-                                <TableCell className="py-2">
-                                  <div className="flex flex-wrap gap-1">
-                                    {otherTeams.length > 0 ?
-                                    otherTeams.map((team: any, idx: number) =>
-                                    <Badge key={idx} variant="outline" className="text-xs">
-                                          {team.short_name || team.name}
-                                        </Badge>
-                                    ) :
-
-                                    <span className="text-xs text-muted-foreground">-</span>
-                                    }
-                                  </div>
-                                </TableCell>
-                              </TableRow>);
-
-                          })}
-                        </TableBody>
-                      </Table>
-                    </ScrollArea>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter className="mt-6 sticky bottom-0 bg-background pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setManagePlayersDialogOpen(false)}
-                  disabled={loading}>
-
-                  Zapri
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {teams.length === 0 ?
-          <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground text-center">
-                  {userRole === "coach" ?
-                "Trenutno nimate dodeljenih ekip." :
-                "Ni ekip. Dodajte prvo ekipo za začetek."}
-                </p>
-              </CardContent>
-            </Card> :
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {teams.map((team) => {}
-            )}
-            </div>
-          }
-        </div>
-      </AppLayout>
-    </ProtectedRoute>);
-
+            </AppLayout>
+        </ProtectedRoute>
+    );
 }
