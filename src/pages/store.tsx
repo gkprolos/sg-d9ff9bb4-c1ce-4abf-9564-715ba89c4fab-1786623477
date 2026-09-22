@@ -1974,7 +1974,7 @@ export default function Store() {
                                   Izbriši
                                 </Button>
                               )}
-                              {(userRole === "coach" || userRole === "admin") && (
+                              {userRole === "admin" && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -1994,6 +1994,33 @@ export default function Store() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Items Management Tab */}
+          {(userRole === "coach" || userRole === "admin") && (
+            <TabsContent value="items" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Artikli</CardTitle>
+                      <CardDescription>
+                        Upravljajte z artikli klubske opreme
+                      </CardDescription>
+                    </div>
+                    {userRole === "admin" && (
+                      <Button onClick={() => {
+                        setEditingArticle(null);
+                        setIsArticleDialogOpen(true);
+                      }}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nov artikel
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Articles Tab */}
           {(userRole === "coach" || userRole === "admin") && (
@@ -2056,22 +2083,29 @@ export default function Store() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openArticleDialog(item)}
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Uredi
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => deleteArticle(item.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Izbriši
-                              </Button>
+                              {userRole === "admin" && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingArticle(item);
+                                      setIsArticleDialogOpen(true);
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Uredi
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteArticle(item.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    Izbriši
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -2083,7 +2117,7 @@ export default function Store() {
             </TabsContent>
           )}
 
-          {/* Categories Tab */}
+          {/* Categories Management Tab */}
           {(userRole === "coach" || userRole === "admin") && (
             <TabsContent value="categories" className="space-y-4">
               <Card>
@@ -2092,13 +2126,15 @@ export default function Store() {
                     <div>
                       <CardTitle>Kategorije</CardTitle>
                       <CardDescription>
-                        Upravljanje kategorij artiklov
+                        Upravljajte s kategorijami artiklov
                       </CardDescription>
                     </div>
-                    <Button onClick={() => openCategoryDialog()}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Nova kategorija
-                    </Button>
+                    {userRole === "admin" && (
+                      <Button onClick={() => setIsCategoryDialogOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nova kategorija
+                      </Button>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -2117,22 +2153,29 @@ export default function Store() {
                           <TableCell>{category.description || "-"}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openCategoryDialog(category)}
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Uredi
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => deleteCategory(category.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Izbriši
-                              </Button>
+                              {userRole === "admin" && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingCategory(category);
+                                      setIsCategoryDialogOpen(true);
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Uredi
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteCategory(category.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    Izbriši
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -2144,7 +2187,7 @@ export default function Store() {
             </TabsContent>
           )}
 
-          {/* Suppliers Tab */}
+          {/* Suppliers Management Tab */}
           {(userRole === "coach" || userRole === "admin") && (
             <TabsContent value="suppliers" className="space-y-4">
               <Card>
@@ -2153,13 +2196,15 @@ export default function Store() {
                     <div>
                       <CardTitle>Dobavitelji</CardTitle>
                       <CardDescription>
-                        Upravljanje dobaviteljev opreme
+                        Upravljajte z dobavitelji klubske opreme
                       </CardDescription>
                     </div>
-                    <Button onClick={() => openSupplierDialog()}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Nov dobavitelj
-                    </Button>
+                    {userRole === "admin" && (
+                      <Button onClick={() => setIsSupplierDialogOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nov dobavitelj
+                      </Button>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -2182,22 +2227,29 @@ export default function Store() {
                           <TableCell>{supplier.phone || "-"}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openSupplierDialog(supplier)}
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Uredi
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => deleteSupplier(supplier.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Izbriši
-                              </Button>
+                              {userRole === "admin" && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingSupplier(supplier);
+                                      setIsSupplierDialogOpen(true);
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Uredi
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteSupplier(supplier.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    Izbriši
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -2209,25 +2261,24 @@ export default function Store() {
             </TabsContent>
           )}
 
-          {/* Collections Tab */}
+          {/* Collections Management Tab */}
           {(userRole === "coach" || userRole === "admin") && (
             <TabsContent value="collections" className="space-y-4">
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle>Zbirniki</CardTitle>
+                      <CardTitle>Zbirniki naročil</CardTitle>
                       <CardDescription>
-                        Ustvarite zbirnik iz odprtih naročil
+                        Ustvarjajte in upravljajte zbirnike naročil
                       </CardDescription>
                     </div>
-                    <Button 
-                      onClick={() => setIsCollectionDialogOpen(true)}
-                      disabled={myOrders.filter(o => o.status === "open").length === 0}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Nov zbirnik
-                    </Button>
+                    {userRole === "admin" && (
+                      <Button onClick={() => setIsCollectionDialogOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nov zbirnik
+                      </Button>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -2265,16 +2316,28 @@ export default function Store() {
                                 onClick={() => openCollectionView(collection)}
                               >
                                 <Eye className="h-4 w-4 mr-1" />
-                                Odpri
+                                Poglej
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => deleteCollection(collection.id)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Izbriši
-                              </Button>
+                              {userRole === "admin" && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => editCollection(collection)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Uredi
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteCollection(collection.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    Izbriši
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
