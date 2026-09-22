@@ -887,19 +887,22 @@ export default function Store() {
     }
 
     try {
-      // Create collection with collection_date
+      // Create collection with collection_date - status 'pending' for new collections
       const { data: collection, error: collectionError } = await supabase
         .from("store_collections")
         .insert({
           collection_number: collectionFormData.collection_number,
           collection_date: new Date().toISOString().split("T")[0], // Today's date in YYYY-MM-DD format
           notes: collectionFormData.notes,
-          status: "open",
+          status: "pending",
         })
         .select()
         .single();
 
-      if (collectionError) throw collectionError;
+      if (collectionError) {
+        console.error("Collection creation error:", collectionError);
+        throw collectionError;
+      }
 
       // Update selected orders to reference this collection and change status to 'accepted'
       const { error: ordersError } = await supabase
@@ -957,9 +960,10 @@ export default function Store() {
       setCollectionFormData({ collection_number: "", notes: "" });
       fetchOrders();
     } catch (error: any) {
+      console.error("Full error:", error);
       toast({
         title: "Napaka",
-        description: `Napaka pri ustvarjanju zbirnika: ${error.message}`,
+        description: `Napaka pri ustvarjanju zbirnika: ${error.message || JSON.stringify(error)}`,
         variant: "destructive",
       });
     }
