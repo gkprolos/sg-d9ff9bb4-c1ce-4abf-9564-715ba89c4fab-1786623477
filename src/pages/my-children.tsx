@@ -137,16 +137,22 @@ export default function MyChildren() {
             const endDate = lastDay.toISOString().split('T')[0];
 
             console.log("Loading attendance for:", { 
-                child_id: selectedChildId, 
+                playerId: selectedChildId, 
                 startDate, 
                 endDate,
                 month: selectedMonth + 1,
                 year: selectedYear 
             });
 
-            const response = await fetch(
-                `/api/parent/get-attendance?child_id=${selectedChildId}&start_date=${startDate}&end_date=${endDate}`
-            );
+            const response = await fetch("/api/parent/get-attendance", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    playerId: selectedChildId,
+                    startDate: startDate,
+                    endDate: endDate,
+                }),
+            });
 
             if (!response.ok) {
                 console.error("Failed to load attendance:", response.statusText);
