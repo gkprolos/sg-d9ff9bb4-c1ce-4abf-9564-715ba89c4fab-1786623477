@@ -188,12 +188,12 @@ export default function Store() {
 
   // Shopping Cart State (for parents)
   const [cartState, setCartState] = useState<Array<{
-    itemId: string;
-    itemNumber: string;
-    itemName: string;
+    item_id: string;
+    item_number: string;
+    item_name: string;
     size: string;
     quantity: number;
-    unitPrice: number;
+    unit_price: number;
   }>>([]);
   const [isCartDialogOpen, setIsCartDialogOpen] = useState(false);
   const [selectedItemForCart, setSelectedItemForCart] = useState<StoreItem | null>(null);
@@ -1078,7 +1078,7 @@ export default function Store() {
     }
 
     const existingItemIndex = cart.findIndex(
-      item => item.itemId === selectedItemForCart.id && item.size === (selectedSize || "N/A")
+      item => item.item_id === selectedItemForCart.id && item.size === (selectedSize || "N/A")
     );
 
     if (existingItemIndex >= 0) {
@@ -1089,12 +1089,12 @@ export default function Store() {
       setCart([
         ...cart,
         {
-          itemId: selectedItemForCart.id,
-          itemNumber: selectedItemForCart.item_number,
-          itemName: selectedItemForCart.name,
+          item_id: selectedItemForCart.id,
+          item_number: selectedItemForCart.item_number,
+          item_name: selectedItemForCart.name,
           size: selectedSize || "N/A",
           quantity: quantity,
-          unitPrice: selectedItemForCart.price,
+          unit_price: selectedItemForCart.price,
         },
       ]);
     }
@@ -1108,7 +1108,7 @@ export default function Store() {
   };
 
   const removeFromCart = (itemId: string, size: string) => {
-    setCart(cart.filter(item => !(item.itemId === itemId && item.size === size)));
+    setCart(cart.filter(item => !(item.item_id === itemId && item.size === size)));
   };
 
   const updateCartQuantity = (itemId: string, size: string, newQuantity: number) => {
@@ -1117,7 +1117,7 @@ export default function Store() {
       return;
     }
     setCart(cart.map(item =>
-      item.itemId === itemId && item.size === size
+      item.item_id === itemId && item.size === size
         ? { ...item, quantity: newQuantity }
         : item
     ));
@@ -1149,7 +1149,7 @@ export default function Store() {
     try {
       // Generate order number
       const orderNumber = `ORD-${Date.now()}`;
-      const totalAmount = cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+      const totalAmount = cart.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
 
       // Create order
       const { data: order, error: orderError } = await supabase
@@ -1168,15 +1168,16 @@ export default function Store() {
 
       if (orderError) throw orderError;
 
-      // Create order items
+      // Create order items with subtotal
       const orderItems = cart.map(item => ({
         order_id: order.id,
-        item_id: item.itemId,
-        item_number: item.itemNumber,
-        item_name: item.itemName,
+        item_id: item.item_id,
+        item_number: item.item_number,
+        item_name: item.item_name,
         size: item.size,
         quantity: item.quantity,
-        unit_price: item.unitPrice,
+        unit_price: item.unit_price,
+        subtotal: item.quantity * item.unit_price,
       }));
 
       const { error: itemsError } = await supabase
@@ -3108,18 +3109,18 @@ export default function Store() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   {cart.map((item, index) => (
-                    <div key={`${item.itemId}-${item.size}`} className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div key={`${item.item_id}-${item.size}`} className="flex items-center gap-4 p-4 border rounded-lg">
                       <div className="flex-1">
-                        <div className="font-medium">{item.itemName}</div>
+                        <div className="font-medium">{item.item_name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {item.itemNumber} • Velikost: {item.size}
+                          {item.item_number} • Velikost: {item.size}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => updateCartQuantity(item.itemId, item.size, item.quantity - 1)}
+                          onClick={() => updateCartQuantity(item.item_id, item.size, item.quantity - 1)}
                         >
                           -
                         </Button>
@@ -3127,19 +3128,19 @@ export default function Store() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => updateCartQuantity(item.itemId, item.size, item.quantity + 1)}
+                          onClick={() => updateCartQuantity(item.item_id, item.size, item.quantity + 1)}
                         >
                           +
                         </Button>
                       </div>
                       <div className="text-right min-w-[100px]">
-                        <div className="text-sm text-muted-foreground">{item.unitPrice.toFixed(2)} € / kos</div>
-                        <div className="font-semibold">{(item.quantity * item.unitPrice).toFixed(2)} €</div>
+                        <div className="text-sm text-muted-foreground">{item.unit_price.toFixed(2)} € / kos</div>
+                        <div className="font-semibold">{(item.quantity * item.unit_price).toFixed(2)} €</div>
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => removeFromCart(item.itemId, item.size)}
+                        onClick={() => removeFromCart(item.item_id, item.size)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -3160,7 +3161,7 @@ export default function Store() {
                   <div className="flex items-center justify-between text-xl font-bold pt-2">
                     <span>Skupaj:</span>
                     <span>
-                      {cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0).toFixed(2)} €
+                      {cart.reduce((sum, item) => sum + item.quantity * item.unit_price, 0).toFixed(2)} €
                     </span>
                   </div>
                 </div>
