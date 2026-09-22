@@ -1642,7 +1642,7 @@ export default function Store() {
               <>
                 <TabsTrigger value="collections">Zbirniki</TabsTrigger>
                 <TabsTrigger value="reports">Poročila</TabsTrigger>
-                <TabsTrigger value="items">Artikli</TabsTrigger>
+                <TabsTrigger value="articles">Artikli</TabsTrigger>
                 <TabsTrigger value="suppliers">Dobavitelji</TabsTrigger>
                 <TabsTrigger value="categories">Kategorije</TabsTrigger>
               </>
