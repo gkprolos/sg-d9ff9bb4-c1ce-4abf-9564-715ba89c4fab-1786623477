@@ -207,6 +207,10 @@ export default function Store() {
     name: "",
     description: "",
   });
+  const [categories, setCategories] = useState<StoreCategory[]>([]);
+
+  // Collections Management State (for creating collections from orders)
+  const [selectedOrdersForCollection, setSelectedOrdersForCollection] = useState<Set<string>>(new Set());
 
   // Children State
   const [children, setChildren] = useState<Child[]>([]);
