@@ -126,44 +126,31 @@ export default function MyChildren() {
     };
 
     const loadAttendance = async () => {
-        if (!selectedChildId) return;
+        if (!selectedChild) return;
 
         try {
-            // Calculate first and last day of selected month
-            const firstDay = new Date(selectedYear, selectedMonth, 1);
-            const lastDay = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
-            
-            const startDate = firstDay.toISOString().split('T')[0];
-            const endDate = lastDay.toISOString().split('T')[0];
+            const startDate = new Date(selectedYear, selectedMonth, 1);
+            const endDate = new Date(selectedYear, selectedMonth + 1, 0);
 
-            console.log("Loading attendance for:", { 
-                playerId: selectedChildId, 
-                startDate, 
-                endDate,
-                month: selectedMonth + 1,
-                year: selectedYear 
+            console.log("Loading attendance for:", {
+                child_id: selectedChild.id,
+                start_date: startDate.toISOString().split("T")[0],
+                end_date: endDate.toISOString().split("T")[0],
             });
 
-            const response = await fetch("/api/parent/get-attendance", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    playerId: selectedChildId,
-                    startDate: startDate,
-                    endDate: endDate,
-                }),
-            });
+            const response = await fetch(
+                `/api/parent/get-attendance?child_id=${selectedChild.id}&start_date=${startDate.toISOString().split("T")[0]}&end_date=${endDate.toISOString().split("T")[0]}`
+            );
 
             if (!response.ok) {
-                console.error("Failed to load attendance:", response.statusText);
+                const errorData = await response.json();
+                console.error("Failed to load attendance:", errorData);
                 setAttendance([]);
                 return;
             }
 
             const data = await response.json();
             console.log("Attendance data loaded:", data);
-            
-            // Store attendance data
             setAttendance(data.attendance || []);
         } catch (error) {
             console.error("Error loading attendance:", error);

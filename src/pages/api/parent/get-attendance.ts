@@ -11,17 +11,17 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== "POST") {
+  if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { playerId, startDate, endDate } = req.body;
+    const { child_id, start_date, end_date } = req.query;
 
-    console.log("Fetching attendance for:", { playerId, startDate, endDate });
+    console.log("Fetching attendance for:", { child_id, start_date, end_date });
 
-    if (!playerId || !startDate || !endDate) {
-      return res.status(400).json({ error: "playerId, startDate, and endDate so obvezni" });
+    if (!child_id || !start_date || !end_date) {
+      return res.status(400).json({ error: "child_id, start_date, and end_date so obvezni" });
     }
 
     // Query activities directly with inner join on attendance
@@ -46,9 +46,9 @@ export default async function handler(
           status
         )
       `)
-      .eq("attendance.player_id", playerId)
-      .gte("activity_date", startDate)
-      .lte("activity_date", endDate)
+      .eq("attendance.player_id", child_id)
+      .gte("activity_date", start_date)
+      .lte("activity_date", end_date)
       .order("activity_date", { ascending: true });
 
     if (error) {
