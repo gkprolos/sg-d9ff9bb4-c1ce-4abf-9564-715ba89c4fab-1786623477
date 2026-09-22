@@ -1152,8 +1152,6 @@ export default function Store() {
         .insert({
           order_number: orderNumber,
           parent_id: user?.id,
-          parent_name: user?.email?.split("@")[0] || "Unknown",
-          parent_email: user?.email,
           status: "open",
           total_amount: totalAmount,
           delivery_address: deliveryAddress,
