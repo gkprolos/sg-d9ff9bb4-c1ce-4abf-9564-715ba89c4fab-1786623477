@@ -534,7 +534,8 @@ export default function MyTeamsPage() {
                   
                   Zapri
                 </Button>
-              </DialogFooter>
+            </div>
+          </DialogFooter>
             </DialogContent>
           </Dialog>
 
@@ -573,22 +574,6 @@ export default function MyTeamsPage() {
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          Sezona: {(team.seasons as any)?.name || "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          Trener: {(team.coaches as any)?.full_name || "N/A"}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
                 </Card>
               ))}
             </div>
