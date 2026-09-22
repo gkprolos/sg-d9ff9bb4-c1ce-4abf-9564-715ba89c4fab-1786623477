@@ -189,8 +189,9 @@ export default function MyTeamsPage() {
         .from("teams")
         .select(`
           *,
-          coaches!teams_head_coach_id_fkey(id, full_name, email),
-          seasons(name, is_active)
+          
+          seasons(name, is_active),
+          team_players(count) //dodano namesto coaches!teams_head_coach_id_fkey(id, full_name, email),
         `)
         .order("name");
 
