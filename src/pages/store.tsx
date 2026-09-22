@@ -504,14 +504,7 @@ export default function Store() {
     try {
       let query = supabase
         .from("store_orders")
-        .select(`
-          *,
-          profiles!parent_id (
-            first_name,
-            last_name,
-            email
-          )
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (userRole === "parent") {
@@ -522,14 +515,43 @@ export default function Store() {
 
       if (error) throw error;
 
+      if (!data || data.length === 0) {
+        setMyOrders([]);
+        setOrderItems({});
+        return;
+      }
+
+      // Get unique parent IDs
+      const uniqueParentIds = [...new Set(data.map(order => order.parent_id))];
+
+      // Fetch profiles for all parents
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, email")
+        .in("id", uniqueParentIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of parent_id -> profile
+      const profilesMap = new Map(
+        (profilesData || []).map(profile => [
+          profile.id,
+          {
+            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+            email: profile.email || '',
+          }
+        ])
+      );
+
       // Map the data to include parent_name and parent_email
-      const ordersWithParentInfo = (data || []).map((order: any) => ({
-        ...order,
-        parent_name: order.profiles 
-          ? `${order.profiles.first_name || ''} ${order.profiles.last_name || ''}`.trim()
-          : 'N/A',
-        parent_email: order.profiles?.email || '',
-      }));
+      const ordersWithParentInfo = data.map((order: any) => {
+        const profile = profilesMap.get(order.parent_id);
+        return {
+          ...order,
+          parent_name: profile?.name || 'N/A',
+          parent_email: profile?.email || '',
+        };
+      });
 
       setMyOrders(ordersWithParentInfo);
 
