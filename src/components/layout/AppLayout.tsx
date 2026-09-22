@@ -28,8 +28,8 @@ import {
   ClipboardList,
   Clock,
   Building2,
-  BarChart3,
-} from "lucide-react";
+  BarChart3 } from
+"lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -38,8 +38,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -53,13 +53,13 @@ import {
   SidebarMenuButton,
   SidebarProvider,
   SidebarTrigger,
-  useSidebar,
-} from "@/components/ui/sidebar";
+  useSidebar } from
+"@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Inner component that uses useSidebar hook
-function InnerLayout({ children, userRole }: { children: React.ReactNode; userRole: "admin" | "coach" | "parent" }) {
+function InnerLayout({ children, userRole }: {children: React.ReactNode;userRole: "admin" | "coach" | "parent";}) {
   const router = useRouter();
   const { pathname } = router;
   const { user } = useAuth();
@@ -76,15 +76,15 @@ function InnerLayout({ children, userRole }: { children: React.ReactNode; userRo
     router.push("/login");
   }
 
-  const userInitials = user?.email
-    ? user.email
-        .split("@")[0]
-        .split(".")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "U";
+  const userInitials = user?.email ?
+  user.email.
+  split("@")[0].
+  split(".").
+  map((n) => n[0]).
+  join("").
+  toUpperCase().
+  slice(0, 2) :
+  "U";
 
   return (
     <div className="flex h-screen w-full">
@@ -94,14 +94,14 @@ function InnerLayout({ children, userRole }: { children: React.ReactNode; userRo
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Trophy className="h-5 w-5" />
             </div>
-            {state === "expanded" && (
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold">Klub</span>
+            {state === "expanded" &&
+            <div className="flex flex-col">
+                <span className="text-sm font-semibold">OK LUBNIK</span>
                 <span className="text-xs text-muted-foreground">
                   {isAdmin ? "Administrator" : isCoach ? "Trener" : "Starš"}
                 </span>
               </div>
-            )}
+            }
           </div>
         </SidebarHeader>
 
@@ -110,8 +110,8 @@ function InnerLayout({ children, userRole }: { children: React.ReactNode; userRo
             <SidebarGroupLabel>Navigacija</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {isParent && (
-                  <>
+                {isParent &&
+                <>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname === "/my-children"}>
                         <Link href="/my-children">
@@ -137,10 +137,10 @@ function InnerLayout({ children, userRole }: { children: React.ReactNode; userRo
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </>
-                )}
+                }
 
-                {isCoach && !isParent && (
-                  <>
+                {isCoach && !isParent &&
+                <>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
                         <Link href="/dashboard">
@@ -198,10 +198,10 @@ function InnerLayout({ children, userRole }: { children: React.ReactNode; userRo
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </>
-                )}
+                }
 
-                {isAdmin && (
-                  <>
+                {isAdmin &&
+                <>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
                         <Link href="/dashboard">
@@ -323,7 +323,7 @@ function InnerLayout({ children, userRole }: { children: React.ReactNode; userRo
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </>
-                )}
+                }
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -336,12 +336,12 @@ function InnerLayout({ children, userRole }: { children: React.ReactNode; userRo
                 <Avatar className="h-8 w-8">
                   <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
-                {state === "expanded" && (
-                  <div className="flex flex-col items-start text-left">
+                {state === "expanded" &&
+                <div className="flex flex-col items-start text-left">
                     <span className="text-sm font-medium">{user?.email?.split("@")[0]}</span>
                     <span className="text-xs text-muted-foreground">{user?.email}</span>
                   </div>
-                )}
+                }
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -373,12 +373,12 @@ function InnerLayout({ children, userRole }: { children: React.ReactNode; userRo
           </div>
         </main>
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 // Main export - wraps InnerLayout with SidebarProvider
-export function AppLayout({ children }: { children: React.ReactNode }) {
+export function AppLayout({ children }: {children: React.ReactNode;}) {
   const { userRole } = useAuth();
 
   return (
@@ -386,6 +386,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <InnerLayout userRole={userRole}>
         {children}
       </InnerLayout>
-    </SidebarProvider>
-  );
+    </SidebarProvider>);
+
 }
