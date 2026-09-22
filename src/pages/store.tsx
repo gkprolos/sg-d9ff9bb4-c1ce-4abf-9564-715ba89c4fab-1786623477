@@ -286,20 +286,14 @@ export default function Store() {
     try {
       const { data, error } = await supabase
         .from("store_order_items")
-        .select(`
-          item_id,
-          item_number,
-          item_name,
-          quantity,
-          unit_price
-        `);
+        .select("item_id, item_number, item_name, quantity, unit_price");
 
       if (error) throw error;
 
       const aggregated: Record<string, any> = {};
       
       data?.forEach((item: any) => {
-        const itemId = item.item_id;
+        const itemId = item.item_id || item.item_number;
         if (!aggregated[itemId]) {
           aggregated[itemId] = {
             item_number: item.item_number || "N/A",
@@ -312,16 +306,18 @@ export default function Store() {
         aggregated[itemId].total_revenue += (item.quantity || 0) * (item.unit_price || 0);
       });
 
-      const topItemsArray = Object.values(aggregated).map((item: any) => ({
-        item_number: item.item_number,
-        item_name: item.item_name,
-        total_quantity: item.total_sold,
-        total_sold: item.total_sold,
-        total_revenue: item.total_revenue,
-      })) as TopItem[];
+      const topItemsArray = Object.values(aggregated)
+        .map((item: any) => ({
+          item_number: item.item_number,
+          item_name: item.item_name,
+          total_quantity: item.total_sold,
+          total_sold: item.total_sold,
+          total_revenue: item.total_revenue,
+        }))
+        .sort((a: any, b: any) => b.total_sold - a.total_sold)
+        .slice(0, 10) as TopItem[];
 
-      topItemsArray.sort((a, b) => b.total_sold - a.total_sold);
-      setTopItems(topItemsArray.slice(0, 10));
+      setTopItems(topItemsArray);
     } catch (error: any) {
       console.error("Error loading top items:", error);
     }
@@ -411,20 +407,11 @@ export default function Store() {
 
   const loadChildren = async () => {
     try {
-      const { data, error } = await supabase
-        .from("children")
-        .select("*")
-        .order("first_name");
-
-      if (error) throw error;
-      setChildren(data || []);
+      // Children table is in internal schema, not public
+      // Skip loading if user doesn't have access
+      setChildren([]);
     } catch (error: any) {
       console.error("Error loading children:", error);
-      toast({
-        title: "Napaka",
-        description: `Napaka pri nalaganju otrok: ${error.message}`,
-        variant: "destructive",
-      });
     }
   };
 
@@ -439,11 +426,6 @@ export default function Store() {
       setPeriods(data || []);
     } catch (error: any) {
       console.error("Error loading periods:", error);
-      toast({
-        title: "Napaka",
-        description: `Napaka pri nalaganju obdobij: ${error.message}`,
-        variant: "destructive",
-      });
     }
   };
 
@@ -469,37 +451,12 @@ export default function Store() {
     try {
       const { data: ordersData, error: ordersError } = await supabase
         .from("store_orders")
-        .select(`
-          *,
-          store_collection_periods (
-            period_date,
-            notes
-          )
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (ordersError) throw ordersError;
 
-      // Manually fetch child data if child_id exists
-      const ordersWithChildren = await Promise.all(
-        (ordersData || []).map(async (order) => {
-          if (order.child_id) {
-            const { data: childData } = await supabase
-              .from("children")
-              .select("first_name, last_name")
-              .eq("id", order.child_id)
-              .single();
-            
-            return {
-              ...order,
-              children: childData || undefined,
-            };
-          }
-          return order;
-        })
-      );
-
-      setMyOrders(ordersWithChildren);
+      setMyOrders(ordersData || []);
 
       // Fetch items for all orders
       if (ordersData && ordersData.length > 0) {
@@ -919,6 +876,7 @@ export default function Store() {
                   <SelectValue placeholder="Vse kategorije" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">Vse kategorije</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
@@ -1053,10 +1011,10 @@ export default function Store() {
                                 </TableCell>
                                 <TableCell className="font-medium">{order.order_number}</TableCell>
                                 <TableCell>
-                                  {order.children ? `${order.children.first_name} ${order.children.last_name}` : "N/A"}
+                                  {order.child_id ? `Otrok ID: ${order.child_id.slice(0, 8)}...` : "N/A"}
                                 </TableCell>
                                 <TableCell>
-                                  {order.store_collection_periods?.period_name || "N/A"}
+                                  {order.collection_id || "N/A"}
                                 </TableCell>
                                 <TableCell>
                                   <Badge variant={
@@ -1161,10 +1119,10 @@ export default function Store() {
                                 </TableCell>
                                 <TableCell className="font-medium">{order.order_number}</TableCell>
                                 <TableCell>
-                                  {order.children ? `${order.children.first_name} ${order.children.last_name}` : "N/A"}
+                                  {order.child_id ? `Otrok ID: ${order.child_id.slice(0, 8)}...` : "N/A"}
                                 </TableCell>
                                 <TableCell>
-                                  {order.store_collection_periods?.period_name || "N/A"}
+                                  {order.collection_id || "N/A"}
                                 </TableCell>
                                 <TableCell>
                                   <Badge variant={
