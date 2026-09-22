@@ -3155,16 +3155,16 @@ export default function Store() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {collectionItems.length > 0 ? (
+                    {(collectionItems as StoreCollectionItem[]).length > 0 ? (
                       <>
-                        {collectionItems
+                        {(collectionItems as StoreCollectionItem[])
                           .slice()
                           .sort((a, b) => a.item_number.localeCompare(b.item_number))
                           .map((item) => (
                             <TableRow key={item.id}>
                               <TableCell className="font-mono">{item.item_number}</TableCell>
                               <TableCell>{item.item_name}</TableCell>
-                              <TableCell>{item.store_items?.store_suppliers?.name || "N/A"}</TableCell>
+                              <TableCell>N/A</TableCell>
                               <TableCell>{item.size}</TableCell>
                               <TableCell>{item.total_quantity}</TableCell>
                               <TableCell>{item.unit_price.toFixed(2)} €</TableCell>
@@ -3176,11 +3176,11 @@ export default function Store() {
                         <TableRow className="font-semibold bg-muted/50">
                           <TableCell colSpan={4}>SKUPAJ</TableCell>
                           <TableCell>
-                            {collectionItems.reduce((sum, item) => sum + item.total_quantity, 0)}
+                            {(collectionItems as StoreCollectionItem[]).reduce((sum, item) => sum + item.total_quantity, 0)}
                           </TableCell>
                           <TableCell></TableCell>
                           <TableCell>
-                            {collectionItems
+                            {(collectionItems as StoreCollectionItem[])
                               .reduce((sum, item) => sum + item.total_quantity * item.unit_price, 0)
                               .toFixed(2)}{" "}
                             €
