@@ -214,33 +214,6 @@ export default function MyChildren() {
         return attendance.find((a) => a.activities?.activity_date === date);
     };
 
-    const getAttendanceLetter = (status: string) => {
-        switch (status) {
-            case "present": return "P";
-            case "absent": return "O";
-            case "excused": return "Op";
-            default: return "";
-        }
-    };
-
-    const getAttendanceBadgeColor = (status: string) => {
-        switch (status) {
-            case "present": return "bg-green-500";
-            case "absent": return "bg-red-500";
-            case "excused": return "bg-yellow-500";
-            default: return "bg-gray-500";
-        }
-    };
-
-    const getAttendanceCellColor = (status: string) => {
-        switch (status) {
-            case "present": return "bg-green-50 border-green-200";
-            case "absent": return "bg-red-50 border-red-200";
-            case "excused": return "bg-yellow-50 border-yellow-200";
-            default: return "bg-muted/30";
-        }
-    };
-
     // Helper function to get status color
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -451,20 +424,20 @@ export default function MyChildren() {
                                                 key={dateStr}
                                                 className={`
                           min-h-[90px] p-1 border rounded-lg flex flex-col relative
-                          ${dayAttendance ? getAttendanceCellColor(dayAttendance.status) : (hasActivity ? "bg-blue-50/50 border-blue-200" : "bg-muted/30")}
+                          ${dayAttendance ? getStatusColor(dayAttendance.status) : (hasActivity ? "bg-blue-50/50 border-blue-200" : "bg-muted/30")}
                         `}
                                             >
-                                                <div className="absolute top-1 left-2 text-xs font-medium text-muted-foreground">
+                                                <div className="absolute top-1 left-2 text-xs font-medium">
                                                     {date.getDate()}
                                                 </div>
 
                                                 <div className="flex-1 flex flex-col items-center justify-center gap-1 mt-3">
                                                     {dayAttendance ? (
                                                         <div className="flex flex-col items-center gap-1">
-                                                            <div className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold text-white shadow-sm ${getAttendanceBadgeColor(dayAttendance.status)}`}>
-                                                                {getAttendanceLetter(dayAttendance.status)}
+                                                            <div className="text-sm font-bold">
+                                                                {dayAttendance.status}
                                                             </div>
-                                                            <div className="text-[10px] text-center text-muted-foreground">
+                                                            <div className="text-[10px] text-center">
                                                                 {schedule?.activity_name || "Trening"}
                                                             </div>
                                                         </div>
