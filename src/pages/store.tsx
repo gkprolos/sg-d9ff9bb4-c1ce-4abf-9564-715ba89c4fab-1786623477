@@ -1670,147 +1670,114 @@ export default function Store() {
             </TabsContent>
           )}
 
-          {/* ORDERS TAB (Admin/Coach) */}
-          {(userRole === "admin" || userRole === "coach") && (
-            <TabsContent value="orders" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Vsa naročila</CardTitle>
-                  <CardDescription>
-                    Upravljanje naročil klubske opreme
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12"></TableHead>
-                        <TableHead>Številka</TableHead>
-                        <TableHead>Otrok</TableHead>
-                        <TableHead>Obdobje</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Znesek</TableHead>
-                        <TableHead>Datum</TableHead>
-                        <TableHead className="text-right">Akcije</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {myOrders.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground">
-                            Ni naročil
+          {/* Orders Tab */}
+          <TabsContent value="orders" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Moja naročila</CardTitle>
+                    <CardDescription>
+                      Pregled vseh naročil
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Številka</TableHead>
+                      <TableHead>Naročnik</TableHead>
+                      <TableHead>Naslov</TableHead>
+                      <TableHead>Zadnja sprememba</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Znesek</TableHead>
+                      <TableHead className="text-right">Akcije</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {myOrders.map((order) => {
+                      const items = orderItems[order.id] || [];
+                      const statusBadgeVariant = 
+                        order.status === "delivered" ? "default" :
+                        order.status === "ordered" ? "secondary" :
+                        order.status === "cancelled" ? "destructive" :
+                        order.status === "invoiced" ? "outline" : "secondary";
+
+                      // Get the most recent status change timestamp
+                      const lastStatusChange = order.delivered_at || order.invoiced_at || order.cancelled_at || order.updated_at || order.created_at;
+
+                      return (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium">{order.order_number}</TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{order.parent_name || "N/A"}</div>
+                              <div className="text-sm text-muted-foreground">{order.parent_email || ""}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">{order.delivery_address || "-"}</TableCell>
+                          <TableCell>
+                            <div>
+                              <div>{new Date(lastStatusChange).toLocaleDateString("sl-SI")}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {new Date(lastStatusChange).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={statusBadgeVariant}>
+                              {order.status === "open" ? "Odprto" :
+                               order.status === "ordered" ? "Naročeno" :
+                               order.status === "delivered" ? "Dostavljeno" :
+                               order.status === "invoiced" ? "Fakturirano" :
+                               order.status === "cancelled" ? "Preklicano" : order.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-semibold">{order.total_amount.toFixed(2)} €</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              {items.length > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openItemsDialog(order.id)}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  Postavke ({items.length})
+                                </Button>
+                              )}
+                              {(userRole === "coach" || userRole === "admin") && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openEditStatusDialog(order)}
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Uredi
+                                </Button>
+                              )}
+                              {userRole === "parent" && order.status === "open" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => cancelOrder(order.id)}
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Prekliči
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
-                      ) : (
-                        myOrders.map((order) => {
-                          const items = orderItems[order.id] || [];
-                          const isExpanded = expandedOrders.has(order.id);
-                          
-                          return (
-                            <>
-                              <TableRow key={order.id} className="group">
-                                <TableCell>
-                                  {items.length > 0 && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => toggleOrderExpand(order.id)}
-                                    >
-                                      {isExpanded ? (
-                                        <ChevronUp className="h-4 w-4" />
-                                      ) : (
-                                        <ChevronDown className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                  )}
-                                </TableCell>
-                                <TableCell className="font-medium">{order.order_number}</TableCell>
-                                <TableCell>
-                                  {order.child_id ? `Otrok ID: ${order.child_id.slice(0, 8)}...` : "N/A"}
-                                </TableCell>
-                                <TableCell>
-                                  {order.collection_id || "N/A"}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant={
-                                    order.status === "račun" ? "default" :
-                                    order.status === "dobavljeno" ? "secondary" :
-                                    order.status === "naročeno" ? "outline" :
-                                    "destructive"
-                                  }>
-                                    {ORDER_STATUSES.find(s => s.value === order.status)?.label || order.status}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>{order.total_amount.toFixed(2)} €</TableCell>
-                                <TableCell>{new Date(order.created_at).toLocaleDateString("sl-SI")}</TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-2">
-                                    {items.length > 0 && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => openItemsDialog(order.id)}
-                                      >
-                                        <Eye className="h-4 w-4 mr-1" />
-                                        Postavke ({items.length})
-                                      </Button>
-                                    )}
-                                    {(userRole === "coach" || userRole === "admin") && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => openEditStatusDialog(order)}
-                                      >
-                                        <Edit className="h-4 w-4 mr-1" />
-                                        Uredi
-                                      </Button>
-                                    )}
-                                    {userRole === "parent" && order.status === "open" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => cancelOrder(order.id)}
-                                      >
-                                        <XCircle className="h-4 w-4 mr-1" />
-                                        Prekliči
-                                      </Button>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                              {isExpanded && items.length > 0 && (
-                                <TableRow key={`${order.id}-items`}>
-                                  <TableCell colSpan={8} className="bg-muted/50 p-4">
-                                    <div className="space-y-1 text-sm">
-                                      <div className="font-semibold mb-2">Postavke naročila:</div>
-                                      {items.map((item, idx) => (
-                                        <div key={item.id} className="flex items-center gap-2">
-                                          <span className="text-muted-foreground">#{idx + 1}</span>
-                                          <span className="font-mono">{item.item_number}</span>
-                                          <span>-</span>
-                                          <span>{item.item_name}</span>
-                                          <span className="text-muted-foreground">|</span>
-                                          <span>Velikost: {item.size}</span>
-                                          <span className="text-muted-foreground">|</span>
-                                          <span>Količina: {item.quantity}</span>
-                                          <span className="text-muted-foreground">|</span>
-                                          <span className="font-semibold">{(item.unit_price * item.quantity).toFixed(2)} €</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Articles Tab */}
           <TabsContent value="articles" className="space-y-4">
