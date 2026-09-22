@@ -310,21 +310,25 @@ export default function MyChildren() {
 
   const daysOfWeek = ["Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota", "Nedelja"];
 
-  // Group schedules by day
+  // Group schedules by day - convert day_of_week to number if needed
   const groupedSchedules = schedules.reduce((acc, schedule) => {
+    // Convert to number for indexing
     const dayNum = typeof schedule.day_of_week === 'string' 
       ? parseInt(schedule.day_of_week, 10)
       : schedule.day_of_week;
-    const day = daysOfWeek[dayNum] || String(schedule.day_of_week);
+    const day = daysOfWeek[dayNum] || `Dan ${dayNum}`;
     if (!acc[day]) acc[day] = [];
     acc[day].push(schedule);
     return acc;
-  }, {} as Record<string, ScheduleTemplate[]>);
+  }, {} as Record<string, typeof schedules>);
 
-  // Sort days
+  // Sort days by their index in daysOfWeek
   const sortedDays = Object.keys(groupedSchedules).sort((a, b) => {
     const aIndex = daysOfWeek.indexOf(a);
     const bIndex = daysOfWeek.indexOf(b);
+    // If not found in array, put at the end
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
     return aIndex - bIndex;
   });
 
