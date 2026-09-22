@@ -126,20 +126,20 @@ export default function MyChildren() {
     };
 
     const loadAttendance = async () => {
-        if (!selectedChild) return;
+        if (!selectedChildId) return;
 
         try {
             const startDate = new Date(selectedYear, selectedMonth, 1);
             const endDate = new Date(selectedYear, selectedMonth + 1, 0);
 
             console.log("Loading attendance for:", {
-                child_id: selectedChild.id,
+                child_id: selectedChildId,
                 start_date: startDate.toISOString().split("T")[0],
                 end_date: endDate.toISOString().split("T")[0],
             });
 
             const response = await fetch(
-                `/api/parent/get-attendance?child_id=${selectedChild.id}&start_date=${startDate.toISOString().split("T")[0]}&end_date=${endDate.toISOString().split("T")[0]}`
+                `/api/parent/get-attendance?child_id=${selectedChildId}&start_date=${startDate.toISOString().split("T")[0]}&end_date=${endDate.toISOString().split("T")[0]}`
             );
 
             if (!response.ok) {
