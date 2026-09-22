@@ -27,7 +27,7 @@ export default async function handler(
 
     console.log("Querying activities table...");
 
-    // Query activities directly with inner join on attendance
+    // Query activities directly with inner join on attendance_records
     const { data: activities, error } = await supabase
       .from("activities")
       .select(`
@@ -43,13 +43,13 @@ export default async function handler(
           name,
           city
         ),
-        attendance!inner (
+        attendance_records!inner (
           id,
           player_id,
           status
         )
       `)
-      .eq("attendance.player_id", child_id)
+      .eq("attendance_records.player_id", child_id)
       .gte("activity_date", start_date)
       .lte("activity_date", end_date)
       .order("activity_date", { ascending: true });
@@ -78,9 +78,9 @@ export default async function handler(
 
     // Transform data to match expected format
     const attendance = activities.map(activity => {
-      const attendanceRecord = Array.isArray(activity.attendance) 
-        ? activity.attendance[0] 
-        : activity.attendance;
+      const attendanceRecord = Array.isArray(activity.attendance_records) 
+        ? activity.attendance_records[0] 
+        : activity.attendance_records;
 
       return {
         id: attendanceRecord.id,
