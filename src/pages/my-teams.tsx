@@ -67,6 +67,7 @@ export default function MyTeamsPage() {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Filter players by search term and gender
   const filteredPlayers = allPlayers.filter((player) => {
