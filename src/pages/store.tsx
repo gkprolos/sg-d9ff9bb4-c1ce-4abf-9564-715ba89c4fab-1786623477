@@ -187,13 +187,13 @@ export default function Store() {
   });
 
   // Shopping Cart State (for parents)
-  const [cartState, setCartState] = useState<Array<{
+  const [cart, setCart] = useState<Array<{
     item_id: string;
     item_number: string;
     item_name: string;
     size: string;
     quantity: number;
-    unit_price: number;
+    item_price: number;
   }>>([]);
   const [isCartDialogOpen, setIsCartDialogOpen] = useState(false);
   const [selectedItemForCart, setSelectedItemForCart] = useState<StoreItem | null>(null);
@@ -1094,7 +1094,7 @@ export default function Store() {
           item_name: selectedItemForCart.name,
           size: selectedSize || "N/A",
           quantity: quantity,
-          unit_price: selectedItemForCart.price,
+          item_price: selectedItemForCart.price,
         },
       ]);
     }
@@ -1149,7 +1149,7 @@ export default function Store() {
     try {
       // Generate order number
       const orderNumber = `ORD-${Date.now()}`;
-      const totalAmount = cart.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+      const totalAmount = cart.reduce((sum, item) => sum + item.quantity * item.item_price, 0);
 
       // Create order
       const { data: order, error: orderError } = await supabase
@@ -1176,8 +1176,8 @@ export default function Store() {
         item_name: item.item_name,
         size: item.size,
         quantity: item.quantity,
-        unit_price: item.unit_price,
-        subtotal: item.quantity * item.unit_price,
+        unit_price: item.item_price,
+        subtotal: item.quantity * item.item_price,
       }));
 
       const { error: itemsError } = await supabase
@@ -3134,8 +3134,8 @@ export default function Store() {
                         </Button>
                       </div>
                       <div className="text-right min-w-[100px]">
-                        <div className="text-sm text-muted-foreground">{item.unit_price.toFixed(2)} € / kos</div>
-                        <div className="font-semibold">{(item.quantity * item.unit_price).toFixed(2)} €</div>
+                        <div className="text-sm text-muted-foreground">{item.item_price.toFixed(2)} € / kos</div>
+                        <div className="font-semibold">{(item.quantity * item.item_price).toFixed(2)} €</div>
                       </div>
                       <Button
                         variant="ghost"
@@ -3161,7 +3161,7 @@ export default function Store() {
                   <div className="flex items-center justify-between text-xl font-bold pt-2">
                     <span>Skupaj:</span>
                     <span>
-                      {cart.reduce((sum, item) => sum + item.quantity * item.unit_price, 0).toFixed(2)} €
+                      {cart.reduce((sum, item) => sum + item.quantity * item.item_price, 0).toFixed(2)} €
                     </span>
                   </div>
                 </div>
