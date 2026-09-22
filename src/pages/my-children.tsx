@@ -100,7 +100,7 @@ export default function MyChildren() {
   useEffect(() => {
     if (selectedChild) {
       loadAttendance();
-      loadSchedules();
+      loadSchedules(selectedChild);
     }
   }, [selectedChild, selectedMonth, selectedYear]);
 
@@ -210,10 +210,7 @@ export default function MyChildren() {
         day_of_week: typeof s.day_of_week === 'string' ? parseInt(s.day_of_week, 10) : s.day_of_week
       }));
       
-      setChildSchedules((prev) => ({
-        ...prev,
-        [childId]: schedules,
-      }));
+      setSchedules(schedules);
     } catch (error) {
       console.error("Error loading schedules:", error);
     }
@@ -568,6 +565,61 @@ export default function MyChildren() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Teams */}
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Ekipe</h3>
+                <p className="text-sm text-muted-foreground">
+                  Informacije o ekipah so na voljo na drugi strani
+                </p>
+              </div>
+
+              {/* Schedules */}
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Urnik treningov</h3>
+                {schedules && schedules.length > 0 ? (
+                  <div className="space-y-3">
+                    {sortedDays.map((day) => {
+                      const daySchedules = groupedSchedules[day] || [];
+                      if (daySchedules.length === 0) return null;
+                      
+                      return (
+                        <div key={day} className="space-y-1">
+                          <div className="text-sm font-medium">{day}</div>
+                          {daySchedules.map((schedule) => {
+                            return (
+                              <div key={schedule.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-4">
+                                <Clock className="h-3 w-3" />
+                                <span>
+                                  {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
+                                </span>
+                                {schedule.venues?.name && (
+                                  <>
+                                    <span>•</span>
+                                    <MapPin className="h-3 w-3" />
+                                    <span>{schedule.venues.name}</span>
+                                  </>
+                                )}
+                                {schedule.teams?.name && (
+                                  <>
+                                    <span>•</span>
+                                    <Users className="h-3 w-3" />
+                                    <span>{schedule.teams.name}</span>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Ni določenega urnika
+                  </p>
+                )}
+              </div>
             </>
           }
         </div>
