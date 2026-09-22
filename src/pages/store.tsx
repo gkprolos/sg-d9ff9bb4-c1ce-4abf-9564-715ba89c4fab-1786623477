@@ -158,8 +158,8 @@ export default function Store() {
   const [selectedCollection, setSelectedCollection] = useState<string>("");
   const [collectionFormData, setCollectionFormData] = useState({
     collection_number: "",
-    collection_date: "",
-    status: "draft",
+    collection_date: new Date().toISOString().split("T")[0],
+    status: "draft" as string,
     notes: "",
   });
   const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false);
@@ -658,8 +658,8 @@ export default function Store() {
 
   const saveArticle = async () => {
     try {
-      const sizesArray = Array.isArray(articleFormData.available_sizes) 
-        ? articleFormData.available_sizes 
+      const sizesArray: string[] = Array.isArray(articleFormData.available_sizes) 
+        ? (articleFormData.available_sizes as string[])
         : [];
 
       if (editingArticle) {
@@ -1039,6 +1039,17 @@ export default function Store() {
     }
   };
 
+  const editCollection = (collection: StoreCollection) => {
+    setEditingCollection(collection);
+    setCollectionFormData({
+      collection_number: collection.collection_number,
+      collection_date: collection.collection_date || new Date().toISOString().split("T")[0],
+      status: collection.status,
+      notes: collection.notes || "",
+    });
+    setIsCollectionDialogOpen(true);
+  };
+
   const deleteCollection = async (collectionId: string) => {
     if (!confirm("Ali ste prepričani, da želite izbrisati ta zbirnik? Naročila bodo ostala, vendar ne bodo več povezana z zbirnikom.")) return;
 
@@ -1385,13 +1396,13 @@ export default function Store() {
     }
 
     try {
-      // Create collection with collection_date and status
+      // Create collection with all properties
       const { data: collection, error: collectionError } = await supabase
         .from("store_collections")
         .insert({
           collection_number: collectionFormData.collection_number,
-          collection_date: new Date().toISOString().split("T")[0],
-          status: "draft",
+          collection_date: collectionFormData.collection_date,
+          status: collectionFormData.status,
           notes: collectionFormData.notes || "",
         })
         .select()
@@ -1458,7 +1469,12 @@ export default function Store() {
 
       setIsCollectionDialogOpen(false);
       setSelectedOrdersForCollection(new Set());
-      setCollectionFormData({ collection_number: "", notes: "" });
+      setCollectionFormData({
+        collection_number: "",
+        collection_date: new Date().toISOString().split("T")[0],
+        status: "draft",
+        notes: "",
+      });
       fetchOrders();
       loadCollections();
     } catch (error: any) {
@@ -1836,7 +1852,10 @@ export default function Store() {
                                 </TableCell>
                                 <TableCell className="font-medium">{order.order_number}</TableCell>
                                 <TableCell>
-                                  {order.child_id ? `Otrok ID: ${order.child_id.slice(0, 8)}...` : "N/A"}
+                                  <div>
+                                    <div className="font-medium">{order.parent_name || "N/A"}</div>
+                                    <div className="text-sm text-muted-foreground">{order.parent_email || ""}</div>
+                                  </div>
                                 </TableCell>
                                 <TableCell>
                                   {order.collection_id || "N/A"}
@@ -1858,21 +1877,19 @@ export default function Store() {
                                 <TableRow key={`${order.id}-items`}>
                                   <TableCell colSpan={7} className="bg-muted/50 p-4">
                                     <div className="space-y-1 text-sm">
-                                      <div className="font-semibold mb-2">Postavke naročila:</div>
-                                      {items.map((item, idx) => (
-                                        <div key={item.id} className="flex items-center gap-2">
-                                          <span className="text-muted-foreground">#{idx + 1}</span>
-                                          <span className="font-mono">{item.item_number}</span>
-                                          <span>-</span>
-                                          <span>{item.item_name}</span>
-                                          <span className="text-muted-foreground">|</span>
-                                          <span>Velikost: {item.size}</span>
-                                          <span className="text-muted-foreground">|</span>
-                                          <span>Količina: {item.quantity}</span>
-                                          <span className="text-muted-foreground">|</span>
-                                          <span className="font-semibold">{(item.unit_price * item.quantity).toFixed(2)} €</span>
-                                        </div>
-                                      ))}
+                                      <div className="font-semibold mb-2">Razpoložljive velikosti</div>
+                                      {Array.isArray(item.available_sizes) 
+                                        ? (item.available_sizes as string[]).map((size) => (
+                                            <Button
+                                              key={size}
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => openAddToCartDialog(item)}
+                                            >
+                                              {size}
+                                            </Button>
+                                          ))
+                                        : null}
                                     </div>
                                   </TableCell>
                                 </TableRow>
@@ -2540,7 +2557,7 @@ export default function Store() {
                   <TableRow key={item.id}>
                     <TableCell className="font-mono">{item.item_number}</TableCell>
                     <TableCell>{item.item_name}</TableCell>
-                    <TableCell>{item.size}</TableCell>
+                    <TableCell>N/A</TableCell>
                     <TableCell>{item.quantity}</TableCell>
                     <TableCell>{item.unit_price.toFixed(2)} €</TableCell>
                     <TableCell className="font-semibold">
@@ -3081,8 +3098,8 @@ export default function Store() {
                   <TableBody>
                     {collectionItems
                       .sort((a, b) => {
-                        const supplierA = (a as any).store_items?.store_suppliers?.name || "";
-                        const supplierB = (b as any).store_items?.store_suppliers?.name || "";
+                        const supplierA = "";
+                        const supplierB = "";
                         return supplierA.localeCompare(supplierB);
                       })
                       .map((item: any) => (
