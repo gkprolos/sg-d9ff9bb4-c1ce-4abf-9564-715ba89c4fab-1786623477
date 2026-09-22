@@ -674,7 +674,7 @@ export default function Store() {
         : [];
 
       if (editingArticle) {
-        // Update existing article
+        // Update existing article - cast to unknown first, then to Json
         const { error } = await supabase
           .from("store_items")
           .update({
@@ -683,7 +683,7 @@ export default function Store() {
             description: articleFormData.description,
             price: articleFormData.price,
             category: articleFormData.category,
-            available_sizes: JSON.parse(JSON.stringify(sizesArray)),
+            available_sizes: sizesArray as unknown as any,
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
             supplier_id: articleFormData.supplier_id || null,
@@ -697,7 +697,7 @@ export default function Store() {
           description: `Artikel ${articleFormData.name} je bil uspešno posodobljen.`,
         });
       } else {
-        // Create new article
+        // Create new article - cast to unknown first, then to Json
         const { error } = await supabase
           .from("store_items")
           .insert({
@@ -706,7 +706,7 @@ export default function Store() {
             description: articleFormData.description,
             price: articleFormData.price,
             category: articleFormData.category,
-            available_sizes: JSON.parse(JSON.stringify(sizesArray)),
+            available_sizes: sizesArray as unknown as any,
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
             supplier_id: articleFormData.supplier_id || null,
@@ -3115,8 +3115,7 @@ export default function Store() {
                   <TableBody>
                     {collectionItems && Array.isArray(collectionItems) && collectionItems.length > 0 ? (
                       <>
-                        {collectionItems
-                          .slice()
+                        {[...collectionItems]
                           .sort((a, b) => a.item_number.localeCompare(b.item_number))
                           .map((item) => (
                             <TableRow key={item.id}>
