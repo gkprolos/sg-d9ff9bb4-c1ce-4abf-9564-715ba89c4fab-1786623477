@@ -1305,7 +1305,10 @@ export default function Store() {
         .order("item_number");
 
       if (error) throw error;
-      setCollectionItems((data || []) as StoreCollectionItemWithSupplier[]);
+      
+      // Type cast to ensure proper typing
+      const typedData = (data || []) as StoreCollectionItemWithSupplier[];
+      setCollectionItems(typedData);
       setIsCollectionViewDialogOpen(true);
     } catch (error: any) {
       toast({
