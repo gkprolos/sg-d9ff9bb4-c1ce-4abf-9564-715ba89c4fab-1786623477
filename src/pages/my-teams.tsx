@@ -210,7 +210,7 @@ export default function MyTeamsPage() {
         variant: "destructive",
       });
     }
-  };*/
+  };
 
   async function loadTeamPlayers(teamId: string) {
     try {
