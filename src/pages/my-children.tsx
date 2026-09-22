@@ -223,13 +223,17 @@ export default function MyChildren() {
     };
 
     // Helper function to get status color
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case "P": // Prisoten
+    const getStatusColor = (status: string | number) => {
+        const statusStr = String(status);
+        switch (statusStr) {
+            case "1": // Prisoten
+            case "P":
                 return "bg-green-500 text-white";
-            case "O": // Odsoten
+            case "0": // Odsoten
+            case "O":
                 return "bg-red-500 text-white";
-            case "Op": // Opravičen
+            case "2": // Opravičen
+            case "Op":
                 return "bg-orange-500 text-white";
             default:
                 return "bg-gray-200 text-gray-600";
@@ -237,25 +241,29 @@ export default function MyChildren() {
     };
 
     // Helper function to get status label
-    const getStatusLabel = (status: string) => {
-        switch (status) {
+    const getStatusLabel = (status: string | number) => {
+        const statusStr = String(status);
+        switch (statusStr) {
+            case "1":
             case "P":
-                return "Prisoten";
+                return "P";
+            case "0":
             case "O":
-                return "Odsoten";
+                return "O";
+            case "2":
             case "Op":
-                return "Opravičen";
+                return "Op";
             default:
-                return status;
+                return statusStr;
         }
     };
 
     // Calculate statistics
     const calculateStats = () => {
         const total = attendance.length;
-        const present = attendance.filter((a) => a.status === "P").length;
-        const absent = attendance.filter((a) => a.status === "O").length;
-        const excused = attendance.filter((a) => a.status === "Op").length;
+        const present = attendance.filter((a) => String(a.status) === "1").length;
+        const absent = attendance.filter((a) => String(a.status) === "0").length;
+        const excused = attendance.filter((a) => String(a.status) === "2").length;
 
         return {
             total,
@@ -433,9 +441,9 @@ export default function MyChildren() {
                                                 className={`
                           min-h-[90px] p-2 border rounded-lg flex flex-col relative transition-colors
                           ${dayAttendance 
-                            ? dayAttendance.status === "P" 
+                            ? String(dayAttendance.status) === "1"
                               ? "bg-green-100 border-green-300" 
-                              : dayAttendance.status === "O"
+                              : String(dayAttendance.status) === "0"
                               ? "bg-red-100 border-red-300"
                               : "bg-orange-100 border-orange-300"
                             : hasActivity 
@@ -454,13 +462,13 @@ export default function MyChildren() {
                                                             {/* Velika črka za status */}
                                                             <div className={`
                                 text-2xl font-bold rounded-full w-10 h-10 flex items-center justify-center
-                                ${dayAttendance.status === "P" 
+                                ${String(dayAttendance.status) === "1"
                                   ? "bg-green-500 text-white" 
-                                  : dayAttendance.status === "O"
+                                  : String(dayAttendance.status) === "0"
                                   ? "bg-red-500 text-white"
                                   : "bg-orange-500 text-white"}
                               `}>
-                                                                {dayAttendance.status}
+                                                                {getStatusLabel(dayAttendance.status)}
                                                             </div>
                                                             {/* Ime aktivnosti */}
                                                             <div className="text-[10px] text-center text-gray-600 font-medium">
