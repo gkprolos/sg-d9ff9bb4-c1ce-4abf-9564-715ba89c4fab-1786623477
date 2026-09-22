@@ -141,7 +141,7 @@ export default function MyTeamsPage() {
           *,
           
           seasons(name, is_active),
-          team_players(count) //dodano namesto zgornjega
+          team_players(count) //dodano namesto coaches!teams_head_coach_id_fkey(id, full_name, email),
         `)
                   .in("id", teamIds)
                   .eq("is_archived", false)
