@@ -53,6 +53,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import * as XLSX from "xlsx";
 
 type StoreOrder = Database["public"]["Tables"]["store_orders"]["Row"];
 type StoreOrderItem = Database["public"]["Tables"]["store_order_items"]["Row"];
@@ -198,6 +199,7 @@ export default function Store() {
     available_sizes: [] as string[],
     image_url: "",
     external_link: "",
+    supplier_id: "",
   });
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -209,6 +211,24 @@ export default function Store() {
     description: "",
   });
   const [categories, setCategories] = useState<StoreCategory[]>([]);
+
+  // Suppliers Management State
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<any>(null);
+  const [supplierFormData, setSupplierFormData] = useState({
+    name: "",
+    contact_person: "",
+    email: "",
+    phone: "",
+    notes: "",
+  });
+
+  // Collection View/Edit State
+  const [viewingCollection, setViewingCollection] = useState<any>(null);
+  const [isCollectionViewDialogOpen, setIsCollectionViewDialogOpen] = useState(false);
+  const [collectionItems, setCollectionItems] = useState<any[]>([]);
+  const [editingCollectionStatus, setEditingCollectionStatus] = useState<string>("");
 
   // Collections Management State (for creating collections from orders)
   const [selectedOrdersForCollection, setSelectedOrdersForCollection] = useState<Set<string>>(new Set());
@@ -233,20 +253,15 @@ export default function Store() {
 
   useEffect(() => {
     if (user) {
-      loadCategories();
       loadItems();
-      loadChildren();
+      loadCategories();
+      loadSuppliers();
       loadPeriods();
-      loadCollections();
+      loadTopItems();
       fetchOrders();
-      
-      if (userRole === "admin" || userRole === "coach") {
-        loadStats();
-        loadTopItems();
-        loadMonthlyRevenue();
-      }
+      loadCollections();
     }
-  }, [user, userRole]);
+  }, [user]);
 
   useEffect(() => {
     filterItems();
@@ -397,11 +412,21 @@ export default function Store() {
       if (error) throw error;
       setCategories(data || []);
     } catch (error: any) {
-      toast({
-        title: "Napaka",
-        description: `Napaka pri nalaganju kategorij: ${error.message}`,
-        variant: "destructive",
-      });
+      console.error("Error loading categories:", error);
+    }
+  };
+
+  const loadSuppliers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("store_suppliers")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      setSuppliers(data || []);
+    } catch (error: any) {
+      console.error("Error loading suppliers:", error);
     }
   };
 
@@ -571,6 +596,7 @@ export default function Store() {
         available_sizes: Array.isArray(article.available_sizes) ? article.available_sizes : [],
         image_url: article.image_url || "",
         external_link: article.external_link || "",
+        supplier_id: (article as any).supplier_id || "",
       });
     } else {
       setEditingArticle(null);
@@ -583,6 +609,7 @@ export default function Store() {
         available_sizes: [],
         image_url: "",
         external_link: "",
+        supplier_id: "",
       });
     }
     setIsArticleDialogOpen(true);
@@ -603,6 +630,7 @@ export default function Store() {
             available_sizes: articleFormData.available_sizes,
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
+            supplier_id: articleFormData.supplier_id || null,
           })
           .eq("id", editingArticle.id);
 
@@ -625,6 +653,7 @@ export default function Store() {
             available_sizes: articleFormData.available_sizes,
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
+            supplier_id: articleFormData.supplier_id || null,
           });
 
         if (error) throw error;
@@ -863,6 +892,238 @@ export default function Store() {
         variant: "destructive",
       });
     }
+  };
+
+  // Suppliers CRUD Functions
+  const openSupplierDialog = (supplier?: any) => {
+    if (supplier) {
+      setEditingSupplier(supplier);
+      setSupplierFormData({
+        name: supplier.name,
+        contact_person: supplier.contact_person || "",
+        email: supplier.email || "",
+        phone: supplier.phone || "",
+        notes: supplier.notes || "",
+      });
+    } else {
+      setEditingSupplier(null);
+      setSupplierFormData({
+        name: "",
+        contact_person: "",
+        email: "",
+        phone: "",
+        notes: "",
+      });
+    }
+    setIsSupplierDialogOpen(true);
+  };
+
+  const saveSupplier = async () => {
+    try {
+      if (editingSupplier) {
+        const { error } = await supabase
+          .from("store_suppliers")
+          .update({
+            name: supplierFormData.name,
+            contact_person: supplierFormData.contact_person,
+            email: supplierFormData.email,
+            phone: supplierFormData.phone,
+            notes: supplierFormData.notes,
+          })
+          .eq("id", editingSupplier.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Dobavitelj posodobljen",
+          description: `Dobavitelj ${supplierFormData.name} je bil uspešno posodobljen.`,
+        });
+      } else {
+        const { error } = await supabase
+          .from("store_suppliers")
+          .insert({
+            name: supplierFormData.name,
+            contact_person: supplierFormData.contact_person,
+            email: supplierFormData.email,
+            phone: supplierFormData.phone,
+            notes: supplierFormData.notes,
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Dobavitelj ustvarjen",
+          description: `Dobavitelj ${supplierFormData.name} je bil uspešno ustvarjen.`,
+        });
+      }
+
+      setIsSupplierDialogOpen(false);
+      loadSuppliers();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri shranjevanju dobavitelja: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteSupplier = async (supplierId: string) => {
+    if (!confirm("Ali ste prepričani, da želite izbrisati tega dobavitelja?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("store_suppliers")
+        .delete()
+        .eq("id", supplierId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Dobavitelj izbrisan",
+        description: "Dobavitelj je bil uspešno izbrisan.",
+      });
+
+      loadSuppliers();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri brisanju dobavitelja: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Collection View/Edit Functions
+  const openCollectionView = async (collection: any) => {
+    setViewingCollection(collection);
+    setEditingCollectionStatus(collection.status);
+
+    try {
+      const { data, error } = await supabase
+        .from("store_collection_items")
+        .select("*, store_items!inner(supplier_id, store_suppliers(name))")
+        .eq("collection_id", collection.id)
+        .order("item_number");
+
+      if (error) throw error;
+      setCollectionItems(data || []);
+      setIsCollectionViewDialogOpen(true);
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri nalaganju postavk: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateCollectionStatus = async () => {
+    if (!viewingCollection) return;
+
+    try {
+      // Update collection status
+      const { error: collectionError } = await supabase
+        .from("store_collections")
+        .update({ status: editingCollectionStatus })
+        .eq("id", viewingCollection.id);
+
+      if (collectionError) throw collectionError;
+
+      // Get all orders in this collection
+      const { data: orders, error: ordersError } = await supabase
+        .from("store_orders")
+        .select("id")
+        .eq("collection_id", viewingCollection.id);
+
+      if (ordersError) throw ordersError;
+
+      // Update order statuses based on collection status
+      const orderStatus = editingCollectionStatus === "draft" ? "open" : editingCollectionStatus === "ordered" ? "ordered" : "delivered";
+      
+      if (orders && orders.length > 0) {
+        const { error: updateError } = await supabase
+          .from("store_orders")
+          .update({ status: orderStatus })
+          .in("id", orders.map(o => o.id));
+
+        if (updateError) throw updateError;
+      }
+
+      toast({
+        title: "Status posodobljen",
+        description: `Status zbirnika in ${orders?.length || 0} naročil je bil posodobljen.`,
+      });
+
+      setIsCollectionViewDialogOpen(false);
+      loadCollections();
+      fetchOrders();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri posodobitvi statusa: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const copyCollectionItems = () => {
+    if (collectionItems.length === 0) return;
+
+    const text = collectionItems
+      .map(item => `${item.item_number}\t${item.item_name}\t${item.size}\t${item.total_quantity}\t${item.unit_price.toFixed(2)}`)
+      .join("\n");
+
+    navigator.clipboard.writeText(text);
+
+    toast({
+      title: "Kopirano",
+      description: "Postavke so bile kopirane v odložišče.",
+    });
+  };
+
+  const exportCollectionToExcel = () => {
+    if (!viewingCollection || collectionItems.length === 0) return;
+
+    const data = collectionItems.map((item, index) => ({
+      "Zap. št.": index + 1,
+      "Šifra artikla": item.item_number,
+      "Naziv": item.item_name,
+      "Velikost": item.size,
+      "Količina": item.total_quantity,
+      "Cena/kos (€)": item.unit_price.toFixed(2),
+      "Skupaj (€)": (item.total_quantity * item.unit_price).toFixed(2),
+      "Dobavitelj": item.store_items?.store_suppliers?.name || "N/A",
+    }));
+
+    // Use excelUtils to export
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Zbirnik");
+
+    // Add totals row
+    const totalQuantity = collectionItems.reduce((sum, item) => sum + item.total_quantity, 0);
+    const totalAmount = collectionItems.reduce((sum, item) => sum + (item.total_quantity * item.unit_price), 0);
+
+    XLSX.utils.sheet_add_json(ws, [
+      {
+        "Zap. št.": "",
+        "Šifra artikla": "",
+        "Naziv": "",
+        "Velikost": "SKUPAJ:",
+        "Količina": totalQuantity,
+        "Cena/kos (€)": "",
+        "Skupaj (€)": totalAmount.toFixed(2),
+        "Dobavitelj": "",
+      },
+    ], { skipHeader: true, origin: -1 });
+
+    XLSX.writeFile(wb, `Zbirnik_${viewingCollection.collection_number}_${new Date().toISOString().split("T")[0]}.xlsx`);
+
+    toast({
+      title: "Excel izvožen",
+      description: "Zbirnik je bil izvožen v Excel datoteko.",
+    });
   };
 
   // Collections Management Functions
@@ -1153,6 +1414,7 @@ export default function Store() {
             <TabsTrigger value="collections">Zbirniki</TabsTrigger>
             <TabsTrigger value="reports">Poročila</TabsTrigger>
             <TabsTrigger value="articles">Artikli</TabsTrigger>
+            <TabsTrigger value="suppliers">Dobavitelji</TabsTrigger>
             <TabsTrigger value="categories">Kategorije</TabsTrigger>
           </TabsList>
 
@@ -1679,6 +1941,7 @@ export default function Store() {
                       <TableHead>Število naročil</TableHead>
                       <TableHead>Opombe</TableHead>
                       <TableHead>Datum</TableHead>
+                      <TableHead className="text-right">Akcije</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1692,6 +1955,16 @@ export default function Store() {
                         <TableCell>{collection.notes || "-"}</TableCell>
                         <TableCell>
                           {new Date(collection.created_at).toLocaleDateString("sl-SI")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openCollectionView(collection)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Odpri
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
