@@ -241,6 +241,52 @@ export default function MyChildren() {
         }
     };
 
+    // Helper function to get status color
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case "P": // Prisoten
+                return "bg-green-500 text-white";
+            case "O": // Odsoten
+                return "bg-red-500 text-white";
+            case "Op": // Opravičen
+                return "bg-orange-500 text-white";
+            default:
+                return "bg-gray-200 text-gray-600";
+        }
+    };
+
+    // Helper function to get status label
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case "P":
+                return "Prisoten";
+            case "O":
+                return "Odsoten";
+            case "Op":
+                return "Opravičen";
+            default:
+                return status;
+        }
+    };
+
+    // Calculate statistics
+    const calculateStats = () => {
+        const total = attendance.length;
+        const present = attendance.filter((a) => a.status === "P").length;
+        const absent = attendance.filter((a) => a.status === "O").length;
+        const excused = attendance.filter((a) => a.status === "Op").length;
+
+        return {
+            total,
+            present,
+            absent,
+            excused,
+            presentPercentage: total > 0 ? Math.round((present / total) * 100) : 0,
+        };
+    };
+
+    const stats = calculateStats();
+
     // Statistics calculation
     const presentCount = attendance.filter((a) => a.status === "present").length;
     const absentCount = attendance.filter((a) => a.status === "absent").length;
@@ -336,32 +382,47 @@ export default function MyChildren() {
                             </CardContent>
                         </Card>
 
-                        {/* Statistics Section */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <Card className="bg-blue-50 border-blue-200">
-                                <CardContent className="pt-6 flex flex-col items-center">
-                                    <div className="text-2xl font-bold text-blue-600">{totalTrainings}</div>
-                                    <div className="text-sm text-muted-foreground">Skupaj treningov</div>
-                                </CardContent>
-                            </Card>
-                            <Card className="bg-green-50 border-green-200">
-                                <CardContent className="pt-6 flex flex-col items-center">
-                                    <div className="text-2xl font-bold text-green-600">{presentCount}</div>
-                                    <div className="text-sm text-muted-foreground">Prisotnost</div>
-                                </CardContent>
-                            </Card>
-                            <Card className="bg-red-50 border-red-200">
-                                <CardContent className="pt-6 flex flex-col items-center">
-                                    <div className="text-2xl font-bold text-red-600">{absentCount}</div>
-                                    <div className="text-sm text-muted-foreground">Odsotnost</div>
-                                </CardContent>
-                            </Card>
-                            <Card className="bg-yellow-50 border-yellow-200">
-                                <CardContent className="pt-6 flex flex-col items-center">
-                                    <div className="text-2xl font-bold text-yellow-600">{excusedCount}</div>
-                                    <div className="text-sm text-muted-foreground">Opravičeno</div>
-                                </CardContent>
-                            </Card>
+                        {/* Attendance Statistics */}
+                        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="p-4 bg-gray-50 rounded-lg">
+                                <div className="text-sm text-muted-foreground">Skupaj treningov</div>
+                                <div className="text-2xl font-bold">{stats.total}</div>
+                            </div>
+                            <div className="p-4 bg-green-50 rounded-lg">
+                                <div className="text-sm text-green-700">Prisotnost</div>
+                                <div className="text-2xl font-bold text-green-700">
+                                    {stats.present}
+                                    <span className="text-sm ml-2">({stats.presentPercentage}%)</span>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-red-50 rounded-lg">
+                                <div className="text-sm text-red-700">Odsotnost</div>
+                                <div className="text-2xl font-bold text-red-700">{stats.absent}</div>
+                            </div>
+                            <div className="p-4 bg-orange-50 rounded-lg">
+                                <div className="text-sm text-orange-700">Opravičeno</div>
+                                <div className="text-2xl font-bold text-orange-700">{stats.excused}</div>
+                            </div>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-green-500 rounded"></div>
+                                <span>P - Prisoten</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-red-500 rounded"></div>
+                                <span>O - Odsoten</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-orange-500 rounded"></div>
+                                <span>Op - Opravičen</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-blue-50 border border-blue-200 rounded"></div>
+                                <span>Načrtovan trening</span>
+                            </div>
                         </div>
 
                         {/* Calendar Section */}
