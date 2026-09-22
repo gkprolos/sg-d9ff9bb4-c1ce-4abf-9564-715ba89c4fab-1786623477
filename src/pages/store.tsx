@@ -270,7 +270,7 @@ export default function Store() {
 
   useEffect(() => {
     filterItems();
-  }, [items, searchQuery, selectedCategory, selectedSize]);
+  }, [items, searchQuery, selectedCategory]);
 
   const filterItems = () => {
     let filtered = [...items];
@@ -283,14 +283,8 @@ export default function Store() {
       );
     }
 
-    if (selectedCategory) {
-      filtered = filtered.filter((item) => item.category_id === selectedCategory);
-    }
-
-    if (selectedSize) {
-      filtered = filtered.filter((item) =>
-        item.available_sizes?.includes(selectedSize)
-      );
+    if (selectedCategory && selectedCategory !== "all") {
+      filtered = filtered.filter((item) => item.category === selectedCategory);
     }
 
     setFilteredItems(filtered);
@@ -455,8 +449,8 @@ export default function Store() {
 
   const loadChildren = async () => {
     try {
-      // Children table is in internal schema, not public
-      // Skip loading if user doesn't have access
+      // Children data is fetched through parent API endpoints
+      // Not directly from database for security
       setChildren([]);
     } catch (error: any) {
       console.error("Error loading children:", error);
@@ -664,6 +658,10 @@ export default function Store() {
 
   const saveArticle = async () => {
     try {
+      const sizesArray = Array.isArray(articleFormData.available_sizes) 
+        ? articleFormData.available_sizes 
+        : [];
+
       if (editingArticle) {
         // Update existing article
         const { error } = await supabase
@@ -674,7 +672,7 @@ export default function Store() {
             description: articleFormData.description,
             price: articleFormData.price,
             category: articleFormData.category,
-            available_sizes: articleFormData.available_sizes,
+            available_sizes: sizesArray,
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
             supplier_id: articleFormData.supplier_id || null,
@@ -697,7 +695,7 @@ export default function Store() {
             description: articleFormData.description,
             price: articleFormData.price,
             category: articleFormData.category,
-            available_sizes: articleFormData.available_sizes,
+            available_sizes: sizesArray,
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
             supplier_id: articleFormData.supplier_id || null,
@@ -1387,14 +1385,14 @@ export default function Store() {
     }
 
     try {
-      // Create collection with collection_date - status 'draft' for new collections
+      // Create collection with collection_date and status
       const { data: collection, error: collectionError } = await supabase
         .from("store_collections")
         .insert({
           collection_number: collectionFormData.collection_number,
-          collection_date: new Date().toISOString().split("T")[0], // Today's date in YYYY-MM-DD format
-          notes: collectionFormData.notes,
+          collection_date: new Date().toISOString().split("T")[0],
           status: "draft",
+          notes: collectionFormData.notes || "",
         })
         .select()
         .single();
@@ -3091,7 +3089,7 @@ export default function Store() {
                         <TableRow key={item.id}>
                           <TableCell className="font-mono">{item.item_number}</TableCell>
                           <TableCell>{item.item_name}</TableCell>
-                          <TableCell>{item.store_items?.store_suppliers?.name || "N/A"}</TableCell>
+                          <TableCell>{(item as any).store_items?.store_suppliers?.name || "N/A"}</TableCell>
                           <TableCell>{item.size}</TableCell>
                           <TableCell>{item.total_quantity}</TableCell>
                           <TableCell>{item.unit_price.toFixed(2)} €</TableCell>
