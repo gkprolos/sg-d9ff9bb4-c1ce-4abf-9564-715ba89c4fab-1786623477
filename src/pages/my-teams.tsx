@@ -2,7 +2,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -19,8 +19,9 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle } from
-"@/components/ui/alert-dialog";
+  AlertDialogTitle
+} from
+  "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getActiveTeams } from "@/services/teamsService";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,18 +56,18 @@ export default function MyTeamsPage() {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [teams, setTeams] = useState<Team[]>([]);
+  const [teams, setTeams] = useState < Team[] > ([]);
   const [managePlayersDialogOpen, setManagePlayersDialogOpen] = useState(false);
   const [addPlayerDialogOpen, setAddPlayerDialogOpen] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
-  const [teamPlayers, setTeamPlayers] = useState<TeamPlayer[]>([]);
-  const [availablePlayers, setAvailablePlayers] = useState<any[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState < Team | null > (null);
+  const [teamPlayers, setTeamPlayers] = useState < TeamPlayer[] > ([]);
+  const [availablePlayers, setAvailablePlayers] = useState < any[] > ([]);
   const [selectedPlayerToAdd, setSelectedPlayerToAdd] = useState("");
-  const [playerToRemove, setPlayerToRemove] = useState<{teamPlayerId: string;playerName: string;} | null>(null);
-  const [allPlayers, setAllPlayers] = useState<any[]>([]);
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [playerToRemove, setPlayerToRemove] = useState < { teamPlayerId: string; playerName: string; } | null > (null);
+  const [allPlayers, setAllPlayers] = useState < any[] > ([]);
+  const [selectedPlayers, setSelectedPlayers] = useState < string[] > ([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [genderFilter, setGenderFilter] = useState < string > ("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Filter players by search term and gender
@@ -74,8 +75,8 @@ export default function MyTeamsPage() {
     // Search filter
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
-    player.first_name.toLowerCase().includes(searchLower) ||
-    player.last_name.toLowerCase().includes(searchLower);
+      player.first_name.toLowerCase().includes(searchLower) ||
+      player.last_name.toLowerCase().includes(searchLower);
 
     if (!matchesSearch) return false;
 
@@ -96,93 +97,93 @@ export default function MyTeamsPage() {
     loadTeams();
    }, []);*/
   useEffect(() => {
-     let cancelled = false;
+    let cancelled = false;
     const coachId = user?.id;
 
-      setTeams([]);
+    setTeams([]);
 
-      // Stran je namenjena trenerjem. Počakamo na podatke prijave.
-      if (!coachId || userRole !== "coach") {
-          setLoading(false);
+    // Stran je namenjena trenerjem. Počakamo na podatke prijave.
+    if (!coachId || userRole !== "coach") {
+      setLoading(false);
+      return;
+    }
+
+    async function loadTeams() {
+      setLoading(true);
+
+      try {
+        const { data: coachTeams, error: coachTeamsError } =
+          await supabase
+            .from("team_coaches")
+            .select("team_id")
+            .eq("coach_id", coachId)
+            .eq("is_active", true);
+
+        if (coachTeamsError) throw coachTeamsError;
+        if (cancelled) return;
+
+        const teamIds = [
+          ...new Set(
+            (coachTeams ?? [])
+              .map((assignment) => assignment.team_id)
+              .filter((id): id is string => typeof id === "string")
+          ),
+        ];
+
+        // Trener brez dodelitev ne vidi nobene ekipe.
+        if (teamIds.length === 0) {
+          setTeams([]);
           return;
-      }
+        }
 
-      async function loadTeams() {
-          setLoading(true);
-
-          try {
-              const { data: coachTeams, error: coachTeamsError } =
-                  await supabase
-                      .from("team_coaches")
-                      .select("team_id")
-                      .eq("coach_id", coachId)
-                      .eq("is_active", true);
-
-              if (coachTeamsError) throw coachTeamsError;
-              if (cancelled) return;
-
-              const teamIds = [
-                  ...new Set(
-                      (coachTeams ?? [])
-                          .map((assignment) => assignment.team_id)
-                          .filter((id): id is string => typeof id === "string")
-                  ),
-              ];
-
-              // Trener brez dodelitev ne vidi nobene ekipe.
-              if (teamIds.length === 0) {
-                  setTeams([]);
-                  return;
-              }
-
-              const { data, error } = await supabase
-                  .from("teams")
-                  .select(`
+        const { data, error } = await supabase
+          .from("teams")
+          .select(`
           *,
           
           seasons(name, is_active),
           team_players(count) //dodano namesto coaches!teams_head_coach_id_fkey(id, full_name, email),
         `)
-                  .in("id", teamIds)
-                  .eq("is_archived", false)
-                  .order("name");
+          .in("id", teamIds)
+          .eq("is_archived", false)
+          .order("name");
 
-              if (error) throw error;
+        if (error) throw error;
 
-              if (!cancelled) {
-                  setTeams(data ?? []);
-              }
-          } catch (error: unknown) {
-              if (cancelled) return;
+        if (!cancelled) {
+          setTeams(data ?? []);
+        }
+      } catch (error: unknown) {
+        if (cancelled) return;
 
-              setTeams([]);
+        setTeams([]);
 
-              const message =
-                  error &&
-                      typeof error === "object" &&
-                      "message" in error
-                      ? String(error.message)
-                      : "Ni mogoče naložiti ekip.";
+        const message =
+          error &&
+            typeof error === "object" &&
+            "message" in error
+            ? String(error.message)
+            : "Ni mogoče naložiti ekip.";
 
-              toast({
-                  title: "Napaka",
-                  description: message,
-                  variant: "destructive",
-              });
-          } finally {
-              if (!cancelled) {
-                  setLoading(false);
-              }
-          }
+        toast({
+          title: "Napaka",
+          description: message,
+          variant: "destructive",
+        });
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
+    }
 
-      void loadTeams();
+    void loadTeams();
 
-      return () => {
-          cancelled = true;
-      };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id, userRole, toast]);
-  
+
   const loadTeams = async () => {
     try {
       let query = supabase
@@ -216,8 +217,8 @@ export default function MyTeamsPage() {
   async function loadTeamPlayers(teamId: string) {
     try {
       const { data, error } = await supabase.
-      from("team_players").
-      select(`
+        from("team_players").
+        select(`
           id,
           player_id,
           players(
@@ -227,8 +228,8 @@ export default function MyTeamsPage() {
             date_of_birth
           )
         `).
-      eq("team_id", teamId).
-      order("players(last_name)", { ascending: true });
+        eq("team_id", teamId).
+        order("players(last_name)", { ascending: true });
 
       if (error) {
         console.error("Napaka pri nalaganju igralcev selekcije:", error);
@@ -250,8 +251,8 @@ export default function MyTeamsPage() {
   async function loadAllPlayers() {
     try {
       const { data, error } = await supabase.
-      from("players").
-      select(`
+        from("players").
+        select(`
           id, 
           first_name, 
           last_name, 
@@ -261,8 +262,8 @@ export default function MyTeamsPage() {
             teams(id, name, short_name)
           )
         `).
-      eq("is_active", true).
-      order("last_name", { ascending: true });
+        eq("is_active", true).
+        order("last_name", { ascending: true });
 
       if (error) throw error;
       setAllPlayers(data || []);
@@ -289,10 +290,10 @@ export default function MyTeamsPage() {
       if (isCurrentlySelected) {
         // Remove player - delete from DB immediately
         const { error } = await supabase.
-        from("team_players").
-        delete().
-        eq("team_id", selectedTeam.id).
-        eq("player_id", playerId);
+          from("team_players").
+          delete().
+          eq("team_id", selectedTeam.id).
+          eq("player_id", playerId);
 
         if (error) throw error;
 
@@ -307,11 +308,11 @@ export default function MyTeamsPage() {
       } else {
         // Add player - insert to DB immediately
         const { error } = await supabase.
-        from("team_players").
-        insert([{
-          team_id: selectedTeam.id,
-          player_id: playerId
-        }]);
+          from("team_players").
+          insert([{
+            team_id: selectedTeam.id,
+            player_id: playerId
+          }]);
 
         if (error) throw error;
 
@@ -364,66 +365,66 @@ export default function MyTeamsPage() {
             </CardHeader>
             <CardContent>
               {loading && teams.length === 0 ?
-              <p>Nalaganje...</p> :
-              teams.length === 0 ?
-              <p className="text-muted-foreground">Ni aktivnih selekcij.</p> :
+                <p>Nalaganje...</p> :
+                teams.length === 0 ?
+                  <p className="text-muted-foreground">Ni aktivnih selekcij.</p> :
 
-              <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Naziv</TableHead>
-                      <TableHead>Kratka oznaka</TableHead>
-                      <TableHead>Starostna kategorija</TableHead>
-                      <TableHead>Spol</TableHead>
-                      <TableHead>Št. igralcev</TableHead>
-                      <TableHead>Sezona</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Akcije</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {teams.map((team) => {
-                    const isActive = !team.is_archived;
-                    return (
-                      <TableRow key={team.id}>
-                          <TableCell className="font-medium">{team.name}</TableCell>
-                          <TableCell>{team.short_name || "-"}</TableCell>
-                          <TableCell>{team.age_category || "-"}</TableCell>
-                          <TableCell>{team.gender || "-"}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {(team as any).team_players?.[0]?.count || 0}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {team.seasons?.name || "-"}
-                            {team.seasons?.is_active === false &&
-                          <Badge variant="outline" className="ml-2">Arhivirana sezona</Badge>
-                          }
-                          </TableCell>
-                          <TableCell>
-                            {isActive ?
-                          <Badge className="" style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>Aktivna</Badge> :
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Naziv</TableHead>
+                        <TableHead>Kratka oznaka</TableHead>
+                        <TableHead>Starostna kategorija</TableHead>
+                        <TableHead>Spol</TableHead>
+                        <TableHead>Št. igralcev</TableHead>
+                        <TableHead>Sezona</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Akcije</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {teams.map((team) => {
+                        const isActive = !team.is_archived;
+                        return (
+                          <TableRow key={team.id}>
+                            <TableCell className="font-medium">{team.name}</TableCell>
+                            <TableCell>{team.short_name || "-"}</TableCell>
+                            <TableCell>{team.age_category || "-"}</TableCell>
+                            <TableCell>{team.gender || "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {(team as any).team_players?.[0]?.count || 0}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {team.seasons?.name || "-"}
+                              {team.seasons?.is_active === false &&
+                                <Badge variant="outline" className="ml-2">Arhivirana sezona</Badge>
+                              }
+                            </TableCell>
+                            <TableCell>
+                              {isActive ?
+                                <Badge className="" style={{ backgroundColor: "#bababa", backgroundImage: "none" }}>Aktivna</Badge> :
 
-                          <Badge variant="outline">Arhivirana</Badge>
-                          }
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleManagePlayersClick(team)}
-                            title="Upravljaj igralce" style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>
-                            
-                              <Users className="h-4 w-4 mr-2" />
-                              Igralci
-                            </Button>
-                          </TableCell>
-                        </TableRow>);
+                                <Badge variant="outline">Arhivirana</Badge>
+                              }
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleManagePlayersClick(team)}
+                                title="Upravljaj igralce" style={{ backgroundColor: "#06b6d4", backgroundImage: "none" }}>
 
-                  })}
-                  </TableBody>
-                </Table>
+                                <Users className="h-4 w-4 mr-2" />
+                                Igralci
+                              </Button>
+                            </TableCell>
+                          </TableRow>);
+
+                      })}
+                    </TableBody>
+                  </Table>
               }
             </CardContent>
           </Card>
@@ -460,7 +461,7 @@ export default function MyTeamsPage() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={handleSearchKeyDown} />
-                  
+
                 </div>
 
                 <div className="space-y-2">
@@ -481,8 +482,8 @@ export default function MyTeamsPage() {
                           {filteredPlayers.map((player) => {
                             const isSelected = selectedPlayers.includes(player.id);
                             const otherTeams = player.teams?.
-                            filter((tp: any) => tp.teams.id !== selectedTeam?.id).
-                            map((tp: any) => tp.teams) || [];
+                              filter((tp: any) => tp.teams.id !== selectedTeam?.id).
+                              map((tp: any) => tp.teams) || [];
 
                             return (
                               <TableRow key={player.id} className="text-sm">
@@ -492,7 +493,7 @@ export default function MyTeamsPage() {
                                     checked={isSelected}
                                     onChange={() => togglePlayer(player.id)}
                                     className="h-4 w-4" />
-                                  
+
                                 </TableCell>
                                 <TableCell className="font-medium py-2">
                                   {player.first_name}
@@ -500,19 +501,19 @@ export default function MyTeamsPage() {
                                 <TableCell className="py-2">{player.last_name}</TableCell>
                                 <TableCell className="py-2">
                                   {player.date_of_birth ?
-                                  new Date(player.date_of_birth).toLocaleDateString("sl-SI") :
-                                  "N/A"}
+                                    new Date(player.date_of_birth).toLocaleDateString("sl-SI") :
+                                    "N/A"}
                                 </TableCell>
                                 <TableCell className="py-2">
                                   <div className="flex flex-wrap gap-1">
                                     {otherTeams.length > 0 ?
-                                    otherTeams.map((team: any, idx: number) =>
-                                    <Badge key={idx} variant="outline" className="text-xs">
+                                      otherTeams.map((team: any, idx: number) =>
+                                        <Badge key={idx} variant="outline" className="text-xs">
                                           {team.short_name || team.name}
                                         </Badge>
-                                    ) :
+                                      ) :
 
-                                    <span className="text-xs text-muted-foreground">-</span>
+                                      <span className="text-xs text-muted-foreground">-</span>
                                     }
                                   </div>
                                 </TableCell>
@@ -532,11 +533,10 @@ export default function MyTeamsPage() {
                   variant="outline"
                   onClick={() => setManagePlayersDialogOpen(false)}
                   disabled={loading}>
-                  
+
                   Zapri
                 </Button>
-            </div>
-          </DialogFooter>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
 
@@ -545,7 +545,7 @@ export default function MyTeamsPage() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Users className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground text-center">
-                  {userRole === "coach" 
+                  {userRole === "coach"
                     ? "Trenutno nimate dodeljenih ekip."
                     : "Ni ekip. Dodajte prvo ekipo za začetek."}
                 </p>
