@@ -887,14 +887,14 @@ export default function Store() {
     }
 
     try {
-      // Create collection with collection_date - status 'pending' for new collections
+      // Create collection with collection_date - status 'draft' for new collections
       const { data: collection, error: collectionError } = await supabase
         .from("store_collections")
         .insert({
           collection_number: collectionFormData.collection_number,
           collection_date: new Date().toISOString().split("T")[0], // Today's date in YYYY-MM-DD format
           notes: collectionFormData.notes,
-          status: "pending",
+          status: "draft",
         })
         .select()
         .single();
@@ -959,6 +959,7 @@ export default function Store() {
       setSelectedOrdersForCollection(new Set());
       setCollectionFormData({ collection_number: "", notes: "" });
       fetchOrders();
+      loadCollections();
     } catch (error: any) {
       console.error("Full error:", error);
       toast({
