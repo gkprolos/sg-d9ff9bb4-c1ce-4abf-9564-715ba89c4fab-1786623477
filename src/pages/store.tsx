@@ -1557,7 +1557,7 @@ export default function Store() {
 
         <Tabs defaultValue="orders" className="space-y-4">
           <TabsList className="grid w-full grid-cols-7">
-            {(userRole === "parent" || userRole === "admin") && (
+            {(userRole === "parent" || userRole === "coach" || userRole === "admin") && (
               <TabsTrigger value="store">Trgovina</TabsTrigger>
             )}
             {userRole === "parent" && (
@@ -1578,7 +1578,7 @@ export default function Store() {
           </TabsList>
 
           {/* Store Tab (Shopping) */}
-          {(userRole === "parent" || userRole === "admin") && (
+          {(userRole === "parent" || userRole === "coach" || userRole === "admin") && (
             <TabsContent value="store" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -2401,7 +2401,7 @@ export default function Store() {
       </div>
 
       {/* Cart Dialog */}
-      {userRole === "parent" && (
+      {(userRole === "parent" || userRole === "coach") && (
         <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
