@@ -98,68 +98,93 @@ export default function MyChildren() {
     }
   }, [selectedChild, selectedMonth, selectedYear]);
 
-  const loadChildren = async () => {
-    try {
-      const response = await fetch("/api/parent/get-children");
-      if (!response.ok) {
-        throw new Error("Failed to load children");
-      }
-      const data = await response.json();
-      setChildren(data.children || []);
-    } catch (error) {
-      console.error("Error loading children:", error);
-      toast({
-        title: "Napaka",
-        description: "Napaka pri nalaganju podatkov o otrocih",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    const loadChildren = async () => {
+        try {
+            // Spremenimo v POST in pošljemo email, ki ga API pričakuje
+            const response = await fetch("/api/parent/get-children", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ parentEmail: user?.email }),
+            });
 
-  const loadAttendance = async () => {
-    if (!selectedChild) return;
+            if (!response.ok) {
+                throw new Error("Failed to load children");
+            }
+            const data = await response.json();
+            setChildren(data.children || []);
+        } catch (error) {
+            console.error("Error loading children:", error);
+            toast({
+                title: "Napaka",
+                description: "Napaka pri nalaganju podatkov o otrocih",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    try {
-      const startDate = new Date(selectedYear, selectedMonth, 1);
-      const endDate = new Date(selectedYear, selectedMonth + 1, 0);
+    const loadAttendance = async () => {
+        if (!selectedChild) return;
 
-      const response = await fetch(
-        `/api/parent/get-attendance?child_id=${selectedChild.id}&start_date=${startDate.toISOString().split("T")[0]}&end_date=${endDate.toISOString().split("T")[0]}`
-      );
+        try {
+            const startDate = new Date(selectedYear, selectedMonth, 1);
+            const endDate = new Date(selectedYear, selectedMonth + 1, 0);
 
-      if (!response.ok) {
-        throw new Error("Failed to load attendance");
-      }
+            // Spremenimo v POST in pošljemo playerId, startDate in endDate
+            const response = await fetch("/api/parent/get-attendance", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    playerId: selectedChild.id,
+                    startDate: startDate.toISOString().split("T")[0],
+                    endDate: endDate.toISOString().split("T")[0],
+                }),
+            });
 
-      const data = await response.json();
-      setAttendance(data.attendance || []);
-    } catch (error) {
-      console.error("Error loading attendance:", error);
-    }
-  };
+            if (!response.ok) {
+                throw new Error("Failed to load attendance");
+            }
 
-  const loadSchedules = async (childId: string) => {
-    try {
-      const response = await fetch(`/api/parent/get-child-schedules?child_id=${childId}`);
-      if (!response.ok) {
-        console.error("Failed to load schedules:", response.statusText);
-        return;
-      }
-      const data = await response.json();
-      
-      // Convert day_of_week to number if it's a string
-      const schedules = (data.schedules || []).map((s: any) => ({
-        ...s,
-        day_of_week: typeof s.day_of_week === 'string' ? parseInt(s.day_of_week, 10) : s.day_of_week
-      }));
-      
-      setSchedules(schedules);
-    } catch (error) {
-      console.error("Error loading schedules:", error);
-    }
-  };
+            const data = await response.json();
+            setAttendance(data.attendance || []);
+        } catch (error) {
+            console.error("Error loading attendance:", error);
+        }
+    };
+
+    const loadSchedules = async (childId: string) => {
+        try {
+            // Spremenimo v POST in pošljemo playerId, ki ga API pričakuje
+            const response = await fetch("/api/parent/get-child-schedules", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ playerId: childId }),
+            });
+
+            if (!response.ok) {
+                console.error("Failed to load schedules:", response.statusText);
+                return;
+            }
+            const data = await response.json();
+
+            // Convert day_of_week to number if it's a string
+            const schedules = (data.schedules || []).map((s: any) => ({
+                ...s,
+                day_of_week: typeof s.day_of_week === 'string' ? parseInt(s.day_of_week, 10) : s.day_of_week
+            }));
+
+            setSchedules(schedules);
+        } catch (error) {
+            console.error("Error loading schedules:", error);
+        }
+    };
 
   const daysOfWeek = ["Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota", "Nedelja"];
 
