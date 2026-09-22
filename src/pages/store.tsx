@@ -172,8 +172,8 @@ export default function Store() {
   const [items, setItems] = useState<StoreItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<StoreItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedSize, setSelectedSize] = useState<string>("all");
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<StoreItem | null>(null);
   const [itemFormData, setItemFormData] = useState({
@@ -186,8 +186,21 @@ export default function Store() {
     image_url: "",
   });
 
-  // Categories State
-  const [categories, setCategories] = useState<StoreCategory[]>([]);
+  // Articles Management State
+  const [isArticleDialogOpen, setIsArticleDialogOpen] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<StoreItem | null>(null);
+  const [articleFormData, setArticleFormData] = useState({
+    item_number: "",
+    name: "",
+    description: "",
+    price: 0,
+    category: "",
+    available_sizes: [] as string[],
+    image_url: "",
+    external_link: "",
+  });
+
+  // Categories Management State
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<StoreCategory | null>(null);
   const [categoryFormData, setCategoryFormData] = useState({
@@ -211,7 +224,7 @@ export default function Store() {
   const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
 
   // Active Tab State
-  const [activeTab, setActiveTab] = useState("catalog");
+  const [activeTab, setActiveTab] = useState("orders");
 
   useEffect(() => {
     if (user) {
@@ -540,6 +553,336 @@ export default function Store() {
     setIsEditStatusDialogOpen(true);
   };
 
+  // Articles CRUD Functions
+  const openArticleDialog = (article?: StoreItem) => {
+    if (article) {
+      setEditingArticle(article);
+      setArticleFormData({
+        item_number: article.item_number,
+        name: article.name,
+        description: article.description || "",
+        price: article.price,
+        category: article.category,
+        available_sizes: Array.isArray(article.available_sizes) ? article.available_sizes : [],
+        image_url: article.image_url || "",
+        external_link: article.external_link || "",
+      });
+    } else {
+      setEditingArticle(null);
+      setArticleFormData({
+        item_number: "",
+        name: "",
+        description: "",
+        price: 0,
+        category: "",
+        available_sizes: [],
+        image_url: "",
+        external_link: "",
+      });
+    }
+    setIsArticleDialogOpen(true);
+  };
+
+  const saveArticle = async () => {
+    try {
+      if (editingArticle) {
+        // Update existing article
+        const { error } = await supabase
+          .from("store_items")
+          .update({
+            item_number: articleFormData.item_number,
+            name: articleFormData.name,
+            description: articleFormData.description,
+            price: articleFormData.price,
+            category: articleFormData.category,
+            available_sizes: articleFormData.available_sizes,
+            image_url: articleFormData.image_url,
+            external_link: articleFormData.external_link,
+          })
+          .eq("id", editingArticle.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Artikel posodobljen",
+          description: `Artikel ${articleFormData.name} je bil uspešno posodobljen.`,
+        });
+      } else {
+        // Create new article
+        const { error } = await supabase
+          .from("store_items")
+          .insert({
+            item_number: articleFormData.item_number,
+            name: articleFormData.name,
+            description: articleFormData.description,
+            price: articleFormData.price,
+            category: articleFormData.category,
+            available_sizes: articleFormData.available_sizes,
+            image_url: articleFormData.image_url,
+            external_link: articleFormData.external_link,
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Artikel ustvarjen",
+          description: `Artikel ${articleFormData.name} je bil uspešno ustvarjen.`,
+        });
+      }
+
+      setIsArticleDialogOpen(false);
+      loadItems();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri shranjevanju artikla: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteArticle = async (articleId: string) => {
+    if (!confirm("Ali ste prepričani, da želite izbrisati ta artikel?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("store_items")
+        .delete()
+        .eq("id", articleId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Artikel izbrisan",
+        description: "Artikel je bil uspešno izbrisan.",
+      });
+
+      loadItems();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri brisanju artikla: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Categories CRUD Functions
+  const openCategoryDialog = (category?: StoreCategory) => {
+    if (category) {
+      setEditingCategory(category);
+      setCategoryFormData({
+        name: category.name,
+        description: category.description || "",
+      });
+    } else {
+      setEditingCategory(null);
+      setCategoryFormData({
+        name: "",
+        description: "",
+      });
+    }
+    setIsCategoryDialogOpen(true);
+  };
+
+  const saveCategory = async () => {
+    try {
+      if (editingCategory) {
+        // Update existing category
+        const { error } = await supabase
+          .from("store_categories")
+          .update({
+            name: categoryFormData.name,
+            description: categoryFormData.description,
+          })
+          .eq("id", editingCategory.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Kategorija posodobljena",
+          description: `Kategorija ${categoryFormData.name} je bila uspešno posodobljena.`,
+        });
+      } else {
+        // Create new category
+        const { error } = await supabase
+          .from("store_categories")
+          .insert({
+            name: categoryFormData.name,
+            description: categoryFormData.description,
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Kategorija ustvarjena",
+          description: `Kategorija ${categoryFormData.name} je bila uspešno ustvarjena.`,
+        });
+      }
+
+      setIsCategoryDialogOpen(false);
+      loadCategories();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri shranjevanju kategorije: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteCategory = async (categoryId: string) => {
+    if (!confirm("Ali ste prepričani, da želite izbrisati to kategorijo?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("store_categories")
+        .delete()
+        .eq("id", categoryId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Kategorija izbrisana",
+        description: "Kategorija je bila uspešno izbrisana.",
+      });
+
+      loadCategories();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri brisanju kategorije: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Collections Management Functions
+  const toggleOrderSelection = (orderId: string) => {
+    const newSelection = new Set(selectedOrdersForCollection);
+    if (newSelection.has(orderId)) {
+      newSelection.delete(orderId);
+    } else {
+      newSelection.add(orderId);
+    }
+    setSelectedOrdersForCollection(newSelection);
+  };
+
+  const createCollection = async () => {
+    if (selectedOrdersForCollection.size === 0) {
+      toast({
+        title: "Napaka",
+        description: "Izberite vsaj eno naročilo za zbirnik.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Create collection
+      const { data: collection, error: collectionError } = await supabase
+        .from("store_collections")
+        .insert({
+          collection_number: collectionFormData.collection_number,
+          notes: collectionFormData.notes,
+          status: "sprejeto",
+        })
+        .select()
+        .single();
+
+      if (collectionError) throw collectionError;
+
+      // Update selected orders to reference this collection
+      const { error: ordersError } = await supabase
+        .from("store_orders")
+        .update({
+          collection_id: collection.id,
+          status: "sprejeto",
+        })
+        .in("id", Array.from(selectedOrdersForCollection));
+
+      if (ordersError) throw ordersError;
+
+      // Get all order items from selected orders
+      const { data: orderItems, error: itemsError } = await supabase
+        .from("store_order_items")
+        .select("*")
+        .in("order_id", Array.from(selectedOrdersForCollection));
+
+      if (itemsError) throw itemsError;
+
+      // Create collection items (aggregate by item_number + size)
+      const itemsMap = new Map<string, any>();
+      orderItems?.forEach(item => {
+        const key = `${item.item_number}-${item.size}`;
+        if (itemsMap.has(key)) {
+          const existing = itemsMap.get(key);
+          existing.total_quantity += item.quantity;
+        } else {
+          itemsMap.set(key, {
+            collection_id: collection.id,
+            item_id: item.item_id,
+            item_number: item.item_number,
+            item_name: item.item_name,
+            size: item.size,
+            total_quantity: item.quantity,
+            unit_price: item.unit_price,
+          });
+        }
+      });
+
+      const collectionItems = Array.from(itemsMap.values());
+      const { error: itemsInsertError } = await supabase
+        .from("store_collection_items")
+        .insert(collectionItems);
+
+      if (itemsInsertError) throw itemsInsertError;
+
+      toast({
+        title: "Zbirnik ustvarjen",
+        description: `Zbirnik ${collectionFormData.collection_number} je bil uspešno ustvarjen iz ${selectedOrdersForCollection.size} naročil.`,
+      });
+
+      setIsCollectionDialogOpen(false);
+      setSelectedOrdersForCollection(new Set());
+      setCollectionFormData({ collection_number: "", notes: "" });
+      fetchOrders();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri ustvarjanju zbirnika: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Parent cancel order function
+  const cancelOrder = async (orderId: string) => {
+    if (!confirm("Ali ste prepričani, da želite preklicati to naročilo?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("store_orders")
+        .update({ status: "preklicano" })
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Naročilo preklicano",
+        description: "Naročilo je bilo uspešno preklicano.",
+      });
+
+      fetchOrders();
+    } catch (error: any) {
+      toast({
+        title: "Napaka",
+        description: `Napaka pri preklicu naročila: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
   const addToCart = (item: StoreItem, size: string) => {
     const existingItem = cart.find(
       (cartItem) => cartItem.item_id === item.id && cartItem.size === size
@@ -654,178 +997,6 @@ export default function Store() {
     }
   };
 
-  const saveCategory = async () => {
-    try {
-      if (editingCategory) {
-        const { error } = await supabase
-          .from("store_categories")
-          .update(categoryFormData)
-          .eq("id", editingCategory.id);
-
-        if (error) throw error;
-        toast({ title: "Kategorija posodobljena" });
-      } else {
-        const { error } = await supabase
-          .from("store_categories")
-          .insert(categoryFormData);
-
-        if (error) throw error;
-        toast({ title: "Kategorija ustvarjena" });
-      }
-
-      setIsCategoryDialogOpen(false);
-      setEditingCategory(null);
-      setCategoryFormData({ name: "", description: "" });
-      loadCategories();
-    } catch (error: any) {
-      toast({
-        title: "Napaka",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const saveItem = async () => {
-    try {
-      if (editingItem) {
-        const { error } = await supabase
-          .from("store_items")
-          .update(itemFormData)
-          .eq("id", editingItem.id);
-
-        if (error) throw error;
-        toast({ title: "Artikel posodobljen" });
-      } else {
-        const { error } = await supabase
-          .from("store_items")
-          .insert(itemFormData);
-
-        if (error) throw error;
-        toast({ title: "Artikel ustvarjen" });
-      }
-
-      setIsAddItemDialogOpen(false);
-      setEditingItem(null);
-      setItemFormData({
-        item_number: "",
-        name: "",
-        description: "",
-        price: 0,
-        category_id: "",
-        available_sizes: [],
-        image_url: "",
-      });
-      loadItems();
-    } catch (error: any) {
-      toast({
-        title: "Napaka",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const saveCollection = async () => {
-    try {
-      if (editingCollection) {
-        const { error } = await supabase
-          .from("store_collections")
-          .update(collectionFormData)
-          .eq("id", editingCollection.id);
-
-        if (error) throw error;
-        toast({ title: "Zbirnik posodobljen" });
-      } else {
-        const { error } = await supabase
-          .from("store_collections")
-          .insert(collectionFormData);
-
-        if (error) throw error;
-        toast({ title: "Zbirnik ustvarjen" });
-      }
-
-      setIsCollectionDialogOpen(false);
-      setEditingCollection(null);
-      setCollectionFormData({
-        collection_number: "",
-        collection_date: "",
-        status: "draft",
-        notes: "",
-      });
-      loadCollections();
-    } catch (error: any) {
-      toast({
-        title: "Napaka",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteItem = async (id: string) => {
-    if (!confirm("Ste prepričani, da želite izbrisati ta artikel?")) return;
-
-    try {
-      const { error } = await supabase
-        .from("store_items")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-      toast({ title: "Artikel izbrisan" });
-      loadItems();
-    } catch (error: any) {
-      toast({
-        title: "Napaka",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteCategory = async (id: string) => {
-    if (!confirm("Ste prepričani, da želite izbrisati to kategorijo?")) return;
-
-    try {
-      const { error } = await supabase
-        .from("store_categories")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-      toast({ title: "Kategorija izbrisana" });
-      loadCategories();
-    } catch (error: any) {
-      toast({
-        title: "Napaka",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteCollection = async (id: string) => {
-    if (!confirm("Ste prepričani, da želite izbrisati ta zbirnik?")) return;
-
-    try {
-      const { error } = await supabase
-        .from("store_collections")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-      toast({ title: "Zbirnik izbrisan" });
-      loadCollections();
-    } catch (error: any) {
-      toast({
-        title: "Napaka",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -848,21 +1019,13 @@ export default function Store() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue="orders" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="catalog">Katalog</TabsTrigger>
-            {(userRole === "admin" || userRole === "coach") && (
-              <>
-                <TabsTrigger value="orders">Naročila</TabsTrigger>
-                <TabsTrigger value="collections">Zbirniki</TabsTrigger>
-                <TabsTrigger value="items">Artikli</TabsTrigger>
-                <TabsTrigger value="categories">Kategorije</TabsTrigger>
-                <TabsTrigger value="reports">Poročila</TabsTrigger>
-              </>
-            )}
-            {userRole === "parent" && (
-              <TabsTrigger value="my-orders">Moja naročila</TabsTrigger>
-            )}
+            <TabsTrigger value="orders">Naročila</TabsTrigger>
+            <TabsTrigger value="collections">Zbirniki</TabsTrigger>
+            <TabsTrigger value="reports">Poročila</TabsTrigger>
+            <TabsTrigger value="articles">Artikli</TabsTrigger>
+            <TabsTrigger value="categories">Kategorije</TabsTrigger>
           </TabsList>
 
           {/* CATALOG TAB */}
@@ -1151,17 +1314,29 @@ export default function Store() {
                                         onClick={() => openItemsDialog(order.id)}
                                       >
                                         <Eye className="h-4 w-4 mr-1" />
-                                        Postavke
+                                        Postavke ({items.length})
                                       </Button>
                                     )}
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => openEditStatusDialog(order)}
-                                    >
-                                      <Edit className="h-4 w-4 mr-1" />
-                                      Uredi
-                                    </Button>
+                                    {(userRole === "coach" || userRole === "admin") && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openEditStatusDialog(order)}
+                                      >
+                                        <Edit className="h-4 w-4 mr-1" />
+                                        Uredi
+                                      </Button>
+                                    )}
+                                    {userRole === "parent" && order.status === "open" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => cancelOrder(order.id)}
+                                      >
+                                        <XCircle className="h-4 w-4 mr-1" />
+                                        Prekliči
+                                      </Button>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -1199,21 +1374,191 @@ export default function Store() {
             </TabsContent>
           )}
 
+          {/* Articles Tab */}
+          <TabsContent value="articles" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Artikli</CardTitle>
+                    <CardDescription>
+                      Upravljanje artiklov v trgovini
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => openArticleDialog()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nov artikel
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Šifra</TableHead>
+                      <TableHead>Naziv</TableHead>
+                      <TableHead>Kategorija</TableHead>
+                      <TableHead>Cena</TableHead>
+                      <TableHead>Velikosti</TableHead>
+                      <TableHead className="text-right">Akcije</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono">{item.item_number}</TableCell>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell>{item.category}</TableCell>
+                        <TableCell>{item.price.toFixed(2)} €</TableCell>
+                        <TableCell className="text-sm">
+                          {Array.isArray(item.available_sizes) 
+                            ? item.available_sizes.join(", ") 
+                            : "N/A"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openArticleDialog(item)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Uredi
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteArticle(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Izbriši
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Categories Tab */}
+          <TabsContent value="categories" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Kategorije</CardTitle>
+                    <CardDescription>
+                      Upravljanje kategorij artiklov
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => openCategoryDialog()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova kategorija
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Naziv</TableHead>
+                      <TableHead>Opis</TableHead>
+                      <TableHead className="text-right">Akcije</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categories.map((category) => (
+                      <TableRow key={category.id}>
+                        <TableCell className="font-medium">{category.name}</TableCell>
+                        <TableCell>{category.description || "-"}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openCategoryDialog(category)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Uredi
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteCategory(category.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Izbriši
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Collections Tab */}
+          <TabsContent value="collections" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Zbirniki</CardTitle>
+                    <CardDescription>
+                      Ustvarite zbirnik iz odprtih naročil
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => setIsCollectionDialogOpen(true)}
+                    disabled={myOrders.filter(o => o.status === "open").length === 0}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nov zbirnik
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground mb-4">
+                  Odprtih naročil: {myOrders.filter(o => o.status === "open").length}
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Številka</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Število naročil</TableHead>
+                      <TableHead>Opombe</TableHead>
+                      <TableHead>Datum</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {collections.map((collection) => (
+                      <TableRow key={collection.id}>
+                        <TableCell className="font-medium">{collection.collection_number}</TableCell>
+                        <TableCell>
+                          <Badge>{collection.status}</Badge>
+                        </TableCell>
+                        <TableCell>{collection.total_orders || 0}</TableCell>
+                        <TableCell>{collection.notes || "-"}</TableCell>
+                        <TableCell>
+                          {new Date(collection.created_at).toLocaleDateString("sl-SI")}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* OTHER TABS - Placeholder for now */}
           {(userRole === "admin" || userRole === "coach") && (
             <>
-              <TabsContent value="collections">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Zbirniki</CardTitle>
-                    <CardDescription>Upravljanje zbirnikov naročil</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">Zbirniki funkcionalnost - v pripravi</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
               <TabsContent value="items">
                 <Card>
                   <CardHeader>
@@ -1222,18 +1567,6 @@ export default function Store() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground">Artikli funkcionalnost - v pripravi</p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="categories">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Kategorije</CardTitle>
-                    <CardDescription>Upravljanje kategorij</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">Kategorije funkcionalnost - v pripravi</p>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1490,6 +1823,258 @@ export default function Store() {
             </Button>
             <Button onClick={updateOrderStatus} disabled={!newStatus || newStatus === editingOrder?.status}>
               Shrani
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Article Dialog */}
+      <Dialog open={isArticleDialogOpen} onOpenChange={setIsArticleDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingArticle ? "Uredi artikel" : "Nov artikel"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingArticle 
+                ? "Posodobite podatke o artiklu" 
+                : "Ustvarite nov artikel v trgovini"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="item_number">Šifra artikla</Label>
+                <Input
+                  id="item_number"
+                  value={articleFormData.item_number}
+                  onChange={(e) => setArticleFormData({ ...articleFormData, item_number: e.target.value })}
+                  placeholder="npr. TS-001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">Cena (€)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  value={articleFormData.price}
+                  onChange={(e) => setArticleFormData({ ...articleFormData, price: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Naziv</Label>
+              <Input
+                id="name"
+                value={articleFormData.name}
+                onChange={(e) => setArticleFormData({ ...articleFormData, name: e.target.value })}
+                placeholder="npr. Klubska majica"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Opis</Label>
+              <Textarea
+                id="description"
+                value={articleFormData.description}
+                onChange={(e) => setArticleFormData({ ...articleFormData, description: e.target.value })}
+                placeholder="Podrobnejši opis artikla..."
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Kategorija</Label>
+              <Select
+                value={articleFormData.category}
+                onValueChange={(value) => setArticleFormData({ ...articleFormData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Izberi kategorijo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.name}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Razpoložljive velikosti</Label>
+              <div className="flex flex-wrap gap-2">
+                {AVAILABLE_SIZES.map((size) => (
+                  <div key={size} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`size-${size}`}
+                      checked={articleFormData.available_sizes.includes(size)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setArticleFormData({
+                            ...articleFormData,
+                            available_sizes: [...articleFormData.available_sizes, size],
+                          });
+                        } else {
+                          setArticleFormData({
+                            ...articleFormData,
+                            available_sizes: articleFormData.available_sizes.filter((s) => s !== size),
+                          });
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`size-${size}`} className="text-sm font-normal">
+                      {size}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="image_url">URL slike</Label>
+              <Input
+                id="image_url"
+                value={articleFormData.image_url}
+                onChange={(e) => setArticleFormData({ ...articleFormData, image_url: e.target.value })}
+                placeholder="https://..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="external_link">Zunanja povezava</Label>
+              <Input
+                id="external_link"
+                value={articleFormData.external_link}
+                onChange={(e) => setArticleFormData({ ...articleFormData, external_link: e.target.value })}
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsArticleDialogOpen(false)}>
+              Prekliči
+            </Button>
+            <Button onClick={saveArticle}>
+              {editingArticle ? "Posodobi" : "Ustvari"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Dialog */}
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingCategory ? "Uredi kategorijo" : "Nova kategorija"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCategory 
+                ? "Posodobite podatke o kategoriji" 
+                : "Ustvarite novo kategorijo"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="cat_name">Naziv</Label>
+              <Input
+                id="cat_name"
+                value={categoryFormData.name}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
+                placeholder="npr. Majice"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cat_description">Opis</Label>
+              <Textarea
+                id="cat_description"
+                value={categoryFormData.description}
+                onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
+                placeholder="Opis kategorije..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCategoryDialogOpen(false)}>
+              Prekliči
+            </Button>
+            <Button onClick={saveCategory}>
+              {editingCategory ? "Posodobi" : "Ustvari"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Collection Dialog */}
+      <Dialog open={isCollectionDialogOpen} onOpenChange={setIsCollectionDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Nov zbirnik</DialogTitle>
+            <DialogDescription>
+              Izberite odprta naročila za zbirnik
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="collection_number">Številka zbirnika</Label>
+                <Input
+                  id="collection_number"
+                  value={collectionFormData.collection_number}
+                  onChange={(e) => setCollectionFormData({ ...collectionFormData, collection_number: e.target.value })}
+                  placeholder="npr. ZBR-001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="collection_notes">Opombe</Label>
+                <Input
+                  id="collection_notes"
+                  value={collectionFormData.notes}
+                  onChange={(e) => setCollectionFormData({ ...collectionFormData, notes: e.target.value })}
+                  placeholder="Dodatne opombe..."
+                />
+              </div>
+            </div>
+            <div className="border rounded-md p-4 max-h-[400px] overflow-y-auto">
+              <div className="text-sm font-medium mb-2">
+                Odprta naročila ({myOrders.filter(o => o.status === "open").length})
+              </div>
+              {myOrders
+                .filter(o => o.status === "open")
+                .map((order) => {
+                  const items = orderItems[order.id] || [];
+                  return (
+                    <div
+                      key={order.id}
+                      className="flex items-start gap-3 p-3 border rounded-md mb-2 hover:bg-muted/50 cursor-pointer"
+                      onClick={() => toggleOrderSelection(order.id)}
+                    >
+                      <Checkbox
+                        checked={selectedOrdersForCollection.has(order.id)}
+                        onCheckedChange={() => toggleOrderSelection(order.id)}
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium">{order.order_number}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {items.length} postavk • {order.total_amount.toFixed(2)} €
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Izbrano: {selectedOrdersForCollection.size} naročil
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCollectionDialogOpen(false)}>
+              Prekliči
+            </Button>
+            <Button 
+              onClick={createCollection}
+              disabled={selectedOrdersForCollection.size === 0}
+            >
+              Ustvari zbirnik
             </Button>
           </DialogFooter>
         </DialogContent>
