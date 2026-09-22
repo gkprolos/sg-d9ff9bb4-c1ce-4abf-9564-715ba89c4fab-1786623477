@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
@@ -56,7 +56,7 @@ interface AttendanceRecord {
 interface ScheduleTemplate {
   id: string;
   activity_name: string;
-  day_of_week: string | number;
+  day_of_week: number;
   start_time: string;
   end_time: string;
   location: string;

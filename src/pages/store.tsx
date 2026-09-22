@@ -669,7 +669,7 @@ export default function Store() {
 
   const saveArticle = async () => {
     try {
-      const sizesArray: string[] = Array.isArray(articleFormData.available_sizes) 
+      const sizesArray = Array.isArray(articleFormData.available_sizes) 
         ? articleFormData.available_sizes.filter((s): s is string => typeof s === 'string')
         : [];
 
@@ -683,7 +683,7 @@ export default function Store() {
             description: articleFormData.description,
             price: articleFormData.price,
             category: articleFormData.category,
-            available_sizes: sizesArray as unknown as any,
+            available_sizes: sizesArray,
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
             supplier_id: articleFormData.supplier_id || null,
@@ -706,7 +706,7 @@ export default function Store() {
             description: articleFormData.description,
             price: articleFormData.price,
             category: articleFormData.category,
-            available_sizes: sizesArray as any,
+            available_sizes: sizesArray,
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
             supplier_id: articleFormData.supplier_id || null,
@@ -3113,7 +3113,7 @@ export default function Store() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.isArray(collectionItems) && collectionItems
+                    {collectionItems && Array.isArray(collectionItems) && collectionItems
                       .sort((a, b) => a.item_number.localeCompare(b.item_number))
                       .map((item) => (
                         <TableRow key={item.id}>
@@ -3128,7 +3128,7 @@ export default function Store() {
                           </TableCell>
                         </TableRow>
                       ))}
-                    {collectionItems.length > 0 && (
+                    {collectionItems && collectionItems.length > 0 && (
                       <TableRow className="font-semibold bg-muted/50">
                         <TableCell colSpan={4}>SKUPAJ</TableCell>
                         <TableCell>
