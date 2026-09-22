@@ -2018,6 +2018,27 @@ export default function Store() {
                     )}
                   </div>
                 </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Išči po imenu, šifri ali kategoriji..."
+                        value={itemSearch}
+                        onChange={(e) => setItemSearch(e.target.value)}
+                        className="max-w-sm"
+                      />
+                      {userRole === "admin" && (
+                        <Button onClick={() => {
+                          setEditingArticle(null);
+                          setIsArticleDialogOpen(true);
+                        }}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Nov artikel
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
             </TabsContent>
           )}
