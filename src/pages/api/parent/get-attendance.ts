@@ -18,14 +18,13 @@ export default async function handler(
   try {
     const { playerId, startDate, endDate } = req.body;
 
+    console.log("Fetching attendance for:", { playerId, startDate, endDate });
+
     if (!playerId || !startDate || !endDate) {
       return res.status(400).json({ error: "playerId, startDate, and endDate so obvezni" });
     }
 
-    console.log("Fetching attendance for:", { playerId, startDate, endDate });
-
     // Query activities directly with inner join on attendance
-    // This is the correct Supabase syntax for filtering by related table
     const { data: activities, error } = await supabase
       .from("activities")
       .select(`
@@ -54,7 +53,7 @@ export default async function handler(
 
     if (error) {
       console.error("Get attendance error:", error);
-      return res.status(500).json({ error: "Napaka pri nalaganju prisotnosti" });
+      return res.status(500).json({ error: "Napaka pri nalaganju prisotnosti", details: error.message });
     }
 
     console.log("Activities found:", activities?.length || 0);
