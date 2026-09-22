@@ -522,7 +522,7 @@ export default function Store() {
       }
 
       // Get unique parent IDs
-      const uniqueParentIds = [...new Set(data.map(order => order.parent_id))];
+      const uniqueParentIds = [...new Set(data.map(order => order.parent_id).filter(Boolean))];
 
       // Fetch profiles for all parents
       const { data: profilesData, error: profilesError } = await supabase
@@ -530,14 +530,16 @@ export default function Store() {
         .select("id, full_name, email")
         .in("id", uniqueParentIds);
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+      }
 
       // Create a map of parent_id -> profile
       const profilesMap = new Map(
         (profilesData || []).map(profile => [
           profile.id,
           {
-            name: profile.full_name || '',
+            name: profile.full_name || profile.email?.split('@')[0] || 'N/A',
             email: profile.email || '',
           }
         ])
@@ -571,6 +573,7 @@ export default function Store() {
 
       setOrderItems(itemsMap);
     } catch (error: any) {
+      console.error("Full error in fetchOrders:", error);
       toast({
         title: "Napaka",
         description: `Napaka pri nalaganju naročil: ${error.message}`,
