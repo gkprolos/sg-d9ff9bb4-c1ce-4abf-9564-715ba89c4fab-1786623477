@@ -3113,34 +3113,41 @@ export default function Store() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.isArray(collectionItems) && collectionItems
-                      .slice()
-                      .sort((a, b) => a.item_number.localeCompare(b.item_number))
-                      .map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-mono">{item.item_number}</TableCell>
-                          <TableCell>{item.item_name}</TableCell>
-                          <TableCell>N/A</TableCell>
-                          <TableCell>{item.size}</TableCell>
-                          <TableCell>{item.total_quantity}</TableCell>
-                          <TableCell>{item.unit_price.toFixed(2)} €</TableCell>
-                          <TableCell className="font-semibold">
-                            {(item.total_quantity * item.unit_price).toFixed(2)} €
+                    {collectionItems && Array.isArray(collectionItems) && collectionItems.length > 0 ? (
+                      <>
+                        {[...collectionItems]
+                          .sort((a, b) => a.item_number.localeCompare(b.item_number))
+                          .map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-mono">{item.item_number}</TableCell>
+                              <TableCell>{item.item_name}</TableCell>
+                              <TableCell>N/A</TableCell>
+                              <TableCell>{item.size}</TableCell>
+                              <TableCell>{item.total_quantity}</TableCell>
+                              <TableCell>{item.unit_price.toFixed(2)} €</TableCell>
+                              <TableCell className="font-semibold">
+                                {(item.total_quantity * item.unit_price).toFixed(2)} €
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        <TableRow className="font-semibold bg-muted/50">
+                          <TableCell colSpan={4}>SKUPAJ</TableCell>
+                          <TableCell>
+                            {collectionItems.reduce((sum, item) => sum + item.total_quantity, 0)}
+                          </TableCell>
+                          <TableCell></TableCell>
+                          <TableCell>
+                            {collectionItems
+                              .reduce((sum, item) => sum + item.total_quantity * item.unit_price, 0)
+                              .toFixed(2)}{" "}
+                            €
                           </TableCell>
                         </TableRow>
-                      ))}
-                    {Array.isArray(collectionItems) && collectionItems.length > 0 && (
-                      <TableRow className="font-semibold bg-muted/50">
-                        <TableCell colSpan={4}>SKUPAJ</TableCell>
-                        <TableCell>
-                          {collectionItems.reduce((sum, item) => sum + item.total_quantity, 0)}
-                        </TableCell>
-                        <TableCell></TableCell>
-                        <TableCell>
-                          {collectionItems
-                            .reduce((sum, item) => sum + item.total_quantity * item.unit_price, 0)
-                            .toFixed(2)}{" "}
-                          €
+                      </>
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
+                          Ni postavk v zbirniku
                         </TableCell>
                       </TableRow>
                     )}

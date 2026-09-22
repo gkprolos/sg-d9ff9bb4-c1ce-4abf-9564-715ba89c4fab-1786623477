@@ -66,6 +66,9 @@ interface ScheduleTemplate {
     location?: string;
     city?: string;
   };
+  teams?: {
+    name: string;
+  };
   activities?: {
     name: string;
     start_time?: string;
