@@ -904,16 +904,19 @@ export default function Store() {
         throw collectionError;
       }
 
-      // Update selected orders to reference this collection and change status to 'accepted'
+      // Update selected orders to reference this collection and change status to 'ordered'
       const { error: ordersError } = await supabase
         .from("store_orders")
         .update({
           collection_id: collection.id,
-          status: "accepted",
+          status: "ordered",
         })
         .in("id", Array.from(selectedOrdersForCollection));
 
-      if (ordersError) throw ordersError;
+      if (ordersError) {
+        console.error("Orders update error:", ordersError);
+        throw ordersError;
+      }
 
       // Get all order items from selected orders
       const { data: orderItems, error: itemsError } = await supabase
