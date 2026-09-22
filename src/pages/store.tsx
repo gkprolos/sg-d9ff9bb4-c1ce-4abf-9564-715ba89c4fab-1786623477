@@ -1295,7 +1295,7 @@ export default function Store() {
         .order("item_number");
 
       if (error) throw error;
-      setCollectionItems(data || []);
+      setCollectionItems((data || []) as StoreCollectionItem[]);
       setIsCollectionViewDialogOpen(true);
     } catch (error: any) {
       toast({
