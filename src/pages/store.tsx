@@ -1825,7 +1825,7 @@ export default function Store() {
                       <div className="space-y-2">
                         <Label>Velikost</Label>
                         <div className="flex flex-wrap gap-2">
-                          {item.available_sizes?.map((size) => (
+                        {(item.available_sizes as string[])?.map((size) => (
                             <Button
                               key={size}
                               variant="outline"
