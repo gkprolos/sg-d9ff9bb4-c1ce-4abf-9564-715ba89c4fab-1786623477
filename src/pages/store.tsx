@@ -3278,7 +3278,7 @@ export default function Store() {
             <Button variant="outline" onClick={() => setIsCartDialogOpen(false)}>
               Prekliči
             </Button>
-            <Button onClick={addToCart}>
+            <Button onClick={() => addToCart()}>
               Dodaj v košarico
             </Button>
           </DialogFooter>
