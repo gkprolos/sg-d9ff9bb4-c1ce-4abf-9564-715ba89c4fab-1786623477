@@ -683,7 +683,7 @@ export default function Store() {
             description: articleFormData.description,
             price: articleFormData.price,
             category: articleFormData.category,
-            available_sizes: sizesArray as any,
+            available_sizes: JSON.parse(JSON.stringify(sizesArray)),
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
             supplier_id: articleFormData.supplier_id || null,
@@ -706,7 +706,7 @@ export default function Store() {
             description: articleFormData.description,
             price: articleFormData.price,
             category: articleFormData.category,
-            available_sizes: sizesArray as any,
+            available_sizes: JSON.parse(JSON.stringify(sizesArray)),
             image_url: articleFormData.image_url,
             external_link: articleFormData.external_link,
             supplier_id: articleFormData.supplier_id || null,
@@ -3115,7 +3115,8 @@ export default function Store() {
                   <TableBody>
                     {collectionItems && Array.isArray(collectionItems) && collectionItems.length > 0 ? (
                       <>
-                        {[...collectionItems]
+                        {collectionItems
+                          .slice()
                           .sort((a, b) => a.item_number.localeCompare(b.item_number))
                           .map((item) => (
                             <TableRow key={item.id}>
