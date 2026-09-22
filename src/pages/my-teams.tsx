@@ -95,34 +95,34 @@ export default function MyTeamsPage() {
     loadTeams();
   }, []);
 
-  async function loadTeams() {
+  const loadTeams = async () => {
     try {
-      setLoading(true);
-
-      // Fetch teams with player count
-      const { data, error } = await supabase.
-      from("teams").
-      select(`
+      let query = supabase
+        .from("teams")
+        .select(`
           *,
-          seasons(name, is_active),
-          team_players(count)
-        `).
-      eq("is_archived", false).
-      order("name", { ascending: true });
+          coaches!teams_head_coach_id_fkey(id, full_name, email),
+          seasons(name)
+        `)
+        .order("name");
+
+      // Filter teams for coaches - only show teams they coach
+      if (userRole === "coach" && user?.id) {
+        query = query.eq("head_coach_id", user.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setTeams(data || []);
     } catch (error: any) {
-      console.error("Napaka pri nalaganju selekcij:", error);
       toast({
-        variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti selekcij"
+        description: `Napaka pri nalaganju ekip: ${error.message}`,
+        variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
-  }
+  };
 
   async function loadTeamPlayers(teamId: string) {
     try {

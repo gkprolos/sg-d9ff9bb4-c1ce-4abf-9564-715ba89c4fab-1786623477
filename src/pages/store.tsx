@@ -1381,7 +1381,7 @@ export default function Store() {
       "Količina": item.total_quantity,
       "Cena/kos (€)": item.unit_price.toFixed(2),
       "Skupaj (€)": (item.total_quantity * item.unit_price).toFixed(2),
-      "Dobavitelj": item.store_items?.store_suppliers?.name || "N/A",
+      "Dobavitelj": "N/A",
     }));
 
     // Use excelUtils to export
