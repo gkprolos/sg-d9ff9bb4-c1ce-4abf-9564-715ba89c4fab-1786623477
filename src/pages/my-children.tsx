@@ -195,31 +195,29 @@ export default function MyChildren() {
     }
   }
 
-  async function loadSchedules() {
-    if (!selectedChild) return;
-
+  const loadSchedules = async (childId: string) => {
     try {
-      console.log("Loading schedules for:", selectedChild);
-
-      const response = await fetch("/api/parent/get-child-schedules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId: selectedChild })
-      });
-
-      const data = await response.json();
-
+      const response = await fetch(`/api/parent/get-child-schedules?child_id=${childId}`);
       if (!response.ok) {
-        throw new Error(data.error || "Napaka pri nalaganju urnika");
+        console.error("Failed to load schedules:", response.statusText);
+        return;
       }
-
-      console.log("Schedules from API:", data.schedules);
-
-      setSchedules((data.schedules || []) as ScheduleTemplate[]);
-    } catch (error: any) {
-      console.error("Napaka pri nalaganju urnika:", error);
+      const data = await response.json();
+      
+      // Convert day_of_week to number if it's a string
+      const schedules = (data.schedules || []).map((s: any) => ({
+        ...s,
+        day_of_week: typeof s.day_of_week === 'string' ? parseInt(s.day_of_week, 10) : s.day_of_week
+      }));
+      
+      setChildSchedules((prev) => ({
+        ...prev,
+        [childId]: schedules,
+      }));
+    } catch (error) {
+      console.error("Error loading schedules:", error);
     }
-  }
+  };
 
   function getStatusForDate(date: string): number | null {
     const record = attendance.find(

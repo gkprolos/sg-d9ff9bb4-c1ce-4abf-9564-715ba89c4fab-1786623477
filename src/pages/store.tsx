@@ -166,7 +166,7 @@ export default function Store() {
 
   // Collections State
   const [collections, setCollections] = useState<CollectionWithStats[]>([]);
-  const [selectedCollection, setSelectedCollection] = useState<string>("");
+  const [selectedCollection, setSelectedCollection] = useState<CollectionWithStats | null>(null);
   const [collectionFormData, setCollectionFormData] = useState({
     collection_number: "",
     collection_date: new Date().toISOString().split("T")[0],
@@ -502,6 +502,35 @@ export default function Store() {
       setCollections(collectionsWithCounts);
     } catch (error: any) {
       console.error("Error loading collections:", error);
+    }
+  };
+
+  const loadCollectionDetails = async (collectionId: string) => {
+    try {
+      const { data: collectionData, error: collectionError } = await supabase
+        .from("store_collections")
+        .select("*")
+        .eq("id", collectionId)
+        .single();
+
+      if (collectionError) throw collectionError;
+
+      const { data: collectionItemsData, error: itemsError } = await supabase
+        .from("store_collection_items")
+        .select("*")
+        .eq("collection_id", collectionId);
+
+      if (itemsError) throw itemsError;
+
+      setSelectedCollection(collectionData as CollectionWithStats);
+      setCollectionItems((collectionItemsData || []) as StoreCollectionItem[]);
+    } catch (error: any) {
+      console.error("Error loading collection details:", error);
+      toast({
+        title: "Napaka",
+        description: `Napaka pri nalaganju podrobnosti zbirnika: ${error.message}`,
+        variant: "destructive",
+      });
     }
   };
 
