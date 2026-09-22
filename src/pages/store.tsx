@@ -894,19 +894,19 @@ export default function Store() {
           collection_number: collectionFormData.collection_number,
           collection_date: new Date().toISOString().split("T")[0], // Today's date in YYYY-MM-DD format
           notes: collectionFormData.notes,
-          status: "sprejeto",
+          status: "open",
         })
         .select()
         .single();
 
       if (collectionError) throw collectionError;
 
-      // Update selected orders to reference this collection
+      // Update selected orders to reference this collection and change status to 'accepted'
       const { error: ordersError } = await supabase
         .from("store_orders")
         .update({
           collection_id: collection.id,
-          status: "sprejeto",
+          status: "accepted",
         })
         .in("id", Array.from(selectedOrdersForCollection));
 
