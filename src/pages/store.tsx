@@ -889,7 +889,7 @@ export default function Store() {
                   <SelectValue placeholder="Vse velikosti" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Vse velikosti</SelectItem>
+                  <SelectItem value="all">Vse velikosti</SelectItem>
                   {AVAILABLE_SIZES.map((size) => (
                     <SelectItem key={size} value={size}>
                       {size}
