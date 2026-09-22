@@ -56,7 +56,7 @@ interface AttendanceRecord {
 interface ScheduleTemplate {
   id: string;
   activity_name: string;
-  day_of_week: string | number;
+  day_of_week: number;
   start_time: string;
   end_time: string;
   location: string;
@@ -235,7 +235,7 @@ export default function MyChildren() {
     const jsDay = dateObj.getDay();
     const dbDay = jsDay === 0 ? 7 : jsDay;
 
-    return schedules.find((s) => Number(s.day_of_week) === dbDay) || null;
+    return schedules.find((s) => s.day_of_week === dbDay) || null;
   }
 
   function getActivityTypeLabel(record: AttendanceRecord | null): string | null {
