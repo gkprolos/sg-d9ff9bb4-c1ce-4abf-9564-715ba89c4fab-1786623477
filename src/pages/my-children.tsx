@@ -1,60 +1,45 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, LogOut, User, ArrowLeft, Eye, Clock, MapPin, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft, Clock, MapPin, Users, Eye, Calendar } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-// Type definitions
 interface Child {
   id: string;
+  parent_id: string;
   first_name: string;
   last_name: string;
   birth_date: string;
-  date_of_birth?: string;
-  guardian1_email: string;
-  guardian2_email?: string;
+  gender: string;
 }
 
-interface Player {
+interface Team {
   id: string;
-  first_name: string;
-  last_name: string;
-  birth_date?: string;
-  guardian1_email?: string;
-  guardian2_email?: string;
-}
-
-interface AttendanceRecord {
-  id: string;
-  date: string;
-  status: string;
-  activity_name: string;
-  player_id: string;
-  activities?: {
-    name: string;
-    activity_date?: string;
-    activity_type_id?: number;
-    home_game?: boolean;
-    venue_id?: string;
-    start_time?: string;
-    end_time?: string;
-    venues?: {
-      name: string;
-      location?: string;
-      city?: string;
-    };
-  };
+  name: string;
+  age_group: string;
 }
 
 interface ScheduleTemplate {
-  id: string;
+  id: number;
   activity_name: string;
   day_of_week: number;
   start_time: string;
@@ -76,16 +61,25 @@ interface ScheduleTemplate {
   };
 }
 
+interface AttendanceRecord {
+  id: string;
+  date: string;
+  status: string;
+  activity_id: string;
+  activities?: {
+    name: string;
+  };
+}
+
 export default function MyChildren() {
   const router = useRouter();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const { user, userRole } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [children, setChildren] = useState<Child[]>([]);
-  const [selectedChild, setSelectedChild] = useState<string>("");
-  const [showSchedules, setShowSchedules] = useState(false);
-  const [showAttendance, setShowAttendance] = useState(false);
+  const [selectedChild, setSelectedChild] = useState<Child | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [schedules, setSchedules] = useState<ScheduleTemplate[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -100,100 +94,51 @@ export default function MyChildren() {
   useEffect(() => {
     if (selectedChild) {
       loadAttendance();
-      loadSchedules(selectedChild);
+      loadSchedules(selectedChild.id);
     }
   }, [selectedChild, selectedMonth, selectedYear]);
 
-  async function loadChildren() {
-    if (!user?.email) return;
-
+  const loadChildren = async () => {
     try {
-      setLoading(true);
-
-      console.log("Loading children for email:", user.email);
-
-      const response = await fetch("/api/parent/get-children", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ parentEmail: user.email })
-      });
-
-      const data = await response.json();
-
+      const response = await fetch("/api/parent/get-children");
       if (!response.ok) {
-        throw new Error(data.error || "Napaka pri nalaganju otrok");
+        throw new Error("Failed to load children");
       }
-
-      console.log("Children from API:", data.children);
-
-      if (data.children && Array.isArray(data.children)) {
-        console.log("Children data received:", data.children);
-        // API returns Player[] structure, cast to Child[]
-        setChildren(data.children as Child[]);
-        setLoading(false);
-      } else {
-        throw new Error("Neveljaven odgovor strežnika");
-      }
-    } catch (error: any) {
-      console.error("Napaka pri nalaganju otrok:", error);
+      const data = await response.json();
+      setChildren(data.children || []);
+    } catch (error) {
+      console.error("Error loading children:", error);
       toast({
-        variant: "destructive",
         title: "Napaka",
-        description: error.message || "Ni mogoče naložiti podatkov o otrocih"
+        description: "Napaka pri nalaganju podatkov o otrocih",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function loadAttendance() {
+  const loadAttendance = async () => {
     if (!selectedChild) return;
 
     try {
-      setLoading(true);
+      const startDate = new Date(selectedYear, selectedMonth, 1);
+      const endDate = new Date(selectedYear, selectedMonth + 1, 0);
 
-      const startOfMonth = new Date(selectedYear, selectedMonth, 1);
-      const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
-
-      const startDate = startOfMonth.toISOString().split("T")[0];
-      const endDate = endOfMonth.toISOString().split("T")[0];
-
-      console.log("Loading attendance for:", {
-        playerId: selectedChild,
-        startDate,
-        endDate
-      });
-
-      const response = await fetch("/api/parent/get-attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playerId: selectedChild,
-          startDate,
-          endDate
-        })
-      });
-
-      const data = await response.json();
+      const response = await fetch(
+        `/api/parent/get-attendance?child_id=${selectedChild.id}&start_date=${startDate.toISOString().split("T")[0]}&end_date=${endDate.toISOString().split("T")[0]}`
+      );
 
       if (!response.ok) {
-        throw new Error(data.error || "Napaka pri nalaganju prisotnosti");
+        throw new Error("Failed to load attendance");
       }
 
-      console.log("Attendance from API:", data.attendance);
-
-      setAttendance((data.attendance || []) as AttendanceRecord[]);
-    } catch (error: any) {
-      console.error("Napaka pri nalaganju prisotnosti:", error);
-      toast({
-        variant: "destructive",
-        title: "Napaka",
-        description: error.message || "Ni mogoče naložiti prisotnosti"
-      });
-    } finally {
-      setLoading(false);
+      const data = await response.json();
+      setAttendance(data.attendance || []);
+    } catch (error) {
+      console.error("Error loading attendance:", error);
     }
-  }
+  };
 
   const loadSchedules = async (childId: string) => {
     try {
@@ -216,415 +161,335 @@ export default function MyChildren() {
     }
   };
 
-  function getStatusForDate(date: string): number | null {
-    const record = attendance.find(
-      (a) => a.activities?.activity_date === date
-    );
-    return record ? record.status : null;
-  }
+  const daysOfWeek = ["Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota", "Nedelja"];
+
+  // Group schedules by day
+  const groupedSchedules = schedules.reduce((acc, schedule) => {
+    const dayNum = schedule.day_of_week;
+    const day = daysOfWeek[dayNum] || `Dan ${dayNum}`;
+    if (!acc[day]) acc[day] = [];
+    acc[day].push(schedule);
+    return acc;
+  }, {} as Record<string, ScheduleTemplate[]>);
+
+  // Sort days by their index in daysOfWeek
+  const sortedDays = Object.keys(groupedSchedules).sort((a, b) => {
+    const aIndex = daysOfWeek.indexOf(a);
+    const bIndex = daysOfWeek.indexOf(b);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
 
   function getScheduleForDate(date: string): ScheduleTemplate | null {
     const dateObj = new Date(date);
-    // JavaScript getDay(): 0=Sunday, 1=Monday, ..., 6=Saturday
-    // Database day_of_week: 1=Monday, 2=Tuesday, ..., 7=Sunday
     const jsDay = dateObj.getDay();
     const dbDay = jsDay === 0 ? 7 : jsDay;
 
     return schedules.find((s) => s.day_of_week === dbDay) || null;
   }
 
-  function getActivityTypeLabel(record: AttendanceRecord | null): string | null {
-    if (!record?.activities) return null;
+  const getDaysInMonth = () => {
+    const firstDay = new Date(selectedYear, selectedMonth, 1);
+    const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+    const days: Date[] = [];
 
-    const typeId = record.activities.activity_type_id;
-
-    if (typeId === 1) return "Trening";
-    if (typeId === 2) return "Trening zunaj";
-    if (typeId === 3) {
-      return record.activities.home_game ?
-      "🏆 Tekma (doma)" :
-      "🏆 Tekma (gost)";
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push(new Date(selectedYear, selectedMonth, i));
     }
 
-    return null;
-  }
-
-  function getActivityVenue(record: AttendanceRecord | null): string | null {
-    if (!record?.activities?.venues) return null;
-
-    const venue = record.activities.venues;
-    const city = venue.city ? ` (${venue.city})` : "";
-    return `${venue.name}${city}`;
-  }
-
-  function isOffSchedule(record: AttendanceRecord | null, schedule: ScheduleTemplate | null): boolean {
-    if (!record?.activities || !schedule) return false;
-    return record.activities.venue_id !== schedule.venue_id;
-  }
-
-  function formatScheduleInfo(schedule: ScheduleTemplate | null): string | null {
-    if (!schedule) return null;
-
-    const venue = schedule.venues?.name || "N/A";
-    const city = schedule.venues?.city ? ` (${schedule.venues.city})` : "";
-    return `${schedule.start_time.slice(0, 5)}-${schedule.end_time.slice(0, 5)}, ${venue}${city}`;
-  }
-
-  function getStatusBadge(status: number | null) {
-    if (status === null) return null;
-    if (status === 1) return <Badge className="bg-green-600 text-white">P</Badge>;
-    if (status === 0) return <Badge className="bg-red-600 text-white">O</Badge>;
-    if (status === 2) return <Badge className="bg-yellow-600 text-white">Op</Badge>;
-    return null;
-  }
-
-  const stats = {
-    present: attendance.filter((a) => a.status === 1).length,
-    absent: attendance.filter((a) => a.status === 0).length,
-    excused: attendance.filter((a) => a.status === 2).length,
-    total: attendance.length
+    return days;
   };
 
-  const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-  const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
-  const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-
-  const months = [
-  "Januar", "Februar", "Marec", "April", "Maj", "Junij",
-  "Julij", "Avgust", "September", "Oktober", "November", "December"];
-
-
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login/parent");
+  const getAttendanceForDate = (date: string) => {
+    return attendance.find((a) => a.date === date);
   };
 
-  const selectedChildData = children.find((c) => c.id === selectedChild);
+  const getAttendanceColor = (status: string) => {
+    switch (status) {
+      case "present":
+        return "bg-green-100 text-green-800 border-green-300";
+      case "absent":
+        return "bg-red-100 text-red-800 border-red-300";
+      case "excused":
+        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-300";
+    }
+  };
 
-  const daysOfWeek = ["Ponedeljek", "Torek", "Sreda", "Četrtek", "Petek", "Sobota", "Nedelja"];
+  const getAttendanceLabel = (status: string) => {
+    switch (status) {
+      case "present":
+        return "Prisoten";
+      case "absent":
+        return "Odsoten";
+      case "excused":
+        return "Opravičen";
+      default:
+        return status;
+    }
+  };
 
-  // Group schedules by day - convert day_of_week to number if needed
-  const groupedSchedules = schedules.reduce((acc, schedule) => {
-    // Convert to number for indexing
-    const dayNum = typeof schedule.day_of_week === 'string' 
-      ? parseInt(schedule.day_of_week, 10)
-      : schedule.day_of_week;
-    const day = daysOfWeek[dayNum] || `Dan ${dayNum}`;
-    if (!acc[day]) acc[day] = [];
-    acc[day].push(schedule);
-    return acc;
-  }, {} as Record<string, typeof schedules>);
-
-  // Sort days by their index in daysOfWeek
-  const sortedDays = Object.keys(groupedSchedules).sort((a, b) => {
-    const aIndex = daysOfWeek.indexOf(a);
-    const bIndex = daysOfWeek.indexOf(b);
-    // If not found in array, put at the end
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
-    return aIndex - bIndex;
-  });
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Nalaganje...</div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
-    <ProtectedRoute allowedRoles={["parent", "admin"]}>
-      <AppLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-6 w-6 text-primary" />
-              <h1 className="text-3xl font-bold">Prisotnost otrok</h1>
-            </div>
-            <Button onClick={handleLogout} variant="outline">
-              <LogOut className="h-4 w-4 mr-2" />
-              Odjava
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/dashboard")}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Nazaj
             </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Moji otroci</h1>
+              <p className="text-muted-foreground">
+                Pregled treningov in prisotnosti vaših otrok
+              </p>
+            </div>
           </div>
+        </div>
 
-          {loading && children.length === 0 ?
-          <Card>
-              <CardContent className="p-6">
-                <p className="text-center text-muted-foreground">Nalagam podatke...</p>
-              </CardContent>
-            </Card> :
-          children.length === 0 ?
-          <Card>
-              <CardContent className="p-6">
-                <p className="text-center text-muted-foreground">Ni najdenih otrok</p>
-              </CardContent>
-            </Card> :
+        <div className="grid gap-6">
+          {children.map((child) => (
+            <Card key={child.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>
+                      {child.first_name} {child.last_name}
+                    </CardTitle>
+                    <CardDescription>
+                      Rojstni datum: {new Date(child.birth_date).toLocaleDateString("sl-SI")}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedChild(child);
+                      setIsDetailsDialogOpen(true);
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Podrobnosti
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Teams */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Ekipe</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Informacije o ekipah so na voljo na drugi strani
+                  </p>
+                </div>
 
-          <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Izberi otroka</CardTitle>
-                  <CardDescription>Prikaz prisotnosti za izbranega otroka</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Otrok</label>
-                      <Select value={selectedChild} onValueChange={setSelectedChild}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Izberi otroka" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {children.map((child) =>
-                        <SelectItem key={child.id} value={child.id}>
-                              {child.first_name} {child.last_name}
-                            </SelectItem>
-                        )}
-                        </SelectContent>
-                      </Select>
+                {/* Schedules */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Urnik treningov</h3>
+                  {schedules && schedules.length > 0 ? (
+                    <div className="space-y-3">
+                      {sortedDays.map((day) => {
+                        const daySchedules = groupedSchedules[day] || [];
+                        if (daySchedules.length === 0) return null;
+                        
+                        return (
+                          <div key={day} className="space-y-1">
+                            <div className="text-sm font-medium">{day}</div>
+                            {daySchedules.map((schedule) => {
+                              return (
+                                <div key={schedule.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-4">
+                                  <Clock className="h-3 w-3" />
+                                  <span>
+                                    {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
+                                  </span>
+                                  {schedule.venues?.name && (
+                                    <>
+                                      <span>•</span>
+                                      <MapPin className="h-3 w-3" />
+                                      <span>{schedule.venues.name}</span>
+                                    </>
+                                  )}
+                                  {schedule.teams?.name && (
+                                    <>
+                                      <span>•</span>
+                                      <Users className="h-3 w-3" />
+                                      <span>{schedule.teams.name}</span>
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
                     </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Ni določenega urnika
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Mesec</label>
-                      <Select
-                        value={String(selectedMonth)}
-                        onValueChange={(value) => setSelectedMonth(parseInt(value, 10))}
+          {children.length === 0 && (
+            <Card>
+              <CardContent className="py-12">
+                <p className="text-center text-muted-foreground">
+                  Nimate dodanih otrok. Kontaktirajte administratorja za dodajanje otrok.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedChild?.first_name} {selectedChild?.last_name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 px-1">
+            {selectedChild && (
+              <div className="space-y-6">
+                {/* Calendar View */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Prisotnost</h3>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedMonth === 0) {
+                            setSelectedMonth(11);
+                            setSelectedYear(selectedYear - 1);
+                          } else {
+                            setSelectedMonth(selectedMonth - 1);
+                          }
+                        }}
                       >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((month) => (
-                            <SelectItem key={month} value={String(month)}>
-                              {months[month] || "N/A"}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Leto</label>
-                      <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {years.map((year) =>
-                        <SelectItem key={year} value={year.toString()}>
-                              {year}
-                            </SelectItem>
-                        )}
-                        </SelectContent>
-                      </Select>
+                        Prejšnji mesec
+                      </Button>
+                      <span className="text-sm font-medium">
+                        {new Date(selectedYear, selectedMonth).toLocaleDateString("sl-SI", {
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedMonth === 11) {
+                            setSelectedMonth(0);
+                            setSelectedYear(selectedYear + 1);
+                          } else {
+                            setSelectedMonth(selectedMonth + 1);
+                          }
+                        }}
+                      >
+                        Naslednji mesec
+                      </Button>
                     </div>
                   </div>
 
-                  {selectedChild && selectedChildData && (() => {
-                    // Calculate child's age from date of birth
-                    const childAge: number | null = selectedChildData.date_of_birth
-                      ? Math.floor(
-                          (new Date().getTime() - new Date(selectedChildData.date_of_birth).getTime()) /
-                            (1000 * 60 * 60 * 24 * 365.25)
-                        )
-                      : null;
-
-                    return childAge !== null && (
-                      <div className="text-sm space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>{childAge} let</span>
-                        </div>
-                        {childAge >= 18 && (
-                          <Badge variant="secondary">Polnoleten</Badge>
-                        )}
-                        {childAge < 18 && (
-                          <Badge variant="outline">Mladoletnik</Badge>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
-
-              <div className="grid gap-4 sm:grid-cols-4">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Prisoten</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-green-600">{stats.present}</div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Odsoten</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-600">{stats.absent}</div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Opravičen</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-yellow-600">{stats.excused}</div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Skupaj Aktivnosti</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stats.total}</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    Prisotnost - {months[selectedMonth]} {selectedYear}
-                  </CardTitle>
-                  <CardDescription>
-                    P = Prisoten, O = Odsoten, Op = Opravičen
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-7 gap-2">
-                    {["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"].map((day) =>
-                  <div
-                    key={day}
-                    className="text-center text-sm font-medium p-2 bg-muted rounded">
-                    
+                  <div className="grid grid-cols-7 gap-2 mb-2">
+                    {["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"].map((day) => (
+                      <div key={day} className="text-center text-sm font-medium text-muted-foreground">
                         {day}
                       </div>
-                  )}
-
-                    {Array.from({ length: adjustedFirstDay }).map((_, i) =>
-                  <div key={`empty-${i}`} className="p-2" />
-                  )}
-
-                    {Array.from({ length: daysInMonth }).map((_, i) => {
-                    const day = i + 1;
-                    const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                    const status = getStatusForDate(dateStr);
-                    const attendanceRecord = attendance.find((a) => a.activities?.activity_date === dateStr);
-                    const schedule = getScheduleForDate(dateStr);
-                    const scheduleInfo = formatScheduleInfo(schedule);
-                    const activityType = getActivityTypeLabel(attendanceRecord);
-                    const activityVenue = getActivityVenue(attendanceRecord);
-                    const offSchedule = isOffSchedule(attendanceRecord, schedule);
-                    const isToday =
-                    day === new Date().getDate() &&
-                    selectedMonth === new Date().getMonth() &&
-                    selectedYear === new Date().getFullYear();
-
-                    return (
-                      <div
-                        key={day}
-                        className={`
-                            relative p-3 rounded-lg border transition-colors min-h-[120px]
-                            ${isToday ? "border-primary bg-primary/5" : "border-border"}
-                            ${status !== null || schedule ? "bg-muted/50" : ""}
-                          `}>
-                    
-                          <div className="flex flex-col h-full">
-                            <div className="text-sm font-medium mb-2">{day}</div>
-                            
-                            {status !== null &&
-                          <div className="mb-2 flex justify-center">
-                                {getStatusBadge(status)}
-                              </div>
-                          }
-                            
-                            {activityType &&
-                          <div className="mb-1 text-xs font-semibold text-center text-primary">
-                                {activityType}
-                              </div>
-                          }
-                            
-                            {(attendanceRecord || schedule) &&
-                          <div className="text-xs text-muted-foreground text-center space-y-1 mt-auto">
-                                <div className="font-medium">
-                                  {attendanceRecord?.activities ?
-                              `${attendanceRecord.activities.start_time.slice(0, 5)}-${attendanceRecord.activities.end_time.slice(0, 5)}` :
-                              schedule ?
-                              `${schedule.start_time.slice(0, 5)}-${schedule.end_time.slice(0, 5)}` :
-                              ""}
-                                </div>
-                                <div className={`line-clamp-2 ${offSchedule ? "text-orange-600 font-medium" : ""}`}>
-                                  {offSchedule && "⚠️ "}
-                                  {activityVenue || schedule?.venues?.name || "N/A"}
-                                </div>
-                              </div>
-                          }
-                          </div>
-                        </div>);
-
-                  })}
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Teams */}
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Ekipe</h3>
-                <p className="text-sm text-muted-foreground">
-                  Informacije o ekipah so na voljo na drugi strani
-                </p>
-              </div>
+                  <div className="grid grid-cols-7 gap-2">
+                    {getDaysInMonth().map((date) => {
+                      const dateStr = date.toISOString().split("T")[0];
+                      const attendance = getAttendanceForDate(dateStr);
+                      const schedule = getScheduleForDate(dateStr);
+                      const hasActivity = schedule !== null;
 
-              {/* Schedules */}
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Urnik treningov</h3>
-                {schedules && schedules.length > 0 ? (
-                  <div className="space-y-3">
-                    {sortedDays.map((day) => {
-                      const daySchedules = groupedSchedules[day] || [];
-                      if (daySchedules.length === 0) return null;
-                      
                       return (
-                        <div key={day} className="space-y-1">
-                          <div className="text-sm font-medium">{day}</div>
-                          {daySchedules.map((schedule) => {
-                            return (
-                              <div key={schedule.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-4">
-                                <Clock className="h-3 w-3" />
-                                <span>
-                                  {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
-                                </span>
-                                {schedule.venues?.name && (
-                                  <>
-                                    <span>•</span>
-                                    <MapPin className="h-3 w-3" />
-                                    <span>{schedule.venues.name}</span>
-                                  </>
-                                )}
-                                {schedule.teams?.name && (
-                                  <>
-                                    <span>•</span>
-                                    <Users className="h-3 w-3" />
-                                    <span>{schedule.teams.name}</span>
-                                  </>
-                                )}
-                              </div>
-                            );
-                          })}
+                        <div
+                          key={dateStr}
+                          className={`
+                            min-h-[80px] p-2 border rounded-lg
+                            ${!hasActivity ? "bg-muted/30" : ""}
+                            ${attendance ? getAttendanceColor(attendance.status) : ""}
+                          `}
+                        >
+                          <div className="text-sm font-medium mb-1">
+                            {date.getDate()}
+                          </div>
+                          {hasActivity && (
+                            <div className="text-xs text-muted-foreground">
+                              {schedule?.activity_name || "Trening"}
+                            </div>
+                          )}
+                          {attendance && (
+                            <Badge variant="outline" className="mt-1 text-xs">
+                              {getAttendanceLabel(attendance.status)}
+                            </Badge>
+                          )}
                         </div>
                       );
                     })}
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Ni določenega urnika
-                  </p>
-                )}
-              </div>
-            </>
-          }
-        </div>
-      </AppLayout>
-    </ProtectedRoute>
-  );
+                </div>
 
+                {/* Attendance Statistics */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Statistika prisotnosti</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-green-600">
+                          {attendance.filter((a) => a.status === "present").length}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Prisoten</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-red-600">
+                          {attendance.filter((a) => a.status === "absent").length}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Odsoten</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-yellow-600">
+                          {attendance.filter((a) => a.status === "excused").length}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Opravičen</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </AppLayout>
+  );
 }
