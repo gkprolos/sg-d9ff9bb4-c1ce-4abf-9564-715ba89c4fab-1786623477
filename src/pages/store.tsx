@@ -227,7 +227,6 @@ export default function Store() {
   // Collection View/Edit State
   const [viewingCollection, setViewingCollection] = useState<any>(null);
   const [isCollectionViewDialogOpen, setIsCollectionViewDialogOpen] = useState(false);
-  const [collectionItems, setCollectionItems] = useState<any[]>([]);
   const [editingCollectionStatus, setEditingCollectionStatus] = useState<string>("");
 
   // Collections Management State (for creating collections from orders)
@@ -1909,6 +1908,69 @@ export default function Store() {
             </Card>
           </TabsContent>
 
+          {/* Suppliers Tab */}
+          <TabsContent value="suppliers" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Dobavitelji</CardTitle>
+                    <CardDescription>
+                      Upravljanje dobaviteljev opreme
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => openSupplierDialog()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nov dobavitelj
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Naziv</TableHead>
+                      <TableHead>Kontaktna oseba</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Telefon</TableHead>
+                      <TableHead className="text-right">Akcije</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {suppliers.map((supplier) => (
+                      <TableRow key={supplier.id}>
+                        <TableCell className="font-medium">{supplier.name}</TableCell>
+                        <TableCell>{supplier.contact_person || "-"}</TableCell>
+                        <TableCell>{supplier.email || "-"}</TableCell>
+                        <TableCell>{supplier.phone || "-"}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openSupplierDialog(supplier)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Uredi
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteSupplier(supplier.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Izbriši
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Collections Tab */}
           <TabsContent value="collections" className="space-y-4">
             <Card>
@@ -2320,6 +2382,25 @@ export default function Store() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="supplier">Dobavitelj</Label>
+                <Select
+                  value={articleFormData.supplier_id}
+                  onValueChange={(value) => setArticleFormData({ ...articleFormData, supplier_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Izberi dobavitelja" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Brez dobavitelja</SelectItem>
+                    {suppliers.map((sup) => (
+                      <SelectItem key={sup.id} value={sup.id}>
+                        {sup.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Razpoložljive velikosti</Label>
                 <div className="flex flex-wrap gap-2">
                   {AVAILABLE_SIZES.map((size) => (
@@ -2563,6 +2644,183 @@ export default function Store() {
               disabled={selectedOrdersForCollection.size === 0}
             >
               Ustvari zbirnik
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Supplier Dialog */}
+      <Dialog open={isSupplierDialogOpen} onOpenChange={setIsSupplierDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingSupplier ? "Uredi dobavitelja" : "Nov dobavitelj"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingSupplier 
+                ? "Posodobite podatke o dobavitelju" 
+                : "Ustvarite novega dobavitelja"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="supplier_name">Naziv</Label>
+              <Input
+                id="supplier_name"
+                value={supplierFormData.name}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
+                placeholder="npr. Športna Oprema d.o.o."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact_person">Kontaktna oseba</Label>
+              <Input
+                id="contact_person"
+                value={supplierFormData.contact_person}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, contact_person: e.target.value })}
+                placeholder="Ime in priimek"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="supplier_email">Email</Label>
+                <Input
+                  id="supplier_email"
+                  type="email"
+                  value={supplierFormData.email}
+                  onChange={(e) => setSupplierFormData({ ...supplierFormData, email: e.target.value })}
+                  placeholder="info@dobavitelj.si"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier_phone">Telefon</Label>
+                <Input
+                  id="supplier_phone"
+                  value={supplierFormData.phone}
+                  onChange={(e) => setSupplierFormData({ ...supplierFormData, phone: e.target.value })}
+                  placeholder="+386 XX XXX XXX"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="supplier_notes">Opombe</Label>
+              <Textarea
+                id="supplier_notes"
+                value={supplierFormData.notes}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, notes: e.target.value })}
+                placeholder="Dodatne informacije..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSupplierDialogOpen(false)}>
+              Prekliči
+            </Button>
+            <Button onClick={saveSupplier}>
+              {editingSupplier ? "Posodobi" : "Ustvari"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Collection View Dialog */}
+      <Dialog open={isCollectionViewDialogOpen} onOpenChange={setIsCollectionViewDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Zbirnik {viewingCollection?.collection_number}</DialogTitle>
+            <DialogDescription>
+              Pregled in urejanje zbirnika
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 px-1">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="space-y-1">
+                    <Label>Status</Label>
+                    <Select value={editingCollectionStatus} onValueChange={setEditingCollectionStatus}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Osnutek</SelectItem>
+                        <SelectItem value="ordered">Naročeno</SelectItem>
+                        <SelectItem value="received">Prejeto</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {editingCollectionStatus !== viewingCollection?.status && (
+                    <Button onClick={updateCollectionStatus} className="mt-6">
+                      Posodobi status
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={copyCollectionItems}>
+                    Kopiraj
+                  </Button>
+                  <Button variant="outline" onClick={exportCollectionToExcel}>
+                    Excel izvoz
+                  </Button>
+                </div>
+              </div>
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Šifra</TableHead>
+                      <TableHead>Naziv</TableHead>
+                      <TableHead>Dobavitelj</TableHead>
+                      <TableHead>Velikost</TableHead>
+                      <TableHead>Količina</TableHead>
+                      <TableHead>Cena/kos</TableHead>
+                      <TableHead>Skupaj</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {collectionItems
+                      .sort((a, b) => {
+                        const supplierA = (a as any).store_items?.store_suppliers?.name || "";
+                        const supplierB = (b as any).store_items?.store_suppliers?.name || "";
+                        return supplierA.localeCompare(supplierB);
+                      })
+                      .map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-mono">{item.item_number}</TableCell>
+                          <TableCell>{item.item_name}</TableCell>
+                          <TableCell>{item.store_items?.store_suppliers?.name || "N/A"}</TableCell>
+                          <TableCell>{item.size}</TableCell>
+                          <TableCell>{item.total_quantity}</TableCell>
+                          <TableCell>{item.unit_price.toFixed(2)} €</TableCell>
+                          <TableCell className="font-semibold">
+                            {(item.total_quantity * item.unit_price).toFixed(2)} €
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    {collectionItems.length > 0 && (
+                      <TableRow className="font-semibold bg-muted/50">
+                        <TableCell colSpan={4}>SKUPAJ</TableCell>
+                        <TableCell>
+                          {collectionItems.reduce((sum, item) => sum + item.total_quantity, 0)}
+                        </TableCell>
+                        <TableCell></TableCell>
+                        <TableCell>
+                          {collectionItems
+                            .reduce((sum, item) => sum + item.total_quantity * item.unit_price, 0)
+                            .toFixed(2)}{" "}
+                          €
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button onClick={() => setIsCollectionViewDialogOpen(false)}>
+              Zapri
             </Button>
           </DialogFooter>
         </DialogContent>

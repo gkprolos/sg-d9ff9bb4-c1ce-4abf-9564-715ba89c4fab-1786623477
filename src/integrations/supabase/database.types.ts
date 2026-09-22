@@ -1280,6 +1280,7 @@ export type Database = {
           name: string
           price: number
           quantity_in_stock: number
+          supplier_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -1300,6 +1301,7 @@ export type Database = {
           name: string
           price: number
           quantity_in_stock?: number
+          supplier_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -1320,10 +1322,19 @@ export type Database = {
           name?: string
           price?: number
           quantity_in_stock?: number
+          supplier_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "store_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "store_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_order_items: {
         Row: {
@@ -1446,6 +1457,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      store_suppliers: {
+        Row: {
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       team_coaches: {
         Row: {
