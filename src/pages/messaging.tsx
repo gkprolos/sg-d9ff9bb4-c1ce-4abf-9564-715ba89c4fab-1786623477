@@ -378,69 +378,55 @@ export default function MessagingPage() {
     }
   }
 
-  async function loadAvailableContacts(teamId?: string) {
-    if (isParent) {
-      // Parent: Get coaches from their children's teams via API
-      const { data } = await supabase.rpc("get_allowed_contacts_for_parent", {
-        parent_email_param: parentEmail
-      });
+    async function loadAvailableContacts(teamId?: string) {
+        if (isParent) {
+            // Starši morajo uporabljati API route, ker nimajo Supabase Auth tokena in RLS blokira supabase.rpc()
+            try {
+                const response = await fetch(`/api/parent/get-contacts?parent_email=${encodeURIComponent(parentEmail || "")}`);
+                const data = await response.json();
 
-      if (data) {
-        setAvailableContacts(data.map((c: any) => ({
-          id: c.user_id,
-          email: c.email,
-          name: c.name,
-          type: c.contact_type
-        })));
-      }
-    } else if (isCoach && user?.id) {
-      // Coach: Get admin + other coaches + parents from selected team
-      const contacts: Contact[] = [];
+                if (response.ok && data) {
+                    setAvailableContacts(data.map((c: any) => ({
+                        id: c.user_id,
+                        email: c.email,
+                        name: c.name,
+                        type: c.contact_type
+                    })));
+                } else {
+                    setAvailableContacts([]);
+                }
+            } catch (err) {
+                console.error("Error fetching parent contacts:", err);
+                setAvailableContacts([]);
+            }
+        } else if (isCoach && user?.id) {
+            // Coach: Get admin + other coaches + parents from selected team
+            const contacts: Contact[] = [];
 
-      // Always get admins and coaches
-      const { data: adminUsers } = await supabase.
-      from("user_roles").
-      select("user_id, profiles(id, full_name, email)").
-      eq("role", "admin");
+            // Pridobimo SAMO prave trenerje in admina (izpustimo starše, kot je Gregor)
+            const { data: roleUsers } = await supabase
+                .from("user_roles")
+                .select("user_id, role, profiles!inner(id, full_name, email)")
+                .in("role", ["admin", "coach"]);
 
-      const { data: allCoaches } = await supabase.
-      from("profiles").
-      select("id, full_name, email").
-      eq("is_active", true);
+            if (roleUsers) {
+                roleUsers.forEach((ru: any) => {
+                    if (ru.profiles && ru.user_id !== user?.id && !contacts.find(c => c.id === ru.profiles.id)) {
+                        contacts.push({
+                            id: ru.profiles.id,
+                            email: ru.profiles.email, // Dodamo email za preverjanje podvajanja
+                            name: ru.profiles.full_name,
+                            type: ru.role // Uporabimo pravi 'role' iz baze (admin ali coach)
+                        });
+                    }
+                });
+            }
 
-      // Add admins
-      if (adminUsers) {
-        adminUsers.forEach((admin: any) => {
-          if (admin.profiles && admin.user_id !== user?.id) {
-            contacts.push({
-              id: admin.profiles.id,
-              name: admin.profiles.full_name,
-              type: "admin"
-            });
-          }
-        });
-      }
-
-      // Add coaches (exclude self)
-      if (allCoaches) {
-        allCoaches.forEach((coach) => {
-          if (coach.id !== user?.id && !contacts.find((c) => c.id === coach.id)) {
-            contacts.push({
-              id: coach.id,
-              name: coach.full_name,
-              type: "coach"
-            });
-          }
-        });
-      }
-
-      // If team is selected, add parents from that team's players
-      if (teamId) {
-        console.log("Coach selected team:", teamId, "- loading parents...");
-
-        const { data: teamPlayers, error: playersError } = await supabase.
-        from("team_players").
-        select(`
+            // If team is selected, add parents from that team's players
+            if (teamId) {
+                const { data: teamPlayers, error: playersError } = await supabase
+                    .from("team_players")
+                    .select(`
             player_id,
             players!inner(
               id,
@@ -450,117 +436,110 @@ export default function MessagingPage() {
               guardian2_name,
               is_active
             )
-          `).
-        eq("team_id", teamId).
-        eq("players.is_active", true);
+          `)
+                    .eq("team_id", teamId)
+                    .eq("players.is_active", true);
 
-        if (playersError) {
-          console.error("Error loading team players:", playersError);
-        } else {
-          console.log("Team players loaded:", teamPlayers?.length, teamPlayers);
-        }
+                if (teamPlayers) {
+                    const parentMap = new Map < string, Contact> ();
 
-        if (teamPlayers) {
-          // De-duplicate parents by email
-          const parentMap = new Map<string, Contact>();
+                    teamPlayers.forEach((tp: any) => {
+                        const player = tp.players;
+                        if (player.guardian1_email && !parentMap.has(player.guardian1_email)) {
+                            parentMap.set(player.guardian1_email, {
+                                email: player.guardian1_email,
+                                name: player.guardian1_name || player.guardian1_email,
+                                type: "parent"
+                            });
+                        }
+                        if (player.guardian2_email && !parentMap.has(player.guardian2_email)) {
+                            parentMap.set(player.guardian2_email, {
+                                email: player.guardian2_email,
+                                name: player.guardian2_name || player.guardian2_email,
+                                type: "parent"
+                            });
+                        }
+                    });
 
-          teamPlayers.forEach((tp: any) => {
-            const player = tp.players;
-            if (player.guardian1_email && !parentMap.has(player.guardian1_email)) {
-              parentMap.set(player.guardian1_email, {
-                email: player.guardian1_email,
-                name: player.guardian1_name || player.guardian1_email,
-                type: "parent"
-              });
+                    // Preprečimo podvajanje (preverjamo tako ID kot E-MAIL)
+                    parentMap.forEach((contact) => {
+                        const alreadyExists = contacts.find(c =>
+                            (c.id && c.id === contact.id) || (c.email && c.email === contact.email)
+                        );
+
+                        if (!alreadyExists) {
+                            contacts.push(contact);
+                        } else {
+                            // Če slučajno že obstaja v seznamu (npr. kot trener), mu popravimo tip na "starš", 
+                            // če je to ustrezneje, ali pa ga preprosto pustimo pri miru. 
+                            // Tukaj ga pustimo pri miru, da ne brišemo trenerjev.
+                        }
+                    });
+                }
             }
-            if (player.guardian2_email && !parentMap.has(player.guardian2_email)) {
-              parentMap.set(player.guardian2_email, {
-                email: player.guardian2_email,
-                name: player.guardian2_name || player.guardian2_email,
-                type: "parent"
-              });
+
+            setAvailableContacts(contacts);
+        } else if (isAdmin) {
+            // Admin: Get coaches + parents
+            const contacts: Contact[] = [];
+
+            // Pridobimo SAMO prave trenerje in admina
+            const { data: roleUsers } = await supabase
+                .from("user_roles")
+                .select("user_id, role, profiles!inner(id, full_name, email)")
+                .in("role", ["admin", "coach"]);
+
+            if (roleUsers) {
+                roleUsers.forEach((ru: any) => {
+                    if (ru.profiles && ru.user_id !== user?.id && !contacts.find(c => c.id === ru.profiles.id)) {
+                        contacts.push({
+                            id: ru.profiles.id,
+                            email: ru.profiles.email,
+                            name: ru.profiles.full_name,
+                            type: ru.role
+                        });
+                    }
+                });
             }
-          });
 
-          console.log("Unique parents from team:", parentMap.size);
+            const { data: parents } = await supabase
+                .from("players")
+                .select("guardian1_email, guardian1_name, guardian2_email, guardian2_name")
+                .eq("is_active", true);
 
-          // Add unique parents to contacts
-          parentMap.forEach((contact) => contacts.push(contact));
+            if (parents) {
+                const parentMap = new Map < string, Contact> ();
+
+                parents.forEach((p) => {
+                    if (p.guardian1_email && !parentMap.has(p.guardian1_email)) {
+                        parentMap.set(p.guardian1_email, {
+                            email: p.guardian1_email,
+                            name: p.guardian1_name || p.guardian1_email,
+                            type: "parent"
+                        });
+                    }
+                    if (p.guardian2_email && !parentMap.has(p.guardian2_email)) {
+                        parentMap.set(p.guardian2_email, {
+                            email: p.guardian2_email,
+                            name: p.guardian2_name || p.guardian2_email,
+                            type: "parent"
+                        });
+                    }
+                });
+
+                parentMap.forEach((contact) => {
+                    const alreadyExists = contacts.find(c =>
+                        (c.id && c.id === contact.id) || (c.email && c.email === contact.email)
+                    );
+                    if (!alreadyExists) {
+                        contacts.push(contact);
+                    }
+                });
+            }
+
+            setAvailableContacts(contacts);
         }
-      }
-
-      console.log("Total contacts for coach:", contacts.length, contacts);
-      setAvailableContacts(contacts);
-    } else if (isAdmin) {
-      // Admin: Get coaches + parents
-      console.log("Admin loadAvailableContacts - fetching coaches and parents...");
-
-      const { data: coaches, error: coachError } = await supabase.
-      from("profiles").
-      select("id, full_name, email").
-      eq("is_active", true);
-
-      if (coachError) {
-        console.error("Error loading coaches:", coachError);
-      } else {
-        console.log("Coaches loaded:", coaches?.length, coaches);
-      }
-
-      const { data: parents, error: parentError } = await supabase.
-      from("players").
-      select("guardian1_email, guardian1_name, guardian2_email, guardian2_name").
-      eq("is_active", true);
-
-      if (parentError) {
-        console.error("Error loading parents:", parentError);
-      } else {
-        console.log("Parents loaded:", parents?.length, parents);
-      }
-
-      const contacts: Contact[] = [];
-
-      if (coaches) {
-        coaches.forEach((c) => {
-          contacts.push({
-            id: c.id,
-            name: c.full_name,
-            type: "coach"
-          });
-        });
-        console.log("Added coaches to contacts:", coaches.length);
-      }
-
-      if (parents) {
-        // De-duplicate parents by email
-        const parentMap = new Map<string, Contact>();
-
-        parents.forEach((p) => {
-          if (p.guardian1_email && !parentMap.has(p.guardian1_email)) {
-            parentMap.set(p.guardian1_email, {
-              email: p.guardian1_email,
-              name: p.guardian1_name || p.guardian1_email,
-              type: "parent"
-            });
-          }
-          if (p.guardian2_email && !parentMap.has(p.guardian2_email)) {
-            parentMap.set(p.guardian2_email, {
-              email: p.guardian2_email,
-              name: p.guardian2_name || p.guardian2_email,
-              type: "parent"
-            });
-          }
-        });
-
-        console.log("Unique parents found:", parentMap.size);
-
-        // Add unique parents to contacts
-        parentMap.forEach((contact) => contacts.push(contact));
-      }
-
-      console.log("Total contacts for admin:", contacts.length, contacts);
-      setAvailableContacts(contacts);
     }
-  }
 
   async function createConversation() {
     if (!newSubject.trim() || !newContent.trim() || selectedContacts.length === 0) {
