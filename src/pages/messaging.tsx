@@ -565,14 +565,19 @@ export default function MessagingPage() {
               return;
             }
             
+            // Preveri če je user_roles array ali single object
+            const rolesArray = Array.isArray(profile.user_roles) ? profile.user_roles : [profile.user_roles];
+            
+            console.log("  -> rolesArray:", rolesArray);
+            
             // Če ima user_roles, določi primarno vlogo (prioriteta: admin > coach > parent)
             let contactType = "parent";
-            if (profile.user_roles && profile.user_roles.length > 0) {
-              if (profile.user_roles.some((ur: any) => ur.role === "admin")) {
+            if (rolesArray && rolesArray.length > 0 && rolesArray[0]) {
+              if (rolesArray.some((ur: any) => ur?.role === "admin")) {
                 contactType = "admin";
-              } else if (profile.user_roles.some((ur: any) => ur.role === "coach")) {
+              } else if (rolesArray.some((ur: any) => ur?.role === "coach")) {
                 contactType = "coach";
-              } else if (profile.user_roles.some((ur: any) => ur.role === "parent")) {
+              } else if (rolesArray.some((ur: any) => ur?.role === "parent")) {
                 contactType = "parent";
               }
             }
