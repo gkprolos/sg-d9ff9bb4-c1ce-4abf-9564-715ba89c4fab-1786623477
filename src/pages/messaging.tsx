@@ -927,30 +927,29 @@ export default function MessagingPage() {
                         </div>
 
                         {/* Show team selector only for coaches and admins */}
-                        {(isCoach || isAdmin) &&
-                        <div>
+                        {(isCoach || isAdmin) && (
+                          <div>
                             <label className="text-sm font-medium mb-2 block">Selekcija (Opcijsko)</label>
                             <Select
-                            value={selectedTeam || undefined}
-                            onValueChange={(value) => {
-                              setSelectedTeam(value);
-                              loadAvailableContacts();
-                              loadAvailableContacts(value || undefined);
-                            }}>
-                            
+                              value={selectedTeam || undefined}
+                              onValueChange={(value) => {
+                                setSelectedTeam(value);
+                                filterContactsByTeam(value);
+                              }}
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder="Brez selekcije" />
                               </SelectTrigger>
                               <SelectContent>
-                                {teams.map((team) =>
-                              <SelectItem key={team.id} value={team.id}>
+                                {teams.map((team) => (
+                                  <SelectItem key={team.id} value={team.id}>
                                     {team.name}
                                   </SelectItem>
-                              )}
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>
-                        }
+                        )}
 
                         <div>
                           <label className="text-sm font-medium mb-2 block">Prvo Sporočilo</label>
