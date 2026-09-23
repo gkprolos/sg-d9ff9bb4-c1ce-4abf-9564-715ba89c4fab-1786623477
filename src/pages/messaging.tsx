@@ -493,25 +493,42 @@ export default function MessagingPage() {
 
         if (coachesAndAdmins) {
           coachesAndAdmins.forEach((profile: any) => {
+            console.log("Processing coach/admin profile:", profile.full_name, "user_roles:", profile.user_roles);
+            
             // Samo profili z user_roles vnosom
-            if (!profile.user_roles || profile.user_roles.length === 0) return;
+            if (!profile.user_roles || profile.user_roles.length === 0) {
+              console.log("  -> Skipping (no user_roles)");
+              return;
+            }
+            
+            // Preveri če je user_roles array
+            const rolesArray = Array.isArray(profile.user_roles) ? profile.user_roles : [profile.user_roles];
             
             // Preveri če je ta oseba označena kot 'parent' v user_roles
-            const hasParentRole = profile.user_roles.some((ur: any) => ur.role === "parent");
-            const hasCoachOrAdminRole = profile.user_roles.some((ur: any) => ur.role === "coach" || ur.role === "admin");
+            const hasParentRole = rolesArray.some((ur: any) => ur.role === "parent");
+            const hasCoachOrAdminRole = rolesArray.some((ur: any) => ur.role === "coach" || ur.role === "admin");
+            
+            console.log("  -> hasParentRole:", hasParentRole, "hasCoachOrAdminRole:", hasCoachOrAdminRole);
             
             // Če je SAMO parent (brez coach/admin role), ga ne dodajaj
-            if (hasParentRole && !hasCoachOrAdminRole) return;
+            if (hasParentRole && !hasCoachOrAdminRole) {
+              console.log("  -> Skipping (only parent role)");
+              return;
+            }
             
             // Preveri podvajanje po ID in emailu
             if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
-              const primaryRole = profile.user_roles.find((ur: any) => ur.role === "admin" || ur.role === "coach")?.role || "coach";
+              const primaryRole = rolesArray.find((ur: any) => ur.role === "admin" || ur.role === "coach")?.role || "coach";
+              console.log("  -> Adding as:", primaryRole);
+              
               contacts.push({
                 id: profile.id,
                 email: profile.email,
                 name: profile.full_name,
                 type: primaryRole === "admin" ? "admin" : "coach",
               });
+            } else {
+              console.log("  -> Skipping (duplicate)");
             }
           });
         }
@@ -662,24 +679,42 @@ export default function MessagingPage() {
           teamCoaches.forEach((tc: any) => {
             const profile = tc.profiles;
             
+            console.log("Processing team coach:", profile.full_name, "user_roles:", profile.user_roles);
+            
             // Samo profili z user_roles vnosom
-            if (!profile.user_roles || profile.user_roles.length === 0) return;
+            if (!profile.user_roles || profile.user_roles.length === 0) {
+              console.log("  -> Skipping (no user_roles)");
+              return;
+            }
+            
+            // Preveri če je user_roles array
+            const rolesArray = Array.isArray(profile.user_roles) ? profile.user_roles : [profile.user_roles];
             
             // Preveri če je ta oseba označena kot 'parent' v user_roles
-            const hasParentRole = profile.user_roles.some((ur: any) => ur.role === "parent");
-            const hasCoachOrAdminRole = profile.user_roles.some((ur: any) => ur.role === "coach" || ur.role === "admin");
+            const hasParentRole = rolesArray.some((ur: any) => ur.role === "parent");
+            const hasCoachOrAdminRole = rolesArray.some((ur: any) => ur.role === "coach" || ur.role === "admin");
+            
+            console.log("  -> hasParentRole:", hasParentRole, "hasCoachOrAdminRole:", hasCoachOrAdminRole);
             
             // Če je SAMO parent (brez coach/admin role), ga ne dodajaj
-            if (hasParentRole && !hasCoachOrAdminRole) return;
+            if (hasParentRole && !hasCoachOrAdminRole) {
+              console.log("  -> Skipping (only parent role)");
+              return;
+            }
             
             // Preveri podvajanje po ID in emailu
             if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
+              const contactType = hasCoachOrAdminRole ? "coach" : "parent";
+              console.log("  -> Adding as:", contactType);
+              
               contacts.push({
                 id: profile.id,
                 email: profile.email,
                 name: profile.full_name,
-                type: "coach",
+                type: contactType,
               });
+            } else {
+              console.log("  -> Skipping (duplicate)");
             }
           });
         }
