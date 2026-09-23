@@ -139,6 +139,8 @@ export default function MessagingPage() {
       loadConversations();
       if (isCoach) {
         loadCoachTeams();
+      } else if (isAdmin) {
+        loadAllTeams();
       }
     }
   }, [user, effectiveRole, parentEmail, statusFilter]);
@@ -159,17 +161,37 @@ export default function MessagingPage() {
   async function loadCoachTeams() {
     if (!user?.id) return;
 
-    const { data } = await supabase.
-    from("team_coaches").
-    select("team_id, teams(id, name)").
-    eq("coach_id", user.id).
-    eq("is_active", true);
+    const { data } = await supabase
+      .from("team_coaches")
+      .select("team_id, teams(id, name)")
+      .eq("coach_id", user.id)
+      .eq("is_active", true);
 
     if (data) {
-      const teamList = data.
-      filter((tc) => tc.teams).
-      map((tc) => ({ id: tc.teams!.id, name: tc.teams!.name }));
+      const teamList = data
+        .filter((tc) => tc.teams)
+        .map((tc) => ({ id: tc.teams!.id, name: tc.teams!.name }));
       setTeams(teamList);
+      console.log("Coach teams loaded:", teamList);
+    }
+  }
+
+  async function loadAllTeams() {
+    // Za admin-a - naloži vse ekipe
+    const { data, error } = await supabase
+      .from("teams")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+
+    if (error) {
+      console.error("Error loading teams:", error);
+      return;
+    }
+
+    if (data) {
+      setTeams(data);
+      console.log("Admin teams loaded:", data.length, "teams");
     }
   }
 
@@ -498,7 +520,9 @@ export default function MessagingPage() {
 
       if (effectiveRole === "admin") {
         // Admin vidi vse (razen samega sebe)
-        const { data: allUsers } = await supabase
+        console.log("Loading contacts for admin - user.id:", user?.id);
+        
+        const { data: allUsers, error: queryError } = await supabase
           .from("profiles")
           .select(
             `
@@ -512,12 +536,18 @@ export default function MessagingPage() {
           )
           .neq("id", user?.id);
 
+        console.log("All users query - error:", queryError, "data count:", allUsers?.length);
         console.log("All users for admin:", allUsers);
 
         if (allUsers) {
           allUsers.forEach((profile: any) => {
+            console.log("Processing profile:", profile.full_name, "roles:", profile.user_roles);
+            
             // Preveri podvajanje po ID in emailu
-            if (contacts.find(c => c.id === profile.id || c.email === profile.email)) return;
+            if (contacts.find(c => c.id === profile.id || c.email === profile.email)) {
+              console.log("  -> Skipping (duplicate)");
+              return;
+            }
             
             // Če ima user_roles, določi primarno vlogo (prioriteta: admin > coach > parent)
             let contactType = "parent";
@@ -530,6 +560,8 @@ export default function MessagingPage() {
                 contactType = "parent";
               }
             }
+            
+            console.log("  -> Adding as:", contactType);
             
             contacts.push({
               id: profile.id,
