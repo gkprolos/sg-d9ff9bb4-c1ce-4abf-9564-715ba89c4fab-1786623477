@@ -181,7 +181,6 @@ export default function MessagingPage() {
     const { data, error } = await supabase
       .from("teams")
       .select("id, name")
-      .eq("is_active", true)
       .order("name");
 
     if (error) {
