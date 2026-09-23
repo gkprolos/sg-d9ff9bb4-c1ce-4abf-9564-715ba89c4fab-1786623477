@@ -451,26 +451,46 @@ export default function MessagingPage() {
           .eq("players.is_active", true);
 
         if (teamPlayers) {
+          const parentEmails = new Map<string, string[]>(); // email -> [otrokova imena]
+          
+          // Najprej zberemo vse starše in njihove otroke
           teamPlayers.forEach((tp: any) => {
             const player = tp.players;
+            const childName = `${player.first_name} ${player.last_name}`;
+            
             // Guardian 1
-            if (player.guardian1_email && !contacts.find(c => c.email === player.guardian1_email)) {
-              contacts.push({
-                id: `${player.id}-g1`,
-                email: player.guardian1_email,
-                name: `Starš: ${player.first_name} ${player.last_name}`,
-                type: "parent",
-              });
+            if (player.guardian1_email) {
+              if (!parentEmails.has(player.guardian1_email)) {
+                parentEmails.set(player.guardian1_email, []);
+              }
+              if (!parentEmails.get(player.guardian1_email)!.includes(childName)) {
+                parentEmails.get(player.guardian1_email)!.push(childName);
+              }
             }
+            
             // Guardian 2
-            if (player.guardian2_email && !contacts.find(c => c.email === player.guardian2_email)) {
-              contacts.push({
-                id: `${player.id}-g2`,
-                email: player.guardian2_email,
-                name: `Starš: ${player.first_name} ${player.last_name}`,
-                type: "parent",
-              });
+            if (player.guardian2_email) {
+              if (!parentEmails.has(player.guardian2_email)) {
+                parentEmails.set(player.guardian2_email, []);
+              }
+              if (!parentEmails.get(player.guardian2_email)!.includes(childName)) {
+                parentEmails.get(player.guardian2_email)!.push(childName);
+              }
             }
+          });
+          
+          // Sedaj dodamo starše brez duplikatov
+          parentEmails.forEach((childNames, email) => {
+            const displayName = childNames.length === 1 
+              ? `Starš: ${childNames[0]}` 
+              : `Starš: ${childNames.join(", ")}`;
+              
+            contacts.push({
+              id: `parent-${email}`,
+              email: email,
+              name: displayName,
+              type: "parent",
+            });
           });
         }
 
@@ -614,6 +634,7 @@ export default function MessagingPage() {
 
     try {
       const contacts: Contact[] = [];
+      const parentEmails = new Map<string, string[]>(); // email -> [otrokova imena]
 
       if (effectiveRole === "coach" || effectiveRole === "admin") {
         // Pridobi igralce izbrane ekipe
@@ -635,26 +656,44 @@ export default function MessagingPage() {
           .eq("players.is_active", true);
 
         if (teamPlayers) {
+          // Najprej zberemo vse starše in njihove otroke
           teamPlayers.forEach((tp: any) => {
             const player = tp.players;
-            // Guardian 1 - preveri podvajanje po emailu
-            if (player.guardian1_email && !contacts.find(c => c.email === player.guardian1_email)) {
-              contacts.push({
-                id: `${player.id}-g1`,
-                email: player.guardian1_email,
-                name: `Starš: ${player.first_name} ${player.last_name}`,
-                type: "parent",
-              });
+            const childName = `${player.first_name} ${player.last_name}`;
+            
+            // Guardian 1
+            if (player.guardian1_email) {
+              if (!parentEmails.has(player.guardian1_email)) {
+                parentEmails.set(player.guardian1_email, []);
+              }
+              if (!parentEmails.get(player.guardian1_email)!.includes(childName)) {
+                parentEmails.get(player.guardian1_email)!.push(childName);
+              }
             }
-            // Guardian 2 - preveri podvajanje po emailu
-            if (player.guardian2_email && !contacts.find(c => c.email === player.guardian2_email)) {
-              contacts.push({
-                id: `${player.id}-g2`,
-                email: player.guardian2_email,
-                name: `Starš: ${player.first_name} ${player.last_name}`,
-                type: "parent",
-              });
+            
+            // Guardian 2
+            if (player.guardian2_email) {
+              if (!parentEmails.has(player.guardian2_email)) {
+                parentEmails.set(player.guardian2_email, []);
+              }
+              if (!parentEmails.get(player.guardian2_email)!.includes(childName)) {
+                parentEmails.get(player.guardian2_email)!.push(childName);
+              }
             }
+          });
+          
+          // Sedaj dodamo starše brez duplikatov
+          parentEmails.forEach((childNames, email) => {
+            const displayName = childNames.length === 1 
+              ? `Starš: ${childNames[0]}` 
+              : `Starš: ${childNames.join(", ")}`;
+              
+            contacts.push({
+              id: `parent-${email}`,
+              email: email,
+              name: displayName,
+              type: "parent",
+            });
           });
         }
 
