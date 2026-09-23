@@ -378,168 +378,296 @@ export default function MessagingPage() {
     }
   }
 
-    async function loadAvailableContacts(teamId?: string) {
-        if (isParent) {
-            // Starši morajo uporabljati API route, ker nimajo Supabase Auth tokena in RLS blokira supabase.rpc()
-            try {
-                const response = await fetch(`/api/parent/get-contacts?parent_email=${encodeURIComponent(parentEmail || "")}`);
-                const data = await response.json();
+  const loadAvailableContacts = async () => {
+    try {
+      if (userRole === "parent") {
+        // Za starše - pridobi kontakte preko API
+        const response = await fetch(`/api/parent/get-contacts?parent_email=${user?.email}`);
+        if (!response.ok) throw new Error("Failed to load contacts");
+        
+        const data = await response.json();
+        const formattedContacts = data.map((contact: any) => ({
+          id: contact.user_id,
+          email: contact.email,
+          name: contact.name,
+          type: contact.contact_type,
+        }));
+        
+        setAvailableContacts(formattedContacts);
+        return;
+      }
 
-                if (response.ok && data) {
-                    setAvailableContacts(data.map((c: any) => ({
-                        id: c.user_id,
-                        email: c.email,
-                        name: c.name,
-                        type: c.contact_type
-                    })));
-                } else {
-                    setAvailableContacts([]);
-                }
-            } catch (err) {
-                console.error("Error fetching parent contacts:", err);
-                setAvailableContacts([]);
-            }
-        } else if (isCoach && user?.id) {
-            // Coach: Get admin + other coaches + parents from selected team
-            const contacts: Contact[] = [];
+      // Za trenerje in admine
+      const contacts: Contact[] = [];
 
-            // Pridobimo SAMO prave trenerje in admina (izpustimo starše, kot je Gregor)
-            const { data: roleUsers } = await supabase
-                .from("user_roles")
-                .select("user_id, role, profiles!inner(id, full_name, email)")
-                .in("role", ["admin", "coach"]);
-
-            if (roleUsers) {
-                roleUsers.forEach((ru: any) => {
-                    if (ru.profiles && ru.user_id !== user?.id && !contacts.find(c => c.id === ru.profiles.id)) {
-                        contacts.push({
-                            id: ru.profiles.id,
-                            email: ru.profiles.email, // Dodamo email za preverjanje podvajanja
-                            name: ru.profiles.full_name,
-                            type: ru.role // Uporabimo pravi 'role' iz baze (admin ali coach)
-                        });
-                    }
-                });
-            }
-
-            // If team is selected, add parents from that team's players
-            if (teamId) {
-                const { data: teamPlayers, error: playersError } = await supabase
-                    .from("team_players")
-                    .select(`
+      if (userRole === "coach") {
+        // Pridobi igralce trenerjeve ekipe
+        const { data: teamPlayers } = await supabase
+          .from("team_players")
+          .select(
+            `
             player_id,
-            players!inner(
+            players!inner (
               id,
+              first_name,
+              last_name,
               guardian1_email,
-              guardian1_name,
-              guardian2_email,
-              guardian2_name,
-              is_active
+              guardian2_email
+            ),
+            teams!inner (
+              id,
+              name,
+              team_coaches!inner (
+                coach_id
+              )
             )
-          `)
-                    .eq("team_id", teamId)
-                    .eq("players.is_active", true);
+          `
+          )
+          .eq("teams.team_coaches.coach_id", user?.id)
+          .eq("teams.team_coaches.is_active", true)
+          .eq("players.is_active", true);
 
-                if (teamPlayers) {
-                    const parentMap = new Map < string, Contact> ();
-
-                    teamPlayers.forEach((tp: any) => {
-                        const player = tp.players;
-                        if (player.guardian1_email && !parentMap.has(player.guardian1_email)) {
-                            parentMap.set(player.guardian1_email, {
-                                email: player.guardian1_email,
-                                name: player.guardian1_name || player.guardian1_email,
-                                type: "parent"
-                            });
-                        }
-                        if (player.guardian2_email && !parentMap.has(player.guardian2_email)) {
-                            parentMap.set(player.guardian2_email, {
-                                email: player.guardian2_email,
-                                name: player.guardian2_name || player.guardian2_email,
-                                type: "parent"
-                            });
-                        }
-                    });
-
-                    // Preprečimo podvajanje (preverjamo tako ID kot E-MAIL)
-                    parentMap.forEach((contact) => {
-                        const alreadyExists = contacts.find(c =>
-                            (c.id && c.id === contact.id) || (c.email && c.email === contact.email)
-                        );
-
-                        if (!alreadyExists) {
-                            contacts.push(contact);
-                        } else {
-                            // Če slučajno že obstaja v seznamu (npr. kot trener), mu popravimo tip na "starš", 
-                            // če je to ustrezneje, ali pa ga preprosto pustimo pri miru. 
-                            // Tukaj ga pustimo pri miru, da ne brišemo trenerjev.
-                        }
-                    });
-                }
+        if (teamPlayers) {
+          teamPlayers.forEach((tp: any) => {
+            const player = tp.players;
+            // Guardian 1
+            if (player.guardian1_email && !contacts.find(c => c.email === player.guardian1_email)) {
+              contacts.push({
+                id: `${player.id}-g1`,
+                email: player.guardian1_email,
+                name: `Starš: ${player.first_name} ${player.last_name}`,
+                type: "parent",
+              });
             }
-
-            setAvailableContacts(contacts);
-        } else if (isAdmin) {
-            // Admin: Get coaches + parents
-            const contacts: Contact[] = [];
-
-            // Pridobimo SAMO prave trenerje in admina
-            const { data: roleUsers } = await supabase
-                .from("user_roles")
-                .select("user_id, role, profiles!inner(id, full_name, email)")
-                .in("role", ["admin", "coach"]);
-
-            if (roleUsers) {
-                roleUsers.forEach((ru: any) => {
-                    if (ru.profiles && ru.user_id !== user?.id && !contacts.find(c => c.id === ru.profiles.id)) {
-                        contacts.push({
-                            id: ru.profiles.id,
-                            email: ru.profiles.email,
-                            name: ru.profiles.full_name,
-                            type: ru.role
-                        });
-                    }
-                });
+            // Guardian 2
+            if (player.guardian2_email && !contacts.find(c => c.email === player.guardian2_email)) {
+              contacts.push({
+                id: `${player.id}-g2`,
+                email: player.guardian2_email,
+                name: `Starš: ${player.first_name} ${player.last_name}`,
+                type: "parent",
+              });
             }
-
-            const { data: parents } = await supabase
-                .from("players")
-                .select("guardian1_email, guardian1_name, guardian2_email, guardian2_name")
-                .eq("is_active", true);
-
-            if (parents) {
-                const parentMap = new Map < string, Contact> ();
-
-                parents.forEach((p) => {
-                    if (p.guardian1_email && !parentMap.has(p.guardian1_email)) {
-                        parentMap.set(p.guardian1_email, {
-                            email: p.guardian1_email,
-                            name: p.guardian1_name || p.guardian1_email,
-                            type: "parent"
-                        });
-                    }
-                    if (p.guardian2_email && !parentMap.has(p.guardian2_email)) {
-                        parentMap.set(p.guardian2_email, {
-                            email: p.guardian2_email,
-                            name: p.guardian2_name || p.guardian2_email,
-                            type: "parent"
-                        });
-                    }
-                });
-
-                parentMap.forEach((contact) => {
-                    const alreadyExists = contacts.find(c =>
-                        (c.id && c.id === contact.id) || (c.email && c.email === contact.email)
-                    );
-                    if (!alreadyExists) {
-                        contacts.push(contact);
-                    }
-                });
-            }
-
-            setAvailableContacts(contacts);
+          });
         }
+
+        // Pridobi vse trenerje in admine (razen tistih, ki so v user_roles kot 'parent')
+        const { data: coachesAndAdmins } = await supabase
+          .from("profiles")
+          .select(
+            `
+            id,
+            full_name,
+            email,
+            user_roles!inner (
+              role
+            )
+          `
+          )
+          .in("user_roles.role", ["coach", "admin"])
+          .neq("id", user?.id);
+
+        if (coachesAndAdmins) {
+          coachesAndAdmins.forEach((profile: any) => {
+            // Preveri če je ta oseba označena kot 'parent' v user_roles
+            const isParent = profile.user_roles.some((ur: any) => ur.role === "parent");
+            
+            // Če je parent, ga ne dodajaj kot trenerja/admina
+            if (isParent) return;
+            
+            // Preveri podvajanje po ID in emailu
+            if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
+              const userRole = profile.user_roles[0]?.role || "coach";
+              contacts.push({
+                id: profile.id,
+                email: profile.email,
+                name: profile.full_name,
+                type: userRole === "admin" ? "admin" : "coach",
+              });
+            }
+          });
+        }
+      }
+
+      if (userRole === "admin") {
+        // Admin vidi vse (razen samega sebe)
+        const { data: allUsers } = await supabase
+          .from("profiles")
+          .select(
+            `
+            id,
+            full_name,
+            email,
+            user_roles (
+              role
+            )
+          `
+          )
+          .neq("id", user?.id);
+
+        if (allUsers) {
+          allUsers.forEach((profile: any) => {
+            // Preveri podvajanje po ID in emailu
+            if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
+              const primaryRole = profile.user_roles?.[0]?.role || "parent";
+              contacts.push({
+                id: profile.id,
+                email: profile.email,
+                name: profile.full_name,
+                type: primaryRole,
+              });
+            }
+          });
+        }
+      }
+
+      setAvailableContacts(contacts);
+    } catch (error) {
+      console.error("Error loading contacts:", error);
+      toast({
+        title: "Napaka",
+        description: "Napaka pri nalaganju kontaktov",
+        variant: "destructive",
+      });
     }
+  };
+
+  const filterContactsByTeam = async (teamId: string) => {
+    if (!teamId || teamId === "all") {
+      loadAvailableContacts();
+      return;
+    }
+
+    try {
+      const contacts: Contact[] = [];
+
+      if (userRole === "coach" || userRole === "admin") {
+        // Pridobi igralce izbrane ekipe
+        const { data: teamPlayers } = await supabase
+          .from("team_players")
+          .select(
+            `
+            player_id,
+            players!inner (
+              id,
+              first_name,
+              last_name,
+              guardian1_email,
+              guardian2_email
+            )
+          `
+          )
+          .eq("team_id", teamId)
+          .eq("players.is_active", true);
+
+        if (teamPlayers) {
+          teamPlayers.forEach((tp: any) => {
+            const player = tp.players;
+            // Guardian 1 - preveri podvajanje po emailu
+            if (player.guardian1_email && !contacts.find(c => c.email === player.guardian1_email)) {
+              contacts.push({
+                id: `${player.id}-g1`,
+                email: player.guardian1_email,
+                name: `Starš: ${player.first_name} ${player.last_name}`,
+                type: "parent",
+              });
+            }
+            // Guardian 2 - preveri podvajanje po emailu
+            if (player.guardian2_email && !contacts.find(c => c.email === player.guardian2_email)) {
+              contacts.push({
+                id: `${player.id}-g2`,
+                email: player.guardian2_email,
+                name: `Starš: ${player.first_name} ${player.last_name}`,
+                type: "parent",
+              });
+            }
+          });
+        }
+
+        // Pridobi trenerje te ekipe (razen tistih z user_roles.role='parent')
+        const { data: teamCoaches } = await supabase
+          .from("team_coaches")
+          .select(
+            `
+            coach_id,
+            profiles!inner (
+              id,
+              full_name,
+              email,
+              user_roles!inner (
+                role
+              )
+            )
+          `
+          )
+          .eq("team_id", teamId)
+          .eq("is_active", true)
+          .neq("profiles.id", user?.id);
+
+        if (teamCoaches) {
+          teamCoaches.forEach((tc: any) => {
+            const profile = tc.profiles;
+            
+            // Preveri če je ta oseba označena kot 'parent' v user_roles
+            const isParent = profile.user_roles.some((ur: any) => ur.role === "parent");
+            
+            // Če je parent, ga ne dodajaj kot trenerja
+            if (isParent) return;
+            
+            // Preveri podvajanje po ID in emailu
+            if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
+              contacts.push({
+                id: profile.id,
+                email: profile.email,
+                name: profile.full_name,
+                type: "coach",
+              });
+            }
+          });
+        }
+
+        // Dodaj še vse admine
+        const { data: admins } = await supabase
+          .from("user_roles")
+          .select(
+            `
+            user_id,
+            profiles!inner (
+              id,
+              full_name,
+              email
+            )
+          `
+          )
+          .eq("role", "admin")
+          .neq("profiles.id", user?.id);
+
+        if (admins) {
+          admins.forEach((admin: any) => {
+            const profile = admin.profiles;
+            // Preveri podvajanje po ID in emailu
+            if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
+              contacts.push({
+                id: profile.id,
+                email: profile.email,
+                name: profile.full_name,
+                type: "admin",
+              });
+            }
+          });
+        }
+      }
+
+      setAvailableContacts(contacts);
+    } catch (error) {
+      console.error("Error filtering contacts:", error);
+      toast({
+        title: "Napaka",
+        description: "Napaka pri filtriranju kontaktov",
+        variant: "destructive",
+      });
+    }
+  };
 
   async function createConversation() {
     if (!newSubject.trim() || !newContent.trim() || selectedContacts.length === 0) {
@@ -778,7 +906,7 @@ export default function MessagingPage() {
                   </CardTitle>
                   <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
                     <DialogTrigger asChild>
-                      <Button size="sm" onClick={() => loadAvailableContacts()} className="flex-shrink-0" style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
+                      <Button size="sm" onClick={loadAvailableContacts} className="flex-shrink-0" style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                         <Plus className="h-4 w-4 mr-2" />
                         Nov Pogovor
                       </Button>
@@ -806,6 +934,7 @@ export default function MessagingPage() {
                             value={selectedTeam || undefined}
                             onValueChange={(value) => {
                               setSelectedTeam(value);
+                              loadAvailableContacts();
                               loadAvailableContacts(value || undefined);
                             }}>
                             
