@@ -494,58 +494,85 @@ export default function MessagingPage() {
           });
         }
 
-        // Pridobi vse trenerje in admine (razen tistih, ki so v user_roles kot 'parent')
-        const { data: coachesAndAdmins } = await supabase
-          .from("profiles")
+        // Pridobi vse aktivne trenerje iz team_coaches (razen prijavljen)
+        const { data: allCoaches } = await supabase
+          .from("team_coaches")
           .select(
             `
-            id,
-            full_name,
-            email,
-            user_roles (
-              role
+            coach_id,
+            profiles!inner (
+              id,
+              full_name,
+              email
             )
           `
           )
-          .neq("id", user?.id);
+          .eq("is_active", true)
+          .neq("profiles.id", user?.id);
 
-        console.log("Coaches and admins query result:", coachesAndAdmins);
+        console.log("All coaches query result:", allCoaches);
 
-        if (coachesAndAdmins) {
-          coachesAndAdmins.forEach((profile: any) => {
-            console.log("Processing coach/admin profile:", profile.full_name, "user_roles:", profile.user_roles);
-            
-            // Samo profili z user_roles vnosom
-            if (!profile.user_roles || profile.user_roles.length === 0) {
-              console.log("  -> Skipping (no user_roles)");
-              return;
+        if (allCoaches) {
+          // Deduplikacija po ID
+          const uniqueCoaches = new Map();
+          allCoaches.forEach((tc: any) => {
+            const profile = tc.profiles;
+            if (!uniqueCoaches.has(profile.id)) {
+              uniqueCoaches.set(profile.id, profile);
             }
-            
-            // Preveri če je user_roles array
-            const rolesArray = Array.isArray(profile.user_roles) ? profile.user_roles : [profile.user_roles];
-            
-            // Preveri če je ta oseba označena kot 'parent' v user_roles
-            const hasParentRole = rolesArray.some((ur: any) => ur.role === "parent");
-            const hasCoachOrAdminRole = rolesArray.some((ur: any) => ur.role === "coach" || ur.role === "admin");
-            
-            console.log("  -> hasParentRole:", hasParentRole, "hasCoachOrAdminRole:", hasCoachOrAdminRole);
-            
-            // Če je SAMO parent (brez coach/admin role), ga ne dodajaj
-            if (hasParentRole && !hasCoachOrAdminRole) {
-              console.log("  -> Skipping (only parent role)");
-              return;
-            }
+          });
+
+          uniqueCoaches.forEach((profile: any) => {
+            console.log("Processing coach profile:", profile.full_name);
             
             // Preveri podvajanje po ID in emailu
             if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
-              const primaryRole = rolesArray.find((ur: any) => ur.role === "admin" || ur.role === "coach")?.role || "coach";
-              console.log("  -> Adding as:", primaryRole);
+              console.log("  -> Adding as: coach");
               
               contacts.push({
                 id: profile.id,
                 email: profile.email,
                 name: profile.full_name,
-                type: primaryRole === "admin" ? "admin" : "coach",
+                type: "coach",
+              });
+            } else {
+              console.log("  -> Skipping (duplicate)");
+            }
+          });
+        }
+
+        // Pridobi vse admine
+        const { data: admins } = await supabase
+          .from("user_roles")
+          .select(
+            `
+            user_id,
+            profiles!inner (
+              id,
+              full_name,
+              email
+            )
+          `
+          )
+          .eq("role", "admin")
+          .neq("profiles.id", user?.id);
+
+        console.log("Admins query result:", admins);
+
+        if (admins) {
+          admins.forEach((admin: any) => {
+            const profile = admin.profiles;
+            console.log("Processing admin profile:", profile.full_name);
+            
+            // Preveri podvajanje po ID in emailu
+            if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
+              console.log("  -> Adding as: admin");
+              
+              contacts.push({
+                id: profile.id,
+                email: profile.email,
+                name: profile.full_name,
+                type: "admin",
               });
             } else {
               console.log("  -> Skipping (duplicate)");
