@@ -380,12 +380,14 @@ export default function MessagingPage() {
 
   const loadAvailableContacts = async () => {
     try {
-      if (userRole === "parent") {
+      if (effectiveRole === "parent") {
         // Za starše - pridobi kontakte preko API
-        const response = await fetch(`/api/parent/get-contacts?parent_email=${user?.email}`);
+        const response = await fetch(`/api/parent/get-contacts?parent_email=${parentEmail}`);
         if (!response.ok) throw new Error("Failed to load contacts");
         
         const data = await response.json();
+        console.log("Parent contacts loaded:", data);
+        
         const formattedContacts = data.map((contact: any) => ({
           id: contact.user_id,
           email: contact.email,
@@ -400,7 +402,7 @@ export default function MessagingPage() {
       // Za trenerje in admine
       const contacts: Contact[] = [];
 
-      if (userRole === "coach") {
+      if (effectiveRole === "coach") {
         // Pridobi igralce trenerjeve ekipe
         const { data: teamPlayers } = await supabase
           .from("team_players")
@@ -459,37 +461,42 @@ export default function MessagingPage() {
             id,
             full_name,
             email,
-            user_roles!inner (
+            user_roles (
               role
             )
           `
           )
-          .in("user_roles.role", ["coach", "admin"])
           .neq("id", user?.id);
+
+        console.log("Coaches and admins query result:", coachesAndAdmins);
 
         if (coachesAndAdmins) {
           coachesAndAdmins.forEach((profile: any) => {
-            // Preveri če je ta oseba označena kot 'parent' v user_roles
-            const isParent = profile.user_roles.some((ur: any) => ur.role === "parent");
+            // Samo profili z user_roles vnosom
+            if (!profile.user_roles || profile.user_roles.length === 0) return;
             
-            // Če je parent, ga ne dodajaj kot trenerja/admina
-            if (isParent) return;
+            // Preveri če je ta oseba označena kot 'parent' v user_roles
+            const hasParentRole = profile.user_roles.some((ur: any) => ur.role === "parent");
+            const hasCoachOrAdminRole = profile.user_roles.some((ur: any) => ur.role === "coach" || ur.role === "admin");
+            
+            // Če je SAMO parent (brez coach/admin role), ga ne dodajaj
+            if (hasParentRole && !hasCoachOrAdminRole) return;
             
             // Preveri podvajanje po ID in emailu
             if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
-              const userRole = profile.user_roles[0]?.role || "coach";
+              const primaryRole = profile.user_roles.find((ur: any) => ur.role === "admin" || ur.role === "coach")?.role || "coach";
               contacts.push({
                 id: profile.id,
                 email: profile.email,
                 name: profile.full_name,
-                type: userRole === "admin" ? "admin" : "coach",
+                type: primaryRole === "admin" ? "admin" : "coach",
               });
             }
           });
         }
       }
 
-      if (userRole === "admin") {
+      if (effectiveRole === "admin") {
         // Admin vidi vse (razen samega sebe)
         const { data: allUsers } = await supabase
           .from("profiles")
@@ -521,6 +528,7 @@ export default function MessagingPage() {
         }
       }
 
+      console.log("Available contacts loaded:", contacts);
       setAvailableContacts(contacts);
     } catch (error) {
       console.error("Error loading contacts:", error);
@@ -541,7 +549,7 @@ export default function MessagingPage() {
     try {
       const contacts: Contact[] = [];
 
-      if (userRole === "coach" || userRole === "admin") {
+      if (effectiveRole === "coach" || effectiveRole === "admin") {
         // Pridobi igralce izbrane ekipe
         const { data: teamPlayers } = await supabase
           .from("team_players")
@@ -584,7 +592,7 @@ export default function MessagingPage() {
           });
         }
 
-        // Pridobi trenerje te ekipe (razen tistih z user_roles.role='parent')
+        // Pridobi trenerje te ekipe (razen tistih z user_roles.role='parent' brez coach/admin role)
         const { data: teamCoaches } = await supabase
           .from("team_coaches")
           .select(
@@ -594,7 +602,7 @@ export default function MessagingPage() {
               id,
               full_name,
               email,
-              user_roles!inner (
+              user_roles (
                 role
               )
             )
@@ -604,15 +612,21 @@ export default function MessagingPage() {
           .eq("is_active", true)
           .neq("profiles.id", user?.id);
 
+        console.log("Team coaches query result:", teamCoaches);
+
         if (teamCoaches) {
           teamCoaches.forEach((tc: any) => {
             const profile = tc.profiles;
             
-            // Preveri če je ta oseba označena kot 'parent' v user_roles
-            const isParent = profile.user_roles.some((ur: any) => ur.role === "parent");
+            // Samo profili z user_roles vnosom
+            if (!profile.user_roles || profile.user_roles.length === 0) return;
             
-            // Če je parent, ga ne dodajaj kot trenerja
-            if (isParent) return;
+            // Preveri če je ta oseba označena kot 'parent' v user_roles
+            const hasParentRole = profile.user_roles.some((ur: any) => ur.role === "parent");
+            const hasCoachOrAdminRole = profile.user_roles.some((ur: any) => ur.role === "coach" || ur.role === "admin");
+            
+            // Če je SAMO parent (brez coach/admin role), ga ne dodajaj
+            if (hasParentRole && !hasCoachOrAdminRole) return;
             
             // Preveri podvajanje po ID in emailu
             if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
@@ -658,6 +672,7 @@ export default function MessagingPage() {
         }
       }
 
+      console.log("Filtered contacts by team:", contacts);
       setAvailableContacts(contacts);
     } catch (error) {
       console.error("Error filtering contacts:", error);
