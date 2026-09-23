@@ -512,18 +512,31 @@ export default function MessagingPage() {
           )
           .neq("id", user?.id);
 
+        console.log("All users for admin:", allUsers);
+
         if (allUsers) {
           allUsers.forEach((profile: any) => {
             // Preveri podvajanje po ID in emailu
-            if (!contacts.find(c => c.id === profile.id || c.email === profile.email)) {
-              const primaryRole = profile.user_roles?.[0]?.role || "parent";
-              contacts.push({
-                id: profile.id,
-                email: profile.email,
-                name: profile.full_name,
-                type: primaryRole,
-              });
+            if (contacts.find(c => c.id === profile.id || c.email === profile.email)) return;
+            
+            // Če ima user_roles, določi primarno vlogo (prioriteta: admin > coach > parent)
+            let contactType = "parent";
+            if (profile.user_roles && profile.user_roles.length > 0) {
+              if (profile.user_roles.some((ur: any) => ur.role === "admin")) {
+                contactType = "admin";
+              } else if (profile.user_roles.some((ur: any) => ur.role === "coach")) {
+                contactType = "coach";
+              } else if (profile.user_roles.some((ur: any) => ur.role === "parent")) {
+                contactType = "parent";
+              }
             }
+            
+            contacts.push({
+              id: profile.id,
+              email: profile.email,
+              name: profile.full_name,
+              type: contactType,
+            });
           });
         }
       }
