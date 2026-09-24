@@ -344,18 +344,34 @@ export default function Store() {
   const loadTopItems = async () => {
     try {
       // Use RPC function instead of direct query (admin-only access)
-      const { data, error } = await supabase.rpc('get_store_top_items');
+      const { data, error } = await supabase.rpc('get_store_top_items') as {
+        data: Array<{
+          item_number: string;
+          item_name: string;
+          total_sold: number;
+          total_revenue: number;
+          collections_count: number;
+        }> | null;
+        error: any;
+      };
 
       if (error) {
         // If user is not admin, silently fail and show empty data
-        if (error.message.includes('Access denied')) {
+        if (error.message?.includes('Access denied')) {
           setTopItems([]);
           return;
         }
         throw error;
       }
 
-      setTopItems(data || []);
+      setTopItems((data || []).map(row => ({
+        item_number: row.item_number,
+        item_name: row.item_name,
+        total_sold: row.total_sold,
+        total_quantity: row.total_sold,
+        total_revenue: row.total_revenue,
+        collections_count: row.collections_count,
+      })));
     } catch (error: any) {
       console.error("Error loading top items:", error);
       setTopItems([]);
@@ -365,18 +381,26 @@ export default function Store() {
   const loadMonthlyRevenue = async () => {
     try {
       // Use RPC function instead of direct query (admin-only access)
-      const { data, error } = await supabase.rpc('get_store_monthly_revenue');
+      const { data, error } = await supabase.rpc('get_store_monthly_revenue') as {
+        data: Array<{
+          month: string;
+          total_revenue: number;
+          orders_count: number;
+          avg_order_value: number;
+        }> | null;
+        error: any;
+      };
 
       if (error) {
         // If user is not admin, silently fail and show empty data
-        if (error.message.includes('Access denied')) {
+        if (error.message?.includes('Access denied')) {
           setMonthlyRevenue([]);
           return;
         }
         throw error;
       }
 
-      const monthlyArray = (data || []).map((row: any) => ({
+      const monthlyArray = (data || []).map((row) => ({
         month: row.month,
         revenue: row.total_revenue,
         orders_count: row.orders_count,
