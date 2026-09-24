@@ -29,7 +29,7 @@ export default async function handler(
     const { data: players, error: playersError } = await supabaseAdmin
       .from("players")
       .select("id")
-      .or(`guardian1_email.eq.${parent_email},guardian2_email.eq.${parent_email}`)
+      .or(`guardian1_email.ilike.${parent_email},guardian2_email.ilike.${parent_email}`)
       .eq("is_active", true);
 
     if (playersError) {
