@@ -402,12 +402,37 @@ export default function MessagingPage() {
   const loadAvailableContacts = async () => {
     try {
       if (effectiveRole === "parent") {
-        // Za starše - pridobi kontakte preko API
-        console.log("=== LOADING PARENT CONTACTS ===");
-        console.log("Parent email:", parentEmail);
-        console.log("API URL:", `/api/parent/get-contacts?parent_email=${encodeURIComponent(parentEmail!)}`);
+        // Za starše - pridobi email direktno iz sessionStorage
+        let email: string | null = null;
         
-        const response = await fetch(`/api/parent/get-contacts?parent_email=${encodeURIComponent(parentEmail!)}`);
+        if (typeof window !== "undefined") {
+          const parentSession = sessionStorage.getItem("parentSession");
+          if (parentSession) {
+            try {
+              const session = JSON.parse(parentSession);
+              email = session.email;
+            } catch (e) {
+              console.error("Invalid parent session in loadAvailableContacts", e);
+            }
+          }
+        }
+        
+        console.log("=== LOADING PARENT CONTACTS ===");
+        console.log("Parent email from sessionStorage:", email);
+        
+        if (!email) {
+          console.error("No parent email found in sessionStorage");
+          toast({
+            title: "Napaka",
+            description: "Niste prijavljeni kot starš",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        console.log("API URL:", `/api/parent/get-contacts?parent_email=${email}`);
+        
+        const response = await fetch(`/api/parent/get-contacts?parent_email=${encodeURIComponent(email)}`);
         
         console.log("API Response status:", response.status);
         console.log("API Response ok:", response.ok);
