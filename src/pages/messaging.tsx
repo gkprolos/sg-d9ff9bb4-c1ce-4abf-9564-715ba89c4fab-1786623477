@@ -403,11 +403,24 @@ export default function MessagingPage() {
     try {
       if (effectiveRole === "parent") {
         // Za starše - pridobi kontakte preko API
-        const response = await fetch(`/api/parent/get-contacts?parent_email=${parentEmail}`);
-        if (!response.ok) throw new Error("Failed to load contacts");
+        console.log("=== LOADING PARENT CONTACTS ===");
+        console.log("Parent email:", parentEmail);
+        console.log("API URL:", `/api/parent/get-contacts?parent_email=${encodeURIComponent(parentEmail!)}`);
+        
+        const response = await fetch(`/api/parent/get-contacts?parent_email=${encodeURIComponent(parentEmail!)}`);
+        
+        console.log("API Response status:", response.status);
+        console.log("API Response ok:", response.ok);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API Error response:", errorText);
+          throw new Error(`Failed to load contacts: ${errorText}`);
+        }
         
         const data = await response.json();
         console.log("Parent contacts loaded:", data);
+        console.log("Contacts count:", data.length);
         
         const formattedContacts = data.map((contact: any) => ({
           id: contact.user_id,
@@ -415,6 +428,8 @@ export default function MessagingPage() {
           name: contact.name,
           type: contact.contact_type,
         }));
+        
+        console.log("Formatted contacts:", formattedContacts);
         
         setAvailableContacts(formattedContacts);
         return;
