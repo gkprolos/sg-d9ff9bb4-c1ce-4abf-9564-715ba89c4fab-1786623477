@@ -481,15 +481,40 @@ export default function MessagingPage() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to send message");
       } else {
-        // Admin/Coach: Use Supabase client
+        // Coach/Admin: Use Supabase client directly
         const { error } = await supabase.from("messages").insert({
           conversation_id: selectedConversation.id,
-          content: newMessage.trim(),
-          sender_id: user?.id,
-          sender_parent_email: null
+          sender_id: user.id,
+          content: newMessage.trim()
         });
 
         if (error) throw error;
+        
+        // Send email notifications to parent participants
+        try {
+          const senderProfile = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", user.id)
+            .single();
+          
+          const senderName = senderProfile.data?.full_name || "Trener/Admin";
+          
+          await fetch("/api/messaging/notify-participants", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              conversation_id: selectedConversation.id,
+              sender_name: senderName,
+              message_content: newMessage.trim()
+            })
+          });
+          
+          console.log("Email notifications sent to parent participants");
+        } catch (emailError) {
+          console.error("Failed to send email notifications:", emailError);
+          // Don't throw - message was sent successfully, email is just a bonus
+        }
       }
 
       setNewMessage("");
