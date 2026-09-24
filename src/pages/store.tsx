@@ -283,11 +283,17 @@ export default function Store() {
       loadCategories();
       loadSuppliers();
       loadPeriods();
-      loadTopItems();
       fetchOrders();
       loadCollections();
+      
+      // Load statistics for admin users only
+      if (userRole === 'admin') {
+        loadTopItems();
+        loadMonthlyRevenue();
+        loadStats();
+      }
     }
-  }, [user]);
+  }, [user, userRole]);
 
   useEffect(() => {
     filterItems();
@@ -337,88 +343,51 @@ export default function Store() {
 
   const loadTopItems = async () => {
     try {
-      const { data, error } = await supabase
-        .from("store_order_items")
-        .select("item_id, item_number, item_name, quantity, unit_price");
+      // Use RPC function instead of direct query (admin-only access)
+      const { data, error } = await supabase.rpc('get_store_top_items');
 
-      if (error) throw error;
-
-      const aggregated: Record<string, any> = {};
-      
-      data?.forEach((item: any) => {
-        const itemId = item.item_id || item.item_number;
-        if (!aggregated[itemId]) {
-          aggregated[itemId] = {
-            item_number: item.item_number || "N/A",
-            item_name: item.item_name || "Unknown",
-            total_sold: 0,
-            total_revenue: 0,
-          };
+      if (error) {
+        // If user is not admin, silently fail and show empty data
+        if (error.message.includes('Access denied')) {
+          setTopItems([]);
+          return;
         }
-        aggregated[itemId].total_sold += item.quantity || 0;
-        aggregated[itemId].total_revenue += (item.quantity || 0) * (item.unit_price || 0);
-      });
+        throw error;
+      }
 
-      const topItemsArray = Object.values(aggregated)
-        .map((item: any) => ({
-          item_number: item.item_number,
-          item_name: item.item_name,
-          total_quantity: item.total_sold,
-          total_sold: item.total_sold,
-          total_revenue: item.total_revenue,
-        }))
-        .sort((a: any, b: any) => b.total_sold - a.total_sold)
-        .slice(0, 10) as TopItem[];
-
-      setTopItems(topItemsArray);
+      setTopItems(data || []);
     } catch (error: any) {
       console.error("Error loading top items:", error);
+      setTopItems([]);
     }
   };
 
   const loadMonthlyRevenue = async () => {
     try {
-      const { data, error } = await supabase
-        .from("store_orders")
-        .select("created_at, total_amount");
+      // Use RPC function instead of direct query (admin-only access)
+      const { data, error } = await supabase.rpc('get_store_monthly_revenue');
 
-      if (error) throw error;
-
-      const monthlyData: Record<string, { total: number; count: number }> = {};
-      
-      data?.forEach((order) => {
-        const date = new Date(order.created_at);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-        
-        if (!monthlyData[monthKey]) {
-          monthlyData[monthKey] = { total: 0, count: 0 };
+      if (error) {
+        // If user is not admin, silently fail and show empty data
+        if (error.message.includes('Access denied')) {
+          setMonthlyRevenue([]);
+          return;
         }
-        
-        monthlyData[monthKey].total += order.total_amount || 0;
-        monthlyData[monthKey].count += 1;
-      });
+        throw error;
+      }
 
-      const monthlyArray = Object.entries(monthlyData)
-        .map(([month, data]) => {
-          const [year, monthNum] = month.split("-");
-          const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString("sl-SI", { month: "short", year: "numeric" });
-          const total_revenue = data.total;
-          const orders_count = data.count;
-          const avg_order_value = orders_count > 0 ? total_revenue / orders_count : 0;
-          
-          return {
-            month: monthName,
-            revenue: total_revenue,
-            orders_count: orders_count,
-            total_revenue: total_revenue,
-            avg_order_value: avg_order_value,
-          };
-        })
-        .sort((a, b) => a.month.localeCompare(b.month));
+      const monthlyArray = (data || []).map((row: any) => ({
+        month: row.month,
+        revenue: row.total_revenue,
+        orders_count: row.orders_count,
+        total_revenue: row.total_revenue,
+        avg_order_value: row.avg_order_value,
+      }));
 
-      setMonthlyRevenue(monthlyArray.slice(-12));
+      setMonthlyRevenue(monthlyArray);
     } catch (error: any) {
       console.error("Error loading monthly revenue:", error);
+      setMonthlyRevenue([]);
     }
   };
 
