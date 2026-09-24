@@ -71,7 +71,7 @@ export default async function handler(
       .from("team_coaches")
       .select(`
         coach_id,
-        profiles (
+        profiles!team_coaches_coach_id_fkey (
           id,
           full_name,
           email
