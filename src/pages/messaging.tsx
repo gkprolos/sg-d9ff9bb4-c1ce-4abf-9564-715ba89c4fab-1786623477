@@ -209,9 +209,35 @@ export default function MessagingPage() {
   async function loadConversations() {
     setLoading(true);
     try {
-      if (isParent && parentEmail) {
+      if (isParent) {
+        // Parent: get email directly from Supabase Auth user or sessionStorage
+        let email: string | null = null;
+        
+        // Priority 1: Supabase Auth user (if logged in via Auth)
+        if (user?.email) {
+          email = user.email;
+        } 
+        // Priority 2: Parent session (if logged in via OTP)
+        else if (typeof window !== "undefined") {
+          const parentSession = sessionStorage.getItem("parentSession");
+          if (parentSession) {
+            try {
+              const session = JSON.parse(parentSession);
+              email = session.email || session.parent_email;
+            } catch (e) {
+              console.error("Invalid parent session in loadConversations", e);
+            }
+          }
+        }
+        
+        if (!email) {
+          console.error("No parent email found in loadConversations");
+          setLoading(false);
+          return;
+        }
+        
         // Parent: Use API route (service role key, no RLS)
-        const response = await fetch(`/api/parent/get-conversations?parent_email=${encodeURIComponent(parentEmail)}&status=${statusFilter}`);
+        const response = await fetch(`/api/parent/get-conversations?parent_email=${encodeURIComponent(email)}&status=${statusFilter}`);
         const data = await response.json();
 
         if (!response.ok) throw new Error(data.error || "Failed to load conversations");
@@ -298,9 +324,34 @@ export default function MessagingPage() {
 
   async function loadMessages(conversationId: string) {
     try {
-      if (isParent && parentEmail) {
+      if (isParent) {
+        // Parent: get email directly from Supabase Auth user or sessionStorage
+        let email: string | null = null;
+        
+        // Priority 1: Supabase Auth user (if logged in via Auth)
+        if (user?.email) {
+          email = user.email;
+        } 
+        // Priority 2: Parent session (if logged in via OTP)
+        else if (typeof window !== "undefined") {
+          const parentSession = sessionStorage.getItem("parentSession");
+          if (parentSession) {
+            try {
+              const session = JSON.parse(parentSession);
+              email = session.email || session.parent_email;
+            } catch (e) {
+              console.error("Invalid parent session in loadMessages", e);
+            }
+          }
+        }
+        
+        if (!email) {
+          console.error("No parent email found in loadMessages");
+          return;
+        }
+        
         // Parent: Use API route
-        const response = await fetch(`/api/parent/get-messages?conversation_id=${conversationId}&parent_email=${encodeURIComponent(parentEmail)}`);
+        const response = await fetch(`/api/parent/get-messages?conversation_id=${conversationId}&parent_email=${encodeURIComponent(email)}`);
         const data = await response.json();
 
         if (!response.ok) throw new Error(data.error || "Failed to load messages");
@@ -336,14 +387,39 @@ export default function MessagingPage() {
 
   async function markAsRead(conversationId: string) {
     try {
-      if (isParent && parentEmail) {
+      if (isParent) {
+        // Parent: get email directly from Supabase Auth user or sessionStorage
+        let email: string | null = null;
+        
+        // Priority 1: Supabase Auth user (if logged in via Auth)
+        if (user?.email) {
+          email = user.email;
+        } 
+        // Priority 2: Parent session (if logged in via OTP)
+        else if (typeof window !== "undefined") {
+          const parentSession = sessionStorage.getItem("parentSession");
+          if (parentSession) {
+            try {
+              const session = JSON.parse(parentSession);
+              email = session.email || session.parent_email;
+            } catch (e) {
+              console.error("Invalid parent session in markAsRead", e);
+            }
+          }
+        }
+        
+        if (!email) {
+          console.error("No parent email found in markAsRead");
+          return;
+        }
+        
         // Parent: Use API route
         await fetch("/api/parent/mark-read", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             conversation_id: conversationId,
-            parent_email: parentEmail
+            parent_email: email
           })
         });
       } else {
@@ -366,14 +442,38 @@ export default function MessagingPage() {
 
     setSendingMessage(true);
     try {
-      if (isParent && parentEmail) {
+      if (isParent) {
+        // Parent: get email directly from Supabase Auth user or sessionStorage
+        let email: string | null = null;
+        
+        // Priority 1: Supabase Auth user (if logged in via Auth)
+        if (user?.email) {
+          email = user.email;
+        } 
+        // Priority 2: Parent session (if logged in via OTP)
+        else if (typeof window !== "undefined") {
+          const parentSession = sessionStorage.getItem("parentSession");
+          if (parentSession) {
+            try {
+              const session = JSON.parse(parentSession);
+              email = session.email || session.parent_email;
+            } catch (e) {
+              console.error("Invalid parent session in sendMessage", e);
+            }
+          }
+        }
+        
+        if (!email) {
+          throw new Error("Ni mogoče najti email naslova starša");
+        }
+        
         // Parent: Use API route
         const response = await fetch("/api/parent/send-message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             conversation_id: selectedConversation.id,
-            parent_email: parentEmail,
+            parent_email: email,
             content: newMessage.trim()
           })
         });
@@ -1385,8 +1485,26 @@ export default function MessagingPage() {
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-4">
                     {messages.map((message: any) => {
+                    // Get parent email directly for comparison
+                    let parentEmailForComparison: string | null = null;
+                    if (isParent) {
+                      if (user?.email) {
+                        parentEmailForComparison = user.email;
+                      } else if (typeof window !== "undefined") {
+                        const parentSession = sessionStorage.getItem("parentSession");
+                        if (parentSession) {
+                          try {
+                            const session = JSON.parse(parentSession);
+                            parentEmailForComparison = session.email || session.parent_email;
+                          } catch (e) {
+                            console.error("Invalid parent session in message display", e);
+                          }
+                        }
+                      }
+                    }
+                    
                     const isMine = isParent ?
-                    message.sender_parent_email === parentEmail :
+                    message.sender_parent_email === parentEmailForComparison :
                     message.sender_id === user?.id;
 
                     const senderName = message.sender_parent_email ?
