@@ -908,7 +908,31 @@ export default function MessagingPage() {
     setSendingMessage(true);
 
     try {
-      if (isParent && parentEmail) {
+      // For parents: get email directly from Supabase Auth user or sessionStorage
+      let parentEmailForCreation: string | null = null;
+      
+      if (isParent) {
+        // Priority 1: Supabase Auth user (if logged in via Auth)
+        if (user?.email) {
+          parentEmailForCreation = user.email;
+          console.log("Parent creating conversation - using email from Supabase Auth:", parentEmailForCreation);
+        } 
+        // Priority 2: Parent session (if logged in via OTP)
+        else if (typeof window !== "undefined") {
+          const parentSession = sessionStorage.getItem("parentSession");
+          if (parentSession) {
+            try {
+              const session = JSON.parse(parentSession);
+              parentEmailForCreation = session.email || session.parent_email;
+              console.log("Parent creating conversation - using email from sessionStorage:", parentEmailForCreation);
+            } catch (e) {
+              console.error("Invalid parent session in createConversation", e);
+            }
+          }
+        }
+      }
+      
+      if (isParent && parentEmailForCreation) {
         // Parent: Use API route to bypass RLS
         console.log("Parent creating conversation via API route...");
 
@@ -916,7 +940,7 @@ export default function MessagingPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            parentEmail,
+            parentEmail: parentEmailForCreation,
             subject: newSubject,
             teamId: selectedTeam || null,
             participantIds: selectedContacts,
@@ -941,11 +965,14 @@ export default function MessagingPage() {
         setNewSubject("");
         setNewContent("");
         setSelectedContacts([]);
-        setSelectedTeam(null);
+        setSelectedTeam("");
 
         // Reload conversations
         await loadConversations();
         return; // CRITICAL: Stop here - don't continue to Coach/Admin code block
+      } else if (isParent && !parentEmailForCreation) {
+        // Parent but no email found - this shouldn't happen
+        throw new Error("Ni mogoče najti email naslova starša");
       } else {
         // Coach/Admin: Use Supabase client directly
         const creatorId = user?.id || null;
