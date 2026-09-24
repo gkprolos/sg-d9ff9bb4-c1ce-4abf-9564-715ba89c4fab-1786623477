@@ -945,6 +945,7 @@ export default function MessagingPage() {
 
         // Reload conversations
         await loadConversations();
+        return; // CRITICAL: Stop here - don't continue to Coach/Admin code block
       } else {
         // Coach/Admin: Use Supabase client directly
         const creatorId = user?.id || null;
