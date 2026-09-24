@@ -111,18 +111,30 @@ export default function MessagingPage() {
       } else {
         // No Supabase user - check for parent session
         const parentSession = sessionStorage.getItem("parentSession");
+        console.log("=== PARENT SESSION CHECK ===");
+        console.log("Raw parentSession from storage:", parentSession);
+        
         if (parentSession) {
           try {
             const session = JSON.parse(parentSession);
-            setParentEmail(session.email);
+            console.log("Parsed session object:", session);
+            console.log("Session keys:", Object.keys(session));
+            console.log("Session.email:", session.email);
+            console.log("Session.parent_email:", session.parent_email);
+            
+            // Try both email and parent_email keys
+            const email = session.email || session.parent_email;
+            console.log("Extracted email:", email);
+            
+            setParentEmail(email);
             setEffectiveRole("parent");
-            console.log("Parent session detected:", session.email);
+            console.log("Parent session detected - email set to:", email);
           } catch (e) {
             console.error("Invalid parent session", e);
             sessionStorage.removeItem("parentSession");
           }
         } else {
-          console.log("No role detected - user:", user, "userRole:", userRole);
+          console.log("No parentSession found in sessionStorage");
         }
       }
     }
