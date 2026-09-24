@@ -64,11 +64,19 @@ export default async function handler(
 
     const teamIds = [...new Set(teamPlayers.map((tp) => tp.team_id))];
     console.log("Unique teams:", teamIds.length);
+    console.log("Team IDs:", teamIds);
 
     // 3. Pridobimo vse trenerje, ki so dodeljeni tem ekipam
     const { data: teamCoaches, error: tcError } = await supabaseAdmin
       .from("team_coaches")
-      .select("coach_id, profiles!inner(id, full_name, email)")
+      .select(`
+        coach_id,
+        profiles (
+          id,
+          full_name,
+          email
+        )
+      `)
       .in("team_id", teamIds)
       .eq("is_active", true);
 
@@ -77,14 +85,21 @@ export default async function handler(
       throw tcError;
     }
 
+    console.log("Team coaches raw result:", teamCoaches);
     console.log("Team coaches found:", teamCoaches?.length || 0);
 
-    const contacts = (teamCoaches || []).map((tc: any) => ({
+    // Filter out null profiles and map to contacts
+    const validCoaches = (teamCoaches || []).filter((tc: any) => tc.profiles);
+    console.log("Valid coaches (with profiles):", validCoaches.length);
+
+    const contacts = validCoaches.map((tc: any) => ({
       user_id: tc.profiles.id,
       email: tc.profiles.email,
       name: tc.profiles.full_name,
       contact_type: "coach",
     }));
+
+    console.log("Mapped coach contacts:", contacts);
 
     // 4. Dodamo še vse admine
     const { data: admins, error: adminsError } = await supabaseAdmin
