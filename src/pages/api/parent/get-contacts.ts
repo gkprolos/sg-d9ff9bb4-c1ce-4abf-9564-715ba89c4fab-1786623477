@@ -69,14 +69,7 @@ export default async function handler(
     // 3. Pridobimo vse trenerje, ki so dodeljeni tem ekipam
     const { data: teamCoaches, error: tcError } = await supabaseAdmin
       .from("team_coaches")
-      .select(`
-        coach_id,
-        profiles:coach_id (
-          id,
-          full_name,
-          email
-        )
-      `)
+      .select("coach_id")
       .in("team_id", teamIds)
       .eq("is_active", true);
 
@@ -88,20 +81,37 @@ export default async function handler(
     console.log("Team coaches raw result:", teamCoaches);
     console.log("Team coaches found:", teamCoaches?.length || 0);
 
-    // Filter out null profiles and map to contacts
-    const validCoaches = (teamCoaches || []).filter((tc: any) => tc.profiles);
-    console.log("Valid coaches (with profiles):", validCoaches.length);
+    if (!teamCoaches || teamCoaches.length === 0) {
+      return res.status(200).json([]);
+    }
 
-    const contacts = validCoaches.map((tc: any) => ({
-      user_id: tc.profiles.id,
-      email: tc.profiles.email,
-      name: tc.profiles.full_name,
+    // Get unique coach IDs
+    const coachIds = [...new Set(teamCoaches.map((tc) => tc.coach_id))];
+    console.log("Unique coach IDs:", coachIds);
+
+    // 4. Pridobimo profile za te trenerje
+    const { data: coachProfiles, error: profilesError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", coachIds);
+
+    if (profilesError) {
+      console.error("Coach profiles query error:", profilesError);
+      throw profilesError;
+    }
+
+    console.log("Coach profiles found:", coachProfiles?.length || 0);
+
+    const contacts = (coachProfiles || []).map((profile) => ({
+      user_id: profile.id,
+      email: profile.email,
+      name: profile.full_name,
       contact_type: "coach",
     }));
 
     console.log("Mapped coach contacts:", contacts);
 
-    // 4. Dodamo še vse admine
+    // 5. Dodamo še vse admine
     const { data: admins, error: adminsError } = await supabaseAdmin
       .from("user_roles")
       .select("user_id, profiles!inner(id, full_name, email)")
