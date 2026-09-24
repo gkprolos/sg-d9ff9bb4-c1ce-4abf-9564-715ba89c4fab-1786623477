@@ -344,7 +344,7 @@ export default function Store() {
   const loadTopItems = async () => {
     try {
       // Use RPC function instead of direct query (admin-only access)
-      const { data, error } = await supabase.rpc('get_store_top_items') as {
+      const { data, error } = await (supabase.rpc as any)('get_store_top_items') as {
         data: Array<{
           item_number: string;
           item_name: string;
@@ -381,7 +381,7 @@ export default function Store() {
   const loadMonthlyRevenue = async () => {
     try {
       // Use RPC function instead of direct query (admin-only access)
-      const { data, error } = await supabase.rpc('get_store_monthly_revenue') as {
+      const { data, error } = await (supabase.rpc as any)('get_store_monthly_revenue') as {
         data: Array<{
           month: string;
           total_revenue: number;
