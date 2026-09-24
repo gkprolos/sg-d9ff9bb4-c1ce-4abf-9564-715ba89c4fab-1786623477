@@ -28,7 +28,7 @@ export default async function handler(
     // 1. Pridobimo vse igralce, kjer je ta oseba skrbnik
     const { data: players, error: playersError } = await supabaseAdmin
       .from("players")
-      .select("id")
+      .select("id, first_name, last_name, guardian1_email, guardian2_email")
       .or(`guardian1_email.ilike.${parent_email},guardian2_email.ilike.${parent_email}`)
       .eq("is_active", true);
 
@@ -38,12 +38,15 @@ export default async function handler(
     }
 
     console.log("Players found:", players?.length || 0);
+    console.log("Players data:", players);
 
     if (!players || players.length === 0) {
+      console.log("No players found - returning empty array");
       return res.status(200).json([]);
     }
 
     const playerIds = players.map((p) => p.id);
+    console.log("Player IDs:", playerIds);
 
     // 2. Pridobimo vse ekipe, kjer so ti igralci vpisani
     const { data: teamPlayers, error: tpError } = await supabaseAdmin
