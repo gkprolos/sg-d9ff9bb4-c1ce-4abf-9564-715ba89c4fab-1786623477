@@ -414,15 +414,22 @@ export default function MessagingPage() {
   const loadAvailableContacts = async () => {
     try {
       if (effectiveRole === "parent") {
-        // Za starše - pridobi email direktno iz sessionStorage
+        // Za starše - pridobi email iz Supabase Auth user ali sessionStorage
         let email: string | null = null;
         
-        if (typeof window !== "undefined") {
+        // Priority 1: Supabase Auth user (if logged in via Auth)
+        if (user?.email) {
+          email = user.email;
+          console.log("Using email from Supabase Auth user:", email);
+        } 
+        // Priority 2: Parent session (if logged in via OTP)
+        else if (typeof window !== "undefined") {
           const parentSession = sessionStorage.getItem("parentSession");
           if (parentSession) {
             try {
               const session = JSON.parse(parentSession);
-              email = session.email;
+              email = session.email || session.parent_email;
+              console.log("Using email from parent sessionStorage:", email);
             } catch (e) {
               console.error("Invalid parent session in loadAvailableContacts", e);
             }
@@ -430,10 +437,10 @@ export default function MessagingPage() {
         }
         
         console.log("=== LOADING PARENT CONTACTS ===");
-        console.log("Parent email from sessionStorage:", email);
+        console.log("Final parent email:", email);
         
         if (!email) {
-          console.error("No parent email found in sessionStorage");
+          console.error("No parent email found");
           toast({
             title: "Napaka",
             description: "Niste prijavljeni kot starš",
