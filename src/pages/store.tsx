@@ -2327,10 +2327,7 @@ export default function Store() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => {
-                                      setEditingSupplier(supplier);
-                                      setIsSupplierDialogOpen(true);
-                                    }}
+                                    onClick={() => openSupplierDialog(supplier)}
                                   >
                                     <Edit className="h-4 w-4 mr-1" />
                                     Uredi
