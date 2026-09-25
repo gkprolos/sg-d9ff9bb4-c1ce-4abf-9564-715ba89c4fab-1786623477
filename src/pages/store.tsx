@@ -2253,10 +2253,7 @@ export default function Store() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => {
-                                      setEditingCategory(category);
-                                      setIsCategoryDialogOpen(true);
-                                    }}
+                                    onClick={() => openCategoryDialog(category)}
                                   >
                                     <Edit className="h-4 w-4 mr-1" />
                                     Uredi
