@@ -1877,13 +1877,12 @@ export type Database = {
         }[]
       }
       get_store_top_items: {
-        Args: never
+        Args: { limit_count?: number }
         Returns: {
-          collections_count: number
           item_name: string
           item_number: string
+          total_ordered: number
           total_revenue: number
-          total_sold: number
         }[]
       }
       user_can_access_conversation: {
