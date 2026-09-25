@@ -1867,6 +1867,25 @@ export type Database = {
           total_activities: number
         }[]
       }
+      get_store_monthly_revenue: {
+        Args: never
+        Returns: {
+          avg_order_value: number
+          month: string
+          orders_count: number
+          total_revenue: number
+        }[]
+      }
+      get_store_top_items: {
+        Args: never
+        Returns: {
+          collections_count: number
+          item_name: string
+          item_number: string
+          total_revenue: number
+          total_sold: number
+        }[]
+      }
       user_can_access_conversation: {
         Args: { conversation_uuid: string }
         Returns: boolean

@@ -797,14 +797,14 @@ export default function Store() {
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from("public-assets")
+        .from("store-images")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from("public-assets")
+        .from("store-images")
         .getPublicUrl(filePath);
 
       setArticleFormData({
@@ -838,7 +838,7 @@ export default function Store() {
 
       // Delete from storage
       const { error } = await supabase.storage
-        .from("public-assets")
+        .from("store-images")
         .remove([filePath]);
 
       if (error) throw error;
@@ -1437,7 +1437,7 @@ export default function Store() {
   };
 
   const createCollection = async () => {
-    if (selectedOrdersForCollection.size === 0) {
+    if (!editingCollection && selectedOrdersForCollection.size === 0) {
       toast({
         title: "Napaka",
         description: "Izberite vsaj eno naročilo za zbirnik.",
@@ -1447,78 +1447,110 @@ export default function Store() {
     }
 
     try {
-      // Create collection with all properties
-      const { data: collection, error: collectionError } = await supabase
-        .from("store_collections")
-        .insert({
-          collection_number: collectionFormData.collection_number,
-          collection_date: collectionFormData.collection_date,
-          status: collectionFormData.status,
-          notes: collectionFormData.notes || "",
-        })
-        .select()
-        .single();
+      let collection: StoreCollection;
 
-      if (collectionError) {
-        console.error("Collection creation error:", collectionError);
-        throw collectionError;
-      }
+      if (editingCollection) {
+        // UPDATE existing collection
+        const { data: updatedCollection, error: collectionError } = await supabase
+          .from("store_collections")
+          .update({
+            collection_number: collectionFormData.collection_number,
+            collection_date: collectionFormData.collection_date,
+            status: collectionFormData.status,
+            notes: collectionFormData.notes || "",
+          })
+          .eq("id", editingCollection.id)
+          .select()
+          .single();
 
-      // Update selected orders to reference this collection and change status to 'ordered'
-      const { error: ordersError } = await supabase
-        .from("store_orders")
-        .update({
-          collection_id: collection.id,
-          status: "ordered",
-        })
-        .in("id", Array.from(selectedOrdersForCollection));
-
-      if (ordersError) {
-        console.error("Orders update error:", ordersError);
-        throw ordersError;
-      }
-
-      // Get all order items from selected orders
-      const { data: orderItems, error: itemsError } = await supabase
-        .from("store_order_items")
-        .select("*")
-        .in("order_id", Array.from(selectedOrdersForCollection));
-
-      if (itemsError) throw itemsError;
-
-      // Create collection items (aggregate by item_number + size)
-      const itemsMap = new Map<string, any>();
-      orderItems?.forEach(item => {
-        const key = `${item.item_number}-${item.size}`;
-        if (itemsMap.has(key)) {
-          const existing = itemsMap.get(key);
-          existing.total_quantity += item.quantity;
-        } else {
-          itemsMap.set(key, {
-            collection_id: collection.id,
-            item_id: item.item_id,
-            item_number: item.item_number,
-            item_name: item.item_name,
-            size: item.size,
-            total_quantity: item.quantity,
-            unit_price: item.unit_price,
-          });
+        if (collectionError) {
+          console.error("Collection update error:", collectionError);
+          throw collectionError;
         }
-      });
 
-      const collectionItems = Array.from(itemsMap.values());
-      const { error: itemsInsertError } = await supabase
-        .from("store_collection_items")
-        .insert(collectionItems);
+        collection = updatedCollection;
 
-      if (itemsInsertError) throw itemsInsertError;
+        toast({
+          title: "Zbirnik posodobljen",
+          description: `Zbirnik ${collectionFormData.collection_number} je bil uspešno posodobljen.`,
+        });
+      } else {
+        // INSERT new collection
+        const { data: newCollection, error: collectionError } = await supabase
+          .from("store_collections")
+          .insert({
+            collection_number: collectionFormData.collection_number,
+            collection_date: collectionFormData.collection_date,
+            status: collectionFormData.status,
+            notes: collectionFormData.notes || "",
+          })
+          .select()
+          .single();
 
-      toast({
-        title: "Zbirnik ustvarjen",
-        description: `Zbirnik ${collectionFormData.collection_number} je bil uspešno ustvarjen iz ${selectedOrdersForCollection.size} naročil.`,
-      });
+        if (collectionError) {
+          console.error("Collection creation error:", collectionError);
+          throw collectionError;
+        }
+
+        collection = newCollection;
+
+        // Update selected orders to reference this collection and change status to 'ordered'
+        const { error: ordersError } = await supabase
+          .from("store_orders")
+          .update({
+            collection_id: collection.id,
+            status: "ordered",
+          })
+          .in("id", Array.from(selectedOrdersForCollection));
+
+        if (ordersError) {
+          console.error("Orders update error:", ordersError);
+          throw ordersError;
+        }
+
+        // Get all order items from selected orders
+        const { data: orderItems, error: itemsError } = await supabase
+          .from("store_order_items")
+          .select("*")
+          .in("order_id", Array.from(selectedOrdersForCollection));
+
+        if (itemsError) throw itemsError;
+
+        // Create collection items (aggregate by item_number + size)
+        const itemsMap = new Map<string, any>();
+        orderItems?.forEach(item => {
+          const key = `${item.item_number}-${item.size}`;
+          if (itemsMap.has(key)) {
+            const existing = itemsMap.get(key);
+            existing.total_quantity += item.quantity;
+          } else {
+            itemsMap.set(key, {
+              collection_id: collection.id,
+              item_id: item.item_id,
+              item_number: item.item_number,
+              item_name: item.item_name,
+              size: item.size,
+              total_quantity: item.quantity,
+              unit_price: item.unit_price,
+            });
+          }
+        });
+
+        const collectionItems = Array.from(itemsMap.values());
+        const { error: itemsInsertError } = await supabase
+          .from("store_collection_items")
+          .insert(collectionItems);
+
+        if (itemsInsertError) throw itemsInsertError;
+
+        toast({
+          title: "Zbirnik ustvarjen",
+          description: `Zbirnik ${collectionFormData.collection_number} je bil uspešno ustvarjen iz ${selectedOrdersForCollection.size} naročil.`,
+        });
+      }
 
       setIsCollectionDialogOpen(false);
+      setEditingCollection(null);
       setSelectedOrdersForCollection(new Set());
       setCollectionFormData({
         collection_number: "",
@@ -1532,7 +1564,7 @@ export default function Store() {
       console.error("Full error:", error);
       toast({
         title: "Napaka",
-        description: `Napaka pri ustvarjanju zbirnika: ${error.message || JSON.stringify(error)}`,
+        description: `Napaka pri shranjevanju zbirnika: ${error.message || JSON.stringify(error)}`,
         variant: "destructive",
       });
     }
