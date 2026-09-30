@@ -766,9 +766,24 @@ export default function MessagingPage() {
       }
 
       if (effectiveRole === "admin") {
-        // Admin vidi vse (razen samega sebe)
+        // Admin vidi vse (razen samega sebe) - exclude parents
         console.log("Loading contacts for admin - user.id:", user?.id);
         
+        // First get all coach/admin user IDs from user_roles (exclude parents)
+        const { data: coachAdminRoles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .in("role", ["coach", "admin"]);
+
+        const coachAdminIds = (coachAdminRoles || []).map(r => r.user_id);
+
+        if (coachAdminIds.length === 0) {
+          console.log("No coach/admin users found");
+          setAvailableContacts([]);
+          return;
+        }
+
+        // Then get profiles for those IDs only (exclude self)
         const { data: allUsers, error: queryError } = await supabase
           .from("profiles")
           .select(
@@ -781,6 +796,7 @@ export default function MessagingPage() {
             )
           `
           )
+          .in("id", coachAdminIds)
           .neq("id", user?.id);
 
         console.log("All users query - error:", queryError, "data count:", allUsers?.length);
@@ -801,15 +817,13 @@ export default function MessagingPage() {
             
             console.log("  -> rolesArray:", rolesArray);
             
-            // Če ima user_roles, določi primarno vlogo (prioriteta: admin > coach > parent)
-            let contactType = "parent";
+            // Če ima user_roles, določi primarno vlogo (prioriteta: admin > coach)
+            let contactType = "coach";
             if (rolesArray && rolesArray.length > 0 && rolesArray[0]) {
               if (rolesArray.some((ur: any) => ur?.role === "admin")) {
                 contactType = "admin";
               } else if (rolesArray.some((ur: any) => ur?.role === "coach")) {
                 contactType = "coach";
-              } else if (rolesArray.some((ur: any) => ur?.role === "parent")) {
-                contactType = "parent";
               }
             }
             
