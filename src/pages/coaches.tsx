@@ -57,11 +57,27 @@ export default function CoachesPage() {
   async function loadCoaches() {
     try {
       setLoading(true);
-      const { data, error } = await supabase.
-      from("profiles").
-      select("id, full_name, email, phone, hourly_rate, km_rate").
-      neq("role", "parent").
-      order("full_name", { ascending: true });
+      
+      // First get all coach/admin user IDs from user_roles (exclude parents)
+      const { data: coachRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["coach", "admin"]);
+
+      const coachIds = (coachRoles || []).map(r => r.user_id);
+
+      if (coachIds.length === 0) {
+        setCoaches([]);
+        setLoading(false);
+        return;
+      }
+
+      // Then get profiles for those IDs only
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, phone, hourly_rate, km_rate")
+        .in("id", coachIds)
+        .order("full_name", { ascending: true });
 
       if (error) throw error;
 

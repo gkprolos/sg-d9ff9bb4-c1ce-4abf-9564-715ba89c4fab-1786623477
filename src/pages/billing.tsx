@@ -143,11 +143,25 @@ export default function BillingPage() {
           }
         }
       } else {
-        // Admin sees all coaches
+        // Admin sees all coaches (exclude parents)
+        // First get all coach/admin user IDs from user_roles
+        const { data: coachRoles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .in("role", ["coach", "admin"]);
+
+        const coachIds = (coachRoles || []).map(r => r.user_id);
+
+        if (coachIds.length === 0) {
+          setCoaches([]);
+          return;
+        }
+
+        // Then get profiles for those IDs only
         const { data, error } = await supabase
           .from("profiles")
           .select("id, full_name")
-          .neq("role", "parent")
+          .in("id", coachIds)
           .order("full_name", { ascending: true });
 
         if (error) throw error;
