@@ -60,6 +60,7 @@ export default function CoachesPage() {
       const { data, error } = await supabase.
       from("profiles").
       select("id, full_name, email, phone, hourly_rate, km_rate").
+      neq("role", "parent").
       order("full_name", { ascending: true });
 
       if (error) throw error;

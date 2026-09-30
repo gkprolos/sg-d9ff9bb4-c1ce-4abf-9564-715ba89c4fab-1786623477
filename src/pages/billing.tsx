@@ -147,6 +147,7 @@ export default function BillingPage() {
         const { data, error } = await supabase
           .from("profiles")
           .select("id, full_name")
+          .neq("role", "parent")
           .order("full_name", { ascending: true });
 
         if (error) throw error;
