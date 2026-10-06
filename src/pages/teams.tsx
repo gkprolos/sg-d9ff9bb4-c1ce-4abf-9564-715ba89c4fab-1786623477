@@ -73,6 +73,7 @@ export default function TeamsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
   const [managePlayersDialogOpen, setManagePlayersDialogOpen] = useState(false);
+  const [showOnlySelected, setShowOnlySelected] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     short_name: "",
@@ -86,11 +87,16 @@ export default function TeamsPage() {
 
   // Filter players by search term and team gender
   const filteredPlayers = allPlayers.filter((player) => {
+    // Show only selected filter
+    if (showOnlySelected && !selectedPlayers.includes(player.id)) {
+      return false;
+    }
+
     // Search filter
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
-    player.first_name.toLowerCase().includes(searchLower) ||
-    player.last_name.toLowerCase().includes(searchLower);
+      player.first_name.toLowerCase().includes(searchLower) ||
+      player.last_name.toLowerCase().includes(searchLower);
 
     if (!matchesSearch) return false;
 
@@ -216,6 +222,7 @@ export default function TeamsPage() {
     setSelectedTeam(team);
     setSearchTerm(""); // Reset search when opening dialog
     setGenderFilter("all"); // Reset gender filter when opening dialog
+    setShowOnlySelected(false); // Reset show only selected filter
     await loadAllPlayers();
     await loadTeamPlayers(team.id);
     setManagePlayersDialogOpen(true);
@@ -730,6 +737,15 @@ export default function TeamsPage() {
               </DialogHeader>
 
               <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="show_selected">Prikaži samo obkljukane igralce</Label>
+                  <Switch
+                    id="show_selected"
+                    checked={showOnlySelected}
+                    onCheckedChange={setShowOnlySelected}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="gender_filter">Filter po spolu</Label>
                   <Select value={genderFilter} onValueChange={setGenderFilter}>
@@ -784,7 +800,7 @@ export default function TeamsPage() {
                                     checked={isSelected}
                                     onChange={() => togglePlayer(player.id)}
                                     className="h-4 w-4" />
-                                  
+                                    
                                 </TableCell>
                                 <TableCell className="font-medium py-2">
                                   {player.first_name}

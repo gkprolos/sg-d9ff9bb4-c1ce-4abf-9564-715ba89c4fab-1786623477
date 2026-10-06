@@ -93,33 +93,104 @@ export default function PlayersPage() {
     notes: ""
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [teamFilter, setTeamFilter] = useState<string>("all");
+  const [teams, setTeams] = useState<any[]>([]);
+  const [sortField, setSortField] = useState<string>("last_name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     loadPlayers();
+    loadTeams();
   }, []);
 
+  async function loadTeams() {
+    try {
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id, name, short_name")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setTeams(data || []);
+    } catch (error: any) {
+      console.error("Napaka pri nalaganju selekcij:", error);
+    }
+  }
+
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredPlayers(players);
-      return;
+    let filtered = [...players];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (player) =>
+          player.first_name.toLowerCase().includes(query) ||
+          player.last_name.toLowerCase().includes(query)
+      );
     }
 
-    const query = searchQuery.toLowerCase();
-    const filtered = players.filter(
-      (player) =>
-      player.first_name.toLowerCase().includes(query) ||
-      player.last_name.toLowerCase().includes(query)
-    );
+    // Team filter
+    if (teamFilter !== "all") {
+      filtered = filtered.filter((player: any) => {
+        return player.teams?.some((tp: any) => tp.teams.id === teamFilter);
+      });
+    }
+
+    // Sorting
+    filtered.sort((a: any, b: any) => {
+      let aVal, bVal;
+      
+      switch (sortField) {
+        case "first_name":
+          aVal = a.first_name.toLowerCase();
+          bVal = b.first_name.toLowerCase();
+          break;
+        case "last_name":
+          aVal = a.last_name.toLowerCase();
+          bVal = b.last_name.toLowerCase();
+          break;
+        case "date_of_birth":
+          aVal = a.date_of_birth || "";
+          bVal = b.date_of_birth || "";
+          break;
+        case "gender":
+          aVal = a.gender || "";
+          bVal = b.gender || "";
+          break;
+        case "city":
+          aVal = a.city || "";
+          bVal = b.city || "";
+          break;
+        case "phone":
+          aVal = a.phone || "";
+          bVal = b.phone || "";
+          break;
+        default:
+          aVal = a.last_name.toLowerCase();
+          bVal = b.last_name.toLowerCase();
+      }
+
+      if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+
     setFilteredPlayers(filtered);
-  }, [searchQuery, players]);
+  }, [searchQuery, players, teamFilter, sortField, sortDirection]);
 
   async function loadPlayers() {
     try {
       setLoading(true);
-      const { data, error } = await supabase.
-      from("players").
-      select("*").
-      order("last_name");
+      const { data, error } = await supabase
+        .from("players")
+        .select(`
+          *,
+          teams:team_players(
+            teams(id, name, short_name)
+          )
+        `)
+        .order("last_name");
 
       if (error) throw error;
       setPlayers(data || []);
@@ -260,6 +331,15 @@ export default function PlayersPage() {
   function handleDeleteClick(player: Player) {
     setPlayerToDelete(player);
     setDeleteDialogOpen(true);
+  }
+
+  function handleSort(field: string) {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
   }
 
   async function handleConfirmDelete() {
@@ -605,8 +685,21 @@ export default function PlayersPage() {
                 placeholder="Išči po imenu ali priimku..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1" />
-              
+                className="flex-1"
+              />
+              <Select value={teamFilter} onValueChange={setTeamFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Vse selekcije" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Vse selekcije</SelectItem>
+                  {teams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.short_name || team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button onClick={() => setDialogOpen(true)} style={{ backgroundColor: "#3b82f6", backgroundImage: "none" }}>
                 <Plus className="mr-2 h-4 w-4" />
                 Dodaj igralca
@@ -635,60 +728,94 @@ export default function PlayersPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="text-xs">
-                        <TableHead className="w-[120px]">Ime</TableHead>
-                        <TableHead className="w-[120px]">Priimek</TableHead>
-                        <TableHead className="w-[110px]">Datum rojstva</TableHead>
-                        <TableHead className="w-[60px]">Spol</TableHead>
-                        <TableHead className="w-[120px]">Kraj</TableHead>
-                        <TableHead className="w-[110px]">Telefon</TableHead>
+                        <TableHead className="w-[120px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort("first_name")}>
+                          Ime {sortField === "first_name" && (sortDirection === "asc" ? "↑" : "↓")}
+                        </TableHead>
+                        <TableHead className="w-[120px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort("last_name")}>
+                          Priimek {sortField === "last_name" && (sortDirection === "asc" ? "↑" : "↓")}
+                        </TableHead>
+                        <TableHead className="w-[110px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort("date_of_birth")}>
+                          Datum rojstva {sortField === "date_of_birth" && (sortDirection === "asc" ? "↑" : "↓")}
+                        </TableHead>
+                        <TableHead className="w-[60px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort("gender")}>
+                          Spol {sortField === "gender" && (sortDirection === "asc" ? "↑" : "↓")}
+                        </TableHead>
+                        <TableHead className="w-[120px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort("city")}>
+                          Kraj {sortField === "city" && (sortDirection === "asc" ? "↑" : "↓")}
+                        </TableHead>
+                        <TableHead className="w-[110px] cursor-pointer hover:bg-muted/50" onClick={() => handleSort("phone")}>
+                          Telefon {sortField === "phone" && (sortDirection === "asc" ? "↑" : "↓")}
+                        </TableHead>
+                        <TableHead className="w-[150px]">Selekcije</TableHead>
                         <TableHead className="w-[90px]">Status</TableHead>
                         <TableHead className="text-right w-[160px]">Akcije</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredPlayers.map((player) =>
-                    <TableRow key={player.id} className="text-sm">
-                          <TableCell className="font-medium py-2">{player.first_name}</TableCell>
-                          <TableCell className="py-2">{player.last_name}</TableCell>
-                          <TableCell className="py-2">
-                            {player.date_of_birth ?
-                        new Date(player.date_of_birth).toLocaleDateString("sl-SI") :
-                        "N/A"}
-                          </TableCell>
-                          <TableCell className="py-2">{player.gender || "N/A"}</TableCell>
-                          <TableCell className="py-2">{player.city || "N/A"}</TableCell>
-                          <TableCell className="py-2">{player.phone || "N/A"}</TableCell>
-                          <TableCell className="py-2">
-                            <Badge variant={player.is_active ? "default" : "secondary"} className="text-xs" style={{ backgroundColor: "#737373", backgroundImage: "none" }}>
-                              {player.is_active ? "Aktiven" : "Neaktiven"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right py-2">
-                            <div className="flex gap-1 justify-end">
-                              <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditPlayer(player)}
-                            disabled={loading}
-                            className="h-7 text-xs">
-                            
-                                <Edit className="h-3 w-3 mr-1" />
-                                Uredi
-                              </Button>
-                              <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDeleteClick(player)}
-                            disabled={loading}
-                            className="h-7 text-xs">
-                            
-                                <Trash2 className="h-3 w-3 mr-1" />
-                                Izbriši
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                    )}
+                      {filteredPlayers.map((player: any) => {
+                        const playerTeams = player.teams?.map((tp: any) => tp.teams) || [];
+                        
+                        return (
+                          <TableRow key={player.id} className="text-sm">
+                            <TableCell className="font-medium py-2">{player.first_name}</TableCell>
+                            <TableCell className="py-2">{player.last_name}</TableCell>
+                            <TableCell className="py-2">
+                              {player.date_of_birth
+                                ? new Date(player.date_of_birth).toLocaleDateString("sl-SI")
+                                : "N/A"}
+                            </TableCell>
+                            <TableCell className="py-2">{player.gender || "N/A"}</TableCell>
+                            <TableCell className="py-2">{player.city || "N/A"}</TableCell>
+                            <TableCell className="py-2">{player.phone || "N/A"}</TableCell>
+                            <TableCell className="py-2">
+                              <div className="flex flex-wrap gap-1">
+                                {playerTeams.length > 0 ? (
+                                  playerTeams.map((team: any, idx: number) => (
+                                    <Badge key={idx} variant="outline" className="text-xs">
+                                      {team.short_name || team.name}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">-</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-2">
+                              <Badge
+                                variant={player.is_active ? "default" : "secondary"}
+                                className="text-xs"
+                                style={{ backgroundColor: "#737373", backgroundImage: "none" }}
+                              >
+                                {player.is_active ? "Aktiven" : "Neaktiven"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right py-2">
+                              <div className="flex gap-1 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditPlayer(player)}
+                                  disabled={loading}
+                                  className="h-7 text-xs"
+                                >
+                                  <Edit className="h-3 w-3 mr-1" />
+                                  Uredi
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDeleteClick(player)}
+                                  disabled={loading}
+                                  className="h-7 text-xs"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  Izbriši
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
