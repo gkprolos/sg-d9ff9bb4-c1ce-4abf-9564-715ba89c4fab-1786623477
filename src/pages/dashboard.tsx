@@ -595,7 +595,7 @@ export default function DashboardPage() {
       );
 
       // Use same query pattern as monthly.tsx - DATE format, not TIMESTAMP
-      const query = supabase
+      let query = supabase
         .from("attendance_records")
         .select(`
           *,
@@ -607,12 +607,18 @@ export default function DashboardPage() {
           activities!inner (
             id,
             activity_date,
-            team_id
+            team_id,
+            season_id
           )
         `)
         .gte("activities.activity_date", startDate)
         .lte("activities.activity_date", endDate)
         .in("activities.team_id", teamIds);
+
+      // Add season filter if selected
+      if (selectedSeason && selectedSeason.length > 0) {
+        query = query.eq("activities.season_id", selectedSeason);
+      }
 
       const { data: attendanceData, error } = await query;
 
