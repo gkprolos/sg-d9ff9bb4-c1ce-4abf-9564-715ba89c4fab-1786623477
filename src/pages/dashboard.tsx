@@ -122,6 +122,10 @@ export default function DashboardPage() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPlayerDetail, setSelectedPlayerDetail] = useState<PlayerDetail | null>(null);
   const [coachRates, setCoachRates] = useState<any>(null);
+  const [playerNameFilter, setPlayerNameFilter] = useState<string>("");
+  const [playerTeamFilter, setPlayerTeamFilter] = useState<string>("all");
+  const [playerSortField, setPlayerSortField] = useState<string>("player_name");
+  const [playerSortDirection, setPlayerSortDirection] = useState<"asc" | "desc">("asc");
 
   const isAdmin = userRole === "admin";
 
@@ -518,9 +522,9 @@ export default function DashboardPage() {
       const [year, month] = selectedMonth.split("-");
       const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
 
-      // Use full timestamp range to ensure we catch all activities on last day of month
-      const startDate = `${year}-${month}-01T00:00:00.000`;
-      const endDate = `${year}-${month}-${String(lastDay).padStart(2, "0")}T23:59:59.999`;
+      // Use DATE format (no timestamps) to match attendance/monthly.tsx
+      const startDate = `${year}-${month.padStart(2, "0")}-01`;
+      const endDate = `${year}-${month.padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
       let teamIds: string[] = [];
 
@@ -590,7 +594,7 @@ export default function DashboardPage() {
         ])
       );
 
-      // Use same query pattern as monthly.tsx - join attendance_records with activities
+      // Use same query pattern as monthly.tsx - DATE format, not TIMESTAMP
       const query = supabase
         .from("attendance_records")
         .select(`
@@ -1153,6 +1157,15 @@ export default function DashboardPage() {
     }
   }
 
+  function handlePlayerSort(field: string) {
+    if (playerSortField === field) {
+      setPlayerSortDirection(playerSortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setPlayerSortField(field);
+      setPlayerSortDirection("asc");
+    }
+  }
+
   const monthNames = [
   "Januar", "Februar", "Marec", "April", "Maj", "Junij",
   "Julij", "Avgust", "September", "Oktober", "November", "December"];
@@ -1177,6 +1190,74 @@ export default function DashboardPage() {
     const [year, month] = selectedMonth.split("-");
     return new Date(parseInt(year), parseInt(month), 0).getDate();
   };
+
+  // Filter and sort player attendance
+  const filteredAndSortedPlayers = playerAttendance
+    .filter((player) => {
+      // Name filter
+      if (playerNameFilter.trim()) {
+        const query = playerNameFilter.toLowerCase();
+        if (!player.player_name.toLowerCase().includes(query)) {
+          return false;
+        }
+      }
+      
+      // Team filter (additional to the main team filter)
+      if (playerTeamFilter !== "all" && player.team_name !== playerTeamFilter) {
+        return false;
+      }
+
+      // Low attendance filter
+      if (showLowAttendanceOnly && player.attendance_rate >= 75) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      let aVal: any, bVal: any;
+
+      switch (playerSortField) {
+        case "player_name":
+          aVal = a.player_name.toLowerCase();
+          bVal = b.player_name.toLowerCase();
+          break;
+        case "present":
+          aVal = a.present;
+          bVal = b.present;
+          break;
+        case "absent":
+          aVal = a.absent;
+          bVal = b.absent;
+          break;
+        case "excused":
+          aVal = a.excused;
+          bVal = b.excused;
+          break;
+        case "attendance_rate":
+          aVal = a.attendance_rate;
+          bVal = b.attendance_rate;
+          break;
+        case "team_name":
+          aVal = a.team_name.toLowerCase();
+          bVal = b.team_name.toLowerCase();
+          break;
+        case "head_coach_name":
+          aVal = a.head_coach_name.toLowerCase();
+          bVal = b.head_coach_name.toLowerCase();
+          break;
+        default:
+          aVal = a.player_name.toLowerCase();
+          bVal = b.player_name.toLowerCase();
+      }
+
+      if (aVal < bVal) return playerSortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return playerSortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+
+  // Get unique team names from current player attendance for the additional filter
+  const playerTeamNames = Array.from(new Set(playerAttendance.map(p => p.team_name))).sort();
 
   return (
     <ProtectedRoute allowedRoles={["admin", "coach"]}>
@@ -1400,25 +1481,58 @@ export default function DashboardPage() {
           {/* Player Attendance by Team */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Pregled obiska po igralcih</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={showLowAttendanceOnly ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setShowLowAttendanceOnly(!showLowAttendanceOnly)}
-                    className="hidden md:inline-flex" style={{ backgroundColor: "#eab308", backgroundImage: "none" }}>
-                    
-                    {showLowAttendanceOnly ? "Prikaži vse" : "Samo nizka prisotnost"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowMobilePlayerAttendance(!showMobilePlayerAttendance)}
-                    className="md:hidden">
-                    
-                    {showMobilePlayerAttendance ? "Skrij pregled" : "Prikaži pregled"}
-                  </Button>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle>Pregled obiska po igralcih</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={showLowAttendanceOnly ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowLowAttendanceOnly(!showLowAttendanceOnly)}
+                      className="hidden md:inline-flex" style={{ backgroundColor: "#eab308", backgroundImage: "none" }}>
+                      
+                      {showLowAttendanceOnly ? "Prikaži vse" : "Samo nizka prisotnost"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowMobilePlayerAttendance(!showMobilePlayerAttendance)}
+                      className="md:hidden">
+                      
+                      {showMobilePlayerAttendance ? "Skrij pregled" : "Prikaži pregled"}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Filters row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="player_name_filter">Išči po imenu/priimku</Label>
+                    <input
+                      id="player_name_filter"
+                      type="text"
+                      placeholder="Vnesi ime ali priimek..."
+                      value={playerNameFilter}
+                      onChange={(e) => setPlayerNameFilter(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="player_team_filter">Selekcija (dodatni filter)</Label>
+                    <Select value={playerTeamFilter} onValueChange={setPlayerTeamFilter}>
+                      <SelectTrigger id="player_team_filter">
+                        <SelectValue placeholder="Vse selekcije" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Vse selekcije</SelectItem>
+                        {playerTeamNames.map((teamName) => (
+                          <SelectItem key={teamName} value={teamName}>
+                            {teamName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -1435,19 +1549,52 @@ export default function DashboardPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Igralec</TableHead>
-                          <TableHead className="text-right">Prisotnosti</TableHead>
-                          <TableHead className="text-right">Odsotnosti</TableHead>
-                          <TableHead className="text-right">Javljene</TableHead>
-                          <TableHead className="text-right">Odstotek</TableHead>
-                          <TableHead>Selekcija</TableHead>
-                          <TableHead>Glavni trener</TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handlePlayerSort("player_name")}
+                          >
+                            Igralec {playerSortField === "player_name" && (playerSortDirection === "asc" ? "↑" : "↓")}
+                          </TableHead>
+                          <TableHead 
+                            className="text-right cursor-pointer hover:bg-muted/50"
+                            onClick={() => handlePlayerSort("present")}
+                          >
+                            Prisotnosti {playerSortField === "present" && (playerSortDirection === "asc" ? "↑" : "↓")}
+                          </TableHead>
+                          <TableHead 
+                            className="text-right cursor-pointer hover:bg-muted/50"
+                            onClick={() => handlePlayerSort("absent")}
+                          >
+                            Odsotnosti {playerSortField === "absent" && (playerSortDirection === "asc" ? "↑" : "↓")}
+                          </TableHead>
+                          <TableHead 
+                            className="text-right cursor-pointer hover:bg-muted/50"
+                            onClick={() => handlePlayerSort("excused")}
+                          >
+                            Javljene {playerSortField === "excused" && (playerSortDirection === "asc" ? "↑" : "↓")}
+                          </TableHead>
+                          <TableHead 
+                            className="text-right cursor-pointer hover:bg-muted/50"
+                            onClick={() => handlePlayerSort("attendance_rate")}
+                          >
+                            Odstotek {playerSortField === "attendance_rate" && (playerSortDirection === "asc" ? "↑" : "↓")}
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handlePlayerSort("team_name")}
+                          >
+                            Selekcija {playerSortField === "team_name" && (playerSortDirection === "asc" ? "↑" : "↓")}
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handlePlayerSort("head_coach_name")}
+                          >
+                            Glavni trener {playerSortField === "head_coach_name" && (playerSortDirection === "asc" ? "↑" : "↓")}
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {playerAttendance.
-                      filter((player) => !showLowAttendanceOnly || player.attendance_rate < 75).
-                      map((player, idx) =>
+                        {filteredAndSortedPlayers.map((player, idx) =>
                       <TableRow key={`${player.player_id}-${player.team_name}-${idx}`}>
                               <TableCell>{player.player_name}</TableCell>
                               <TableCell className="text-right">{player.present}</TableCell>
@@ -1463,7 +1610,7 @@ export default function DashboardPage() {
                       </TableBody>
                     </Table>
                   </div>
-                  {showLowAttendanceOnly && playerAttendance.filter((p) => p.attendance_rate < 75).length === 0 &&
+                  {showLowAttendanceOnly && filteredAndSortedPlayers.length === 0 &&
                 <p className="text-sm text-muted-foreground text-center py-4 border-t mt-4">
                       Ni igralcev z nižjo prisotnostjo od 75%. Odlično delo! 🎉
                     </p>
@@ -1505,9 +1652,7 @@ export default function DashboardPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {playerAttendance.
-                      filter((player) => !showLowAttendanceOnly || player.attendance_rate < 75).
-                      map((player, idx) =>
+                          {filteredAndSortedPlayers.map((player, idx) =>
                       <TableRow key={`${player.player_id}-${player.team_name}-${idx}`}>
                                 <TableCell className="font-medium">
                                   {player.player_name}
@@ -1533,7 +1678,7 @@ export default function DashboardPage() {
                         </TableBody>
                       </Table>
                     </div>
-                    {showLowAttendanceOnly && playerAttendance.filter((p) => p.attendance_rate < 75).length === 0 &&
+                    {showLowAttendanceOnly && filteredAndSortedPlayers.length === 0 &&
                 <p className="text-sm text-muted-foreground text-center py-4 border-t mt-4">
                         Ni igralcev z nižjo prisotnostjo od 75%. Odlično delo! 🎉
                       </p>
