@@ -663,17 +663,17 @@ export default function DashboardPage() {
         return;
       }
 
-      // Group by player and team
-      const playerTeamMap = new Map<string, PlayerAttendance>();
+      // Group by player ONLY (not by player+team like before)
+      // This matches /attendance/monthly.tsx behavior (line 245-267)
+      const playerMap = new Map<string, PlayerAttendance>();
 
       attendanceData.forEach((record: any) => {
         const playerId = record.player_id;
         const teamId = record.activities.team_id;
-        const key = `${playerId}-${teamId}`;
+        const teamInfo = teamsMap.get(teamId);
 
-        if (!playerTeamMap.has(key)) {
-          const teamInfo = teamsMap.get(teamId);
-          playerTeamMap.set(key, {
+        if (!playerMap.has(playerId)) {
+          playerMap.set(playerId, {
             player_id: playerId,
             player_name: `${record.players.first_name} ${record.players.last_name}`,
             team_name: teamInfo?.name || "Unknown",
@@ -686,7 +686,18 @@ export default function DashboardPage() {
           });
         }
 
-        const playerData = playerTeamMap.get(key)!;
+        const playerData = playerMap.get(playerId)!;
+        
+        // Aggregate team names if player is in multiple teams
+        if (teamInfo && !playerData.team_name.includes(teamInfo.name)) {
+          if (playerData.team_name === "Unknown") {
+            playerData.team_name = teamInfo.name;
+          } else {
+            playerData.team_name += `, ${teamInfo.name}`;
+          }
+        }
+
+        // Count records
         playerData.total_records++;
         
         if (record.status === 1) {
@@ -699,7 +710,7 @@ export default function DashboardPage() {
       });
 
       // Calculate attendance rates
-      const playerStatsArray = Array.from(playerTeamMap.values()).map((player) => ({
+      const playerStatsArray = Array.from(playerMap.values()).map((player) => ({
         ...player,
         attendance_rate: player.total_records > 0 ? (player.present / player.total_records * 100) : 0
       }));
