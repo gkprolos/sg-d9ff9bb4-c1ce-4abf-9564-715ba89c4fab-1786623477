@@ -518,6 +518,11 @@ export default function DashboardPage() {
 
   async function loadPlayerAttendance() {
     try {
+      console.log("=== loadPlayerAttendance START ===");
+      console.log("selectedTeam:", selectedTeam);
+      console.log("isAdmin:", isAdmin);
+      console.log("user?.id:", user?.id);
+
       const [year, month] = selectedMonth.split("-");
       const monthNum = parseInt(month);
       const lastDay = new Date(parseInt(year), monthNum, 0).getDate();
@@ -531,6 +536,7 @@ export default function DashboardPage() {
 
       // Determine which teams to load
       if (selectedTeam === "all") {
+        console.log("Branch: selectedTeam === 'all'");
         if (isAdmin) {
           // Admin: load all active teams
           const { data: allTeams } = await supabase
@@ -539,6 +545,7 @@ export default function DashboardPage() {
             .eq("is_archived", false);
 
           teamIds = (allTeams || []).map((t) => t.id);
+          console.log("Admin - all teams:", teamIds);
         } else if (user?.id) {
           // Coach: load only their teams
           const { data: coachTeams } = await supabase
@@ -548,8 +555,10 @@ export default function DashboardPage() {
             .eq("is_active", true);
 
           teamIds = (coachTeams || []).map((ct) => ct.team_id);
+          console.log("Coach - their teams:", teamIds);
         }
       } else {
+        console.log("Branch: single team selected:", selectedTeam);
         // Single team selected
         if (!isAdmin && user?.id) {
           // Verify coach has access to this team
@@ -561,15 +570,22 @@ export default function DashboardPage() {
             .eq("is_active", true)
             .maybeSingle();
 
+          console.log("Coach team verification result:", coachTeam);
+
           if (!coachTeam) {
+            console.log("Coach does not have access to this team - returning empty");
             setPlayerAttendance([]);
             return;
           }
         }
         teamIds = [selectedTeam];
+        console.log("Final teamIds for single team:", teamIds);
       }
 
+      console.log("=== FINAL teamIds array:", teamIds);
+
       if (teamIds.length === 0) {
+        console.log("No teams to load - returning empty");
         setPlayerAttendance([]);
         return;
       }
@@ -584,6 +600,8 @@ export default function DashboardPage() {
           profiles!teams_head_coach_id_fkey(full_name)
         `)
         .in("id", teamIds);
+
+      console.log("Teams data loaded:", teamsData?.map(t => ({ id: t.id, name: t.name })));
 
       const teamsMap = new Map(
         (teamsData || []).map((t) => [
@@ -709,6 +727,9 @@ export default function DashboardPage() {
         if (teamCompare !== 0) return teamCompare;
         return a.player_name.localeCompare(b.player_name);
       });
+
+      console.log("=== Final playerStatsArray:", playerStatsArray.length, "entries");
+      console.log("=== loadPlayerAttendance END ===");
 
       setPlayerAttendance(playerStatsArray);
     } catch (error: any) {
