@@ -381,33 +381,47 @@ export default function AttendancePage() {
   }
 
   async function handleAttendanceChange(playerId: string, status: number | null) {
-    if (![0, 1, 2].includes(status ?? 0)) return;
+    if (!selectedActivity) return;
 
     try {
-      // Upsert attendance record
-      const { error } = await supabase.
-      from("attendance_records").
-      upsert({
-        activity_id: selectedActivity,
-        player_id: playerId,
-        status: status ?? 0,
-        recorded_by: user?.id
-      }, {
-        onConflict: "activity_id,player_id"
-      });
+      if (status === null) {
+        // Delete the record from database
+        const { error } = await supabase
+          .from("attendance_records")
+          .delete()
+          .eq("activity_id", selectedActivity)
+          .eq("player_id", playerId);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Upsert record for status 0, 1, or 2
+        const { error } = await supabase
+          .from("attendance_records")
+          .upsert(
+            {
+              activity_id: selectedActivity,
+              player_id: playerId,
+              status: status,
+              recorded_by: user?.id
+            },
+            { onConflict: "activity_id,player_id" }
+          );
+
+        if (error) throw error;
+      }
 
       // Update local state
-      setPlayers((prev) => prev.map((p) =>
-      p.id === playerId ? { ...p, attendance_status: status } : p
-      ));
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.id === playerId ? { ...p, attendance_status: status } : p
+        )
+      );
     } catch (error: any) {
       console.error("Napaka pri shranjevanju prisotnosti:", error);
       toast({
         variant: "destructive",
         title: "Napaka",
-        description: error.message || "Napaka pri shranjevanju prisotnosti"
+        description: "Napaka pri shranjevanju prisotnosti"
       });
     }
   }
@@ -449,38 +463,84 @@ export default function AttendancePage() {
   const excusedCount = players.filter((p) => p.attendance_status === 2).length;
 
   async function handleCompleteAttendance() {
-    if (!selectedActivity) return;
+    if (!selectedActivity || !user?.id) return;
 
     try {
       setLoading(true);
 
-      // Call RPC function to complete activity and calculate amounts
-      const { data, error } = await supabase.rpc('complete_activity_with_rates', {
+      // Find players with no attendance record (null status)
+      const playersWithoutRecord = players.filter((p) => p.attendance_status === null);
+
+      if (playersWithoutRecord.length > 0) {
+        // Show confirmation dialog
+        const playerNames = playersWithoutRecord.map((p) => `${p.first_name} ${p.last_name}`).join("\n");
+        const confirmed = window.confirm(
+          `Naslednji igralci nimajo vnešene prisotnosti in bodo shranjeni kot ODSOTNI:\n\n${playerNames}\n\nAli želite nadaljevati?`
+        );
+
+        if (!confirmed) {
+          setLoading(false);
+          return;
+        }
+
+        // Bulk upsert players without records as absent (status 0)
+        const absentRecords = playersWithoutRecord.map((player) => ({
+          activity_id: selectedActivity,
+          player_id: player.id,
+          status: 0,
+          recorded_by: user.id
+        }));
+
+        const { error: upsertError } = await supabase
+          .from("attendance_records")
+          .upsert(absentRecords, { onConflict: "activity_id,player_id" });
+
+        if (upsertError) throw upsertError;
+
+        // Update local state
+        setPlayers((prev) =>
+          prev.map((p) =>
+            playersWithoutRecord.some((pwr) => pwr.id === p.id)
+              ? { ...p, attendance_status: 0 }
+              : p
+          )
+        );
+      }
+
+      // Call RPC to complete activity
+      const { error: rpcError } = await supabase.rpc("complete_activity_with_rates", {
         p_activity_id: selectedActivity
       });
 
-      if (error) {
-        console.error("Napaka pri zaključevanju aktivnosti:", error);
-        toast({
-          variant: "destructive",
-          title: "Napaka pri zaključevanju",
-          description: error.message
-        });
-        throw error;
-      }
+      if (rpcError) throw rpcError;
+
+      // Calculate final counts from current state
+      const presentCount = players.filter((p) => 
+        playersWithoutRecord.some((pwr) => pwr.id === p.id) 
+          ? false 
+          : p.attendance_status === 1
+      ).length;
+      const absentCount = players.filter((p) => 
+        playersWithoutRecord.some((pwr) => pwr.id === p.id) 
+          ? true 
+          : p.attendance_status === 0
+      ).length;
+      const excusedCount = players.filter((p) => p.attendance_status === 2).length;
 
       toast({
-        title: "Aktivnost uspešno zaključena!",
-        description: `Prisotnost shranjena: ${presentCount} prisotnih, ${absentCount} odsotnih, ${excusedCount} opravičenih. Obračun je bil avtomatsko izračunan.`
+        title: "Prisotnost shranjena",
+        description: `Prisotni: ${presentCount}, Odsotni: ${absentCount}, Opravičeni: ${excusedCount}`
       });
 
-      // Redirect back to activities
-      setTimeout(() => {
-        router.push("/activities");
-      }, 1500);
+      // Redirect
+      router.push("/attendance");
     } catch (error: any) {
-      console.error("Napaka pri zaključevanju vnosa:", error);
-      // Error toast already shown above
+      console.error("Napaka pri shranjevanju prisotnosti:", error);
+      toast({
+        variant: "destructive",
+        title: "Napaka",
+        description: error.message || "Napaka pri shranjevanju prisotnosti"
+      });
     } finally {
       setLoading(false);
     }
@@ -775,11 +835,10 @@ export default function AttendancePage() {
                         value={player.attendance_status !== null ? String(player.attendance_status) : ""}
                         onChange={(e) => {
                           const val = e.target.value;
-                          if (val === "" || ["0", "1", "2"].includes(val)) {
-                            const numVal = val === "" ? null : parseInt(val);
-                            if (numVal !== null) {
-                              handleAttendanceChange(player.id, numVal);
-                            }
+                          if (val === "") {
+                            handleAttendanceChange(player.id, null);
+                          } else if (["0", "1", "2"].includes(val)) {
+                            handleAttendanceChange(player.id, parseInt(val));
                           }
                         }}
                         onFocus={(e) => {
@@ -798,15 +857,38 @@ export default function AttendancePage() {
                   <div className="flex gap-2 flex-wrap">
                     <Button
                     variant="outline"
-                    onClick={() => {
-                      players.forEach((player) => {
-                        if (player.attendance_status !== 1) {
-                          handleAttendanceChange(player.id, 1);
-                        }
-                      });
-                      toast({
-                        title: "Vsi igralci označeni kot prisotni"
-                      });
+                    onClick={async () => {
+                      if (!selectedActivity) return;
+                      
+                      try {
+                        // ONE bulk upsert for all players
+                        const records = players.map((player) => ({
+                          activity_id: selectedActivity,
+                          player_id: player.id,
+                          status: 1,
+                          recorded_by: user?.id
+                        }));
+
+                        const { error } = await supabase
+                          .from("attendance_records")
+                          .upsert(records, { onConflict: "activity_id,player_id" });
+
+                        if (error) throw error;
+
+                        // Update local state - all players to status 1
+                        setPlayers((prev) => prev.map((p) => ({ ...p, attendance_status: 1 })));
+                        
+                        toast({
+                          title: "Vsi igralci označeni kot prisotni"
+                        });
+                      } catch (error: any) {
+                        console.error("Napaka pri označevanju prisotnosti:", error);
+                        toast({
+                          variant: "destructive",
+                          title: "Napaka",
+                          description: "Napaka pri označevanju prisotnosti"
+                        });
+                      }
                     }}
                     disabled={loading}>
                     
@@ -814,14 +896,32 @@ export default function AttendancePage() {
                     </Button>
                     <Button
                     variant="outline"
-                    onClick={() => {
-                      players.forEach((player) => {
-                        handleAttendanceChange(player.id, 0);
-                      });
-                      setPlayers((prev) => prev.map((p) => ({ ...p, attendance_status: null })));
-                      toast({
-                        title: "Prisotnost počiščena"
-                      });
+                    onClick={async () => {
+                      if (!selectedActivity) return;
+                      
+                      try {
+                        // ONE delete query for all records in this activity
+                        const { error } = await supabase
+                          .from("attendance_records")
+                          .delete()
+                          .eq("activity_id", selectedActivity);
+
+                        if (error) throw error;
+
+                        // Update local state - all players to null
+                        setPlayers((prev) => prev.map((p) => ({ ...p, attendance_status: null })));
+                        
+                        toast({
+                          title: "Prisotnost počiščena"
+                        });
+                      } catch (error: any) {
+                        console.error("Napaka pri čiščenju prisotnosti:", error);
+                        toast({
+                          variant: "destructive",
+                          title: "Napaka",
+                          description: "Napaka pri čiščenju prisotnosti"
+                        });
+                      }
                     }}
                     disabled={loading}>
                     
