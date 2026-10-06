@@ -680,12 +680,12 @@ export default function PlayersPage() {
               <Users className="h-6 w-6 text-primary" />
               <h1 className="text-3xl font-bold">Igralci</h1>
             </div>
-            <div className="flex gap-2 items-center flex-1">
+            <div className="flex gap-2 items-center flex-wrap">
               <Input
                 placeholder="Išči po imenu ali priimku..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1"
+                className="min-w-[300px] flex-1"
               />
               <Select value={teamFilter} onValueChange={setTeamFilter}>
                 <SelectTrigger className="w-[200px]">
