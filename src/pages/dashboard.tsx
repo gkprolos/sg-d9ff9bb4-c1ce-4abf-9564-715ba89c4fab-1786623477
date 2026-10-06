@@ -123,7 +123,6 @@ export default function DashboardPage() {
   const [selectedPlayerDetail, setSelectedPlayerDetail] = useState<PlayerDetail | null>(null);
   const [coachRates, setCoachRates] = useState<any>(null);
   const [playerNameFilter, setPlayerNameFilter] = useState<string>("");
-  const [playerTeamFilter, setPlayerTeamFilter] = useState<string>("all");
   const [playerSortField, setPlayerSortField] = useState<string>("player_name");
   const [playerSortDirection, setPlayerSortDirection] = useState<"asc" | "desc">("asc");
 
@@ -1241,11 +1240,6 @@ export default function DashboardPage() {
           return false;
         }
       }
-      
-      // Team filter (additional to the main team filter)
-      if (playerTeamFilter !== "all" && player.team_name !== playerTeamFilter) {
-        return false;
-      }
 
       // Low attendance filter
       if (showLowAttendanceOnly && player.attendance_rate >= 75) {
@@ -1295,9 +1289,6 @@ export default function DashboardPage() {
       if (aVal > bVal) return playerSortDirection === "asc" ? 1 : -1;
       return 0;
     });
-
-  // Get unique team names from current player attendance for the additional filter
-  const playerTeamNames = Array.from(new Set(playerAttendance.map(p => p.team_name))).sort();
 
   return (
     <ProtectedRoute allowedRoles={["admin", "coach"]}>
@@ -1545,7 +1536,7 @@ export default function DashboardPage() {
                 </div>
                 
                 {/* Filters row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="player_name_filter">Išči po imenu/priimku</Label>
                     <input
@@ -1556,22 +1547,6 @@ export default function DashboardPage() {
                       onChange={(e) => setPlayerNameFilter(e.target.value)}
                       className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="player_team_filter">Selekcija (dodatni filter)</Label>
-                    <Select value={playerTeamFilter} onValueChange={setPlayerTeamFilter}>
-                      <SelectTrigger id="player_team_filter">
-                        <SelectValue placeholder="Vse selekcije" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Vse selekcije</SelectItem>
-                        {playerTeamNames.map((teamName) => (
-                          <SelectItem key={teamName} value={teamName}>
-                            {teamName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               </div>
