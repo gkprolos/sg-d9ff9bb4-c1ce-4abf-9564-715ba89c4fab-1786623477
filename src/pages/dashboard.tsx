@@ -591,7 +591,7 @@ export default function DashboardPage() {
       );
 
       // Use same query pattern as monthly.tsx - join attendance_records with activities
-      let query = supabase
+      const query = supabase
         .from("attendance_records")
         .select(`
           *,
