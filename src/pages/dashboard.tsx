@@ -633,8 +633,8 @@ export default function DashboardPage() {
         activities.map((a) => [a.id, a.team_id])
       );
 
-      // Calculate stats per player per team
-      const playerStatsArray: PlayerAttendance[] = [];
+      // Calculate stats per player (aggregate across all teams)
+      const playerStatsMap = new Map<string, PlayerAttendance>();
 
       teamPlayers.forEach((tp: any) => {
         const playerId = tp.player_id;
@@ -644,9 +644,9 @@ export default function DashboardPage() {
         if (!teamInfo) return;
 
         // Get activities for this player's team
-        const teamActivityIds = activities.
-        filter((a) => a.team_id === teamId).
-        map((a) => a.id);
+        const teamActivityIds = activities
+          .filter((a) => a.team_id === teamId)
+          .map((a) => a.id);
 
         // Get attendance records for this player in this team's activities
         const playerRecords = (attendanceRecords || []).filter(
@@ -658,20 +658,37 @@ export default function DashboardPage() {
         const excused = playerRecords.filter((r: any) => r.status === 2).length;
         const total = playerRecords.length;
 
-        const attendanceRate = total > 0 ? present / total * 100 : 0;
-
-        playerStatsArray.push({
-          player_id: playerId,
-          player_name: `${tp.players.first_name} ${tp.players.last_name}`,
-          team_name: teamInfo.name,
-          head_coach_name: teamInfo.headCoachName,
-          present,
-          absent,
-          excused,
-          total_records: total,
-          attendance_rate: attendanceRate
-        });
+        // Aggregate by player (sum across all teams)
+        if (playerStatsMap.has(playerId)) {
+          const existing = playerStatsMap.get(playerId)!;
+          existing.present += present;
+          existing.absent += absent;
+          existing.excused += excused;
+          existing.total_records += total;
+          // Append team name if different
+          if (!existing.team_name.includes(teamInfo.name)) {
+            existing.team_name += `, ${teamInfo.name}`;
+          }
+        } else {
+          playerStatsMap.set(playerId, {
+            player_id: playerId,
+            player_name: `${tp.players.first_name} ${tp.players.last_name}`,
+            team_name: teamInfo.name,
+            head_coach_name: teamInfo.headCoachName,
+            present,
+            absent,
+            excused,
+            total_records: total,
+            attendance_rate: 0 // Will calculate below
+          });
+        }
       });
+
+      // Calculate attendance rates after aggregation
+      const playerStatsArray: PlayerAttendance[] = Array.from(playerStatsMap.values()).map(stat => ({
+        ...stat,
+        attendance_rate: stat.total_records > 0 ? (stat.present / stat.total_records * 100) : 0
+      }));
 
       // Sort by team name, then player name
       playerStatsArray.sort((a, b) => {
