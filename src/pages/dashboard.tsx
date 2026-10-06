@@ -528,19 +528,19 @@ export default function DashboardPage() {
       if (selectedTeam === "all") {
         if (isAdmin) {
           // Admin: load all active teams
-          const { data: allTeams } = await supabase.
-          from("teams").
-          select("id").
-          eq("is_archived", false);
+          const { data: allTeams } = await supabase
+            .from("teams")
+            .select("id")
+            .eq("is_archived", false);
 
           teamIds = (allTeams || []).map((t) => t.id);
         } else if (user?.id) {
           // Coach: load only their teams
-          const { data: coachTeams } = await supabase.
-          from("team_coaches").
-          select("team_id").
-          eq("coach_id", user.id).
-          eq("is_active", true);
+          const { data: coachTeams } = await supabase
+            .from("team_coaches")
+            .select("team_id")
+            .eq("coach_id", user.id)
+            .eq("is_active", true);
 
           teamIds = (coachTeams || []).map((ct) => ct.team_id);
         }
@@ -548,13 +548,13 @@ export default function DashboardPage() {
         // Single team selected
         if (!isAdmin && user?.id) {
           // Verify coach has access to this team
-          const { data: coachTeam } = await supabase.
-          from("team_coaches").
-          select("team_id").
-          eq("coach_id", user.id).
-          eq("team_id", selectedTeam).
-          eq("is_active", true).
-          maybeSingle();
+          const { data: coachTeam } = await supabase
+            .from("team_coaches")
+            .select("team_id")
+            .eq("coach_id", user.id)
+            .eq("team_id", selectedTeam)
+            .eq("is_active", true)
+            .maybeSingle();
 
           if (!coachTeam) {
             setPlayerAttendance([]);
@@ -569,108 +569,96 @@ export default function DashboardPage() {
         return;
       }
 
-      // Get all activities for selected teams in selected month
-      const { data: activities, error: activitiesError } = await supabase.
-      from("activities").
-      select("id, activity_date, team_id").
-      in("team_id", teamIds).
-      gte("activity_date", startDate).
-      lte("activity_date", endDate);
-
-      if (activitiesError) throw activitiesError;
-
-      if (!activities || activities.length === 0) {
-        setPlayerAttendance([]);
-        return;
-      }
-
       // Get team info with head coach for all teams
-      const { data: teamsData } = await supabase.
-      from("teams").
-      select(`
+      const { data: teamsData } = await supabase
+        .from("teams")
+        .select(`
           id,
           name,
           head_coach_id,
           profiles!teams_head_coach_id_fkey(full_name)
-        `).
-      in("id", teamIds);
+        `)
+        .in("id", teamIds);
 
       const teamsMap = new Map(
         (teamsData || []).map((t) => [
-        t.id,
-        {
-          name: t.name,
-          headCoachName: t.profiles?.full_name || "Ni določen"
-        }]
-        )
+          t.id,
+          {
+            name: t.name,
+            headCoachName: t.profiles?.full_name || "Ni določen"
+          }
+        ])
       );
 
-      // Get all players in these teams
-      const { data: teamPlayers } = await supabase.
-      from("team_players").
-      select(`
-          player_id,
-          team_id,
-          players(id, first_name, last_name)
-        `).
-      in("team_id", teamIds);
+      // Use same query pattern as monthly.tsx - join attendance_records with activities
+      let query = supabase
+        .from("attendance_records")
+        .select(`
+          *,
+          players!inner (
+            id,
+            first_name,
+            last_name
+          ),
+          activities!inner (
+            id,
+            activity_date,
+            team_id
+          )
+        `)
+        .gte("activities.activity_date", startDate)
+        .lte("activities.activity_date", endDate)
+        .in("activities.team_id", teamIds);
 
-      if (!teamPlayers || teamPlayers.length === 0) {
+      const { data: attendanceData, error } = await query;
+
+      if (error) throw error;
+
+      if (!attendanceData || attendanceData.length === 0) {
         setPlayerAttendance([]);
         return;
       }
 
-      const activityIds = activities.map((a) => a.id);
+      // Group by player and team
+      const playerTeamMap = new Map<string, PlayerAttendance>();
 
-      // Get attendance records for these activities
-      const { data: attendanceRecords } = await supabase.
-      from("attendance_records").
-      select("player_id, activity_id, status").
-      in("activity_id", activityIds);
+      attendanceData.forEach((record: any) => {
+        const playerId = record.player_id;
+        const teamId = record.activities.team_id;
+        const key = `${playerId}-${teamId}`;
 
-      // Build activity-to-team map
-      const activityTeamMap = new Map(
-        activities.map((a) => [a.id, a.team_id])
-      );
+        if (!playerTeamMap.has(key)) {
+          const teamInfo = teamsMap.get(teamId);
+          playerTeamMap.set(key, {
+            player_id: playerId,
+            player_name: `${record.players.first_name} ${record.players.last_name}`,
+            team_name: teamInfo?.name || "Unknown",
+            head_coach_name: teamInfo?.headCoachName || "Ni določen",
+            present: 0,
+            absent: 0,
+            excused: 0,
+            total_records: 0,
+            attendance_rate: 0
+          });
+        }
 
-      // Calculate stats per player PER TEAM (no aggregation across teams)
-      const playerStatsArray: PlayerAttendance[] = [];
-
-      teamPlayers.forEach((tp: any) => {
-        const playerId = tp.player_id;
-        const teamId = tp.team_id;
-        const teamInfo = teamsMap.get(teamId);
-
-        if (!teamInfo) return;
-
-        // Get activities for this player's team
-        const teamActivityIds = activities
-          .filter((a) => a.team_id === teamId)
-          .map((a) => a.id);
-
-        // Get attendance records for this player in this team's activities
-        const playerRecords = (attendanceRecords || []).filter(
-          (ar: any) => ar.player_id === playerId && teamActivityIds.includes(ar.activity_id)
-        );
-
-        const present = playerRecords.filter((r: any) => r.status === 1).length;
-        const absent = playerRecords.filter((r: any) => r.status === 0).length;
-        const excused = playerRecords.filter((r: any) => r.status === 2).length;
-        const total = playerRecords.length;
-
-        // Create one entry per player per team (no aggregation)
-        playerStatsArray.push({
-          player_id: playerId,
-          player_name: `${tp.players.first_name} ${tp.players.last_name}`,
-          team_name: teamInfo.name,
-          head_coach_name: teamInfo.headCoachName,
-          present,
-          absent,
-          excused,
-          total_records: total,
-          attendance_rate: total > 0 ? (present / total * 100) : 0
-        });
+        const playerData = playerTeamMap.get(key)!;
+        playerData.total_records++;
+        
+        if (record.status === 1) {
+          playerData.present++;
+        } else if (record.status === 0) {
+          playerData.absent++;
+        } else if (record.status === 2) {
+          playerData.excused++;
+        }
       });
+
+      // Calculate attendance rates
+      const playerStatsArray = Array.from(playerTeamMap.values()).map((player) => ({
+        ...player,
+        attendance_rate: player.total_records > 0 ? (player.present / player.total_records * 100) : 0
+      }));
 
       // Sort by team name, then player name
       playerStatsArray.sort((a, b) => {
