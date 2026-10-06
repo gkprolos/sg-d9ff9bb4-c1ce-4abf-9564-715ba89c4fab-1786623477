@@ -520,11 +520,13 @@ export default function DashboardPage() {
   async function loadPlayerAttendance() {
     try {
       const [year, month] = selectedMonth.split("-");
-      const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const monthNum = parseInt(month);
+      const lastDay = new Date(parseInt(year), monthNum, 0).getDate();
 
       // Use DATE format (no timestamps) to match attendance/monthly.tsx
-      const startDate = `${year}-${month.padStart(2, "0")}-01`;
-      const endDate = `${year}-${month.padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      // CRITICAL: Convert monthNum to string before padStart()
+      const startDate = `${year}-${monthNum.toString().padStart(2, "0")}-01`;
+      const endDate = `${year}-${monthNum.toString().padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
       let teamIds: string[] = [];
 
