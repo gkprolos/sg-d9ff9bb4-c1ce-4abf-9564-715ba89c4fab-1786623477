@@ -623,6 +623,41 @@ export default function DashboardPage() {
 
       if (error) throw error;
 
+      console.log("=== DASHBOARD ATTENDANCE DEBUG ===");
+      console.log("Date range:", startDate, "to", endDate);
+      console.log("Team IDs filter:", teamIds);
+      console.log("Total records fetched:", attendanceData?.length || 0);
+      
+      if (attendanceData && attendanceData.length > 0) {
+        // Sample first 5 records
+        console.log("Sample records:", attendanceData.slice(0, 5).map((r: any) => ({
+          player: `${r.players.first_name} ${r.players.last_name}`,
+          activity_date: r.activities.activity_date,
+          team_id: r.activities.team_id,
+          status: r.status
+        })));
+
+        // Count by player
+        const playerCounts = new Map<string, {present: number, absent: number, excused: number, total: number}>();
+        attendanceData.forEach((r: any) => {
+          const playerName = `${r.players.first_name} ${r.players.last_name}`;
+          if (!playerCounts.has(playerName)) {
+            playerCounts.set(playerName, {present: 0, absent: 0, excused: 0, total: 0});
+          }
+          const counts = playerCounts.get(playerName)!;
+          counts.total++;
+          if (r.status === 1) counts.present++;
+          else if (r.status === 0) counts.absent++;
+          else if (r.status === 2) counts.excused++;
+        });
+        
+        console.log("Player counts (raw from query):");
+        Array.from(playerCounts.entries()).forEach(([name, counts]) => {
+          console.log(`  ${name}: ${counts.present}/${counts.absent}/${counts.excused} (${counts.total} total)`);
+        });
+      }
+      console.log("=== END DEBUG ===");
+
       if (!attendanceData || attendanceData.length === 0) {
         setPlayerAttendance([]);
         return;
