@@ -783,7 +783,6 @@ export default function AttendancePage() {
                           }
                         }}
                         onFocus={(e) => {
-                          // Select text when input is focused for immediate replacement
                           e.target.select();
                         }}
                         onKeyDown={(e) => handleKeyDown(e, index, player.id)}
@@ -795,8 +794,8 @@ export default function AttendancePage() {
                   </TableBody>
                 </Table>
 
-                <div className="flex gap-2 mt-6 justify-between items-center">
-                  <div className="flex gap-2">
+                <div className="mt-6 space-y-4">
+                  <div className="flex gap-2 flex-wrap">
                     <Button
                     variant="outline"
                     onClick={() => {
@@ -830,15 +829,17 @@ export default function AttendancePage() {
                     </Button>
                   </div>
 
-                  <Button
-                  onClick={handleCompleteAttendance}
-                  disabled={loading}
-                  size="lg"
-                  className="gap-2" style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
-                  
-                    <Save className="h-5 w-5" />
-                    Shrani in zaključi
-                  </Button>
+                  <div className="flex justify-end pt-4 border-t">
+                    <Button
+                    onClick={handleCompleteAttendance}
+                    disabled={loading}
+                    size="lg"
+                    className="gap-2" style={{ backgroundColor: "#65a30d", backgroundImage: "none" }}>
+                    
+                      <Save className="h-5 w-5" />
+                      Shrani in zaključi
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -680,7 +680,7 @@ export default function PlayersPage() {
               <Users className="h-6 w-6 text-primary" />
               <h1 className="text-3xl font-bold">Igralci</h1>
             </div>
-            <div className="flex gap-2 items-center flex-1 max-w-md">
+            <div className="flex gap-2 items-center flex-1">
               <Input
                 placeholder="Išči po imenu ali priimku..."
                 value={searchQuery}
