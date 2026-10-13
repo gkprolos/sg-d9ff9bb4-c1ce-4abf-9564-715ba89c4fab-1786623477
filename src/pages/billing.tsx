@@ -288,7 +288,6 @@ export default function BillingPage() {
             activity_type_id,
             start_time,
             end_time,
-            substitute_coach_id,
             activity_coaches(
               coach_id,
               role,
@@ -369,91 +368,9 @@ export default function BillingPage() {
             calculatedHours = diffMs / (1000 * 60 * 60); // Convert to hours
           }
 
-          console.log(`Activity ${activity.id}: type=${activity.activity_type_id}, calculated_hours=${calculatedHours.toFixed(2)}, substitute=${activity.substitute_coach_id ? 'YES' : 'NO'}`);
+          console.log(`Activity ${activity.id}: type=${activity.activity_type_id}, calculated_hours=${calculatedHours.toFixed(2)}, coaches=${activityCoaches.length}`);
 
-          // If there's a substitute coach, ONLY count that coach (not the regular coaches)
-          if (activity.substitute_coach_id) {
-            const substituteCoachId = activity.substitute_coach_id;
-            
-            // Skip if filtering by specific coaches and substitute is not in the list
-            if (coachIds.length > 0 && !coachIds.includes(substituteCoachId)) {
-              console.log(`  Skipping - substitute coach ${substituteCoachId} not in filter`);
-              continue;
-            }
-
-            if (!coachBillingMap.has(substituteCoachId)) {
-              coachBillingMap.set(substituteCoachId, {
-                training_count: 0,
-                training_hours: 0,
-                match_count: 0,
-                match_hours: 0,
-                total_kilometers: 0,
-                hourly_amount: 0,
-                kilometer_amount: 0,
-              });
-            }
-
-            const entry = coachBillingMap.get(substituteCoachId)!;
-            
-            // Use calculated hours (substitute coaches don't have hours_worked in activity_coaches)
-            const hours = calculatedHours;
-
-            console.log(`  Substitute Coach ${substituteCoachId}: hours=${hours.toFixed(2)}`);
-
-            // Get coach rates
-            const coachRates = coachRatesMap.get(substituteCoachId);
-
-            if (!coachRates) {
-              console.warn(`⚠️ No coach_rates found for substitute coach ${substituteCoachId} - skipping`);
-              continue;
-            }
-
-            const kmRate = coachRates.rate_per_km || 0;
-
-            // Substitute coach is treated as HEAD coach for payment
-            let hourlyRate = 0;
-            
-            if (isTraining) {
-              if (activity.activity_type_id === 1) {
-                hourlyRate = coachRates.head_type1_per_hour || 0;
-              } else if (activity.activity_type_id === 2) {
-                const type2Rate = coachRates.head_type2_per_hour;
-                const type1Fallback = coachRates.head_type1_per_hour;
-                hourlyRate = type2Rate !== null ? type2Rate : (type1Fallback || 0);
-                
-                if (type2Rate === null) {
-                  console.log(`    ⚠️ Type2 rate NULL, using type1 fallback: ${type1Fallback}`);
-                }
-              }
-              
-              console.log(`    Using rates: hourly=${hourlyRate} (type${activity.activity_type_id}), km=${kmRate}`);
-              
-              entry.training_count += 1;
-              entry.training_hours += hours;
-              
-              const amount = hours * hourlyRate;
-              entry.hourly_amount += amount;
-              console.log(`    Training (substitute): ${hours.toFixed(2)}h × ${hourlyRate} = ${amount.toFixed(2)} €`);
-            } else if (isMatch) {
-              const matchRate = coachRates.head_type3_fixed || 0;
-              
-              console.log(`    Using rates: match=${matchRate} (fixed), km=${kmRate}`);
-              
-              entry.match_count += 1;
-              entry.match_hours += 4;
-              
-              entry.hourly_amount += matchRate;
-              console.log(`    Match (substitute): ${matchRate.toFixed(2)} € (fixed)`);
-            }
-
-            // Note: Substitute coaches don't have mileage recorded in activity_coaches
-            // Mileage would need to be added separately if needed
-
-            // Skip processing regular coaches for this activity since there's a substitute
-            continue;
-          }
-
-          // Regular processing for activities WITHOUT substitute coach
+          // Process all coaches for this activity
           for (const ac of activityCoaches) {
             if (coachIds.length > 0 && !coachIds.includes(ac.coach_id)) continue;
 
@@ -489,6 +406,7 @@ export default function BillingPage() {
             const kmRate = coachRates.rate_per_km || 0;
 
             // Select correct rate based on activity_type_id and role
+            // If coach is marked as "head" (whether main coach or substitute), they get HEAD rates
             let hourlyRate = 0;
             const isHead = ac.role === "head";
             
